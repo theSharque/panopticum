@@ -47,7 +47,9 @@ public class PgMetadataService {
         if (host == null || host.isBlank() || dbName == null || dbName.isBlank() || username == null || username.isBlank()) {
             return Optional.of("Укажите хост, базу и пользователя");
         }
+
         String url = POSTGRESQL_PREFIX + host.trim() + ":" + port + "/" + dbName.trim();
+
         try (Connection c = DriverManager.getConnection(url, username.trim(), password != null ? password : "")) {
             return Optional.empty();
         } catch (SQLException e) {
@@ -61,8 +63,10 @@ public class PgMetadataService {
         }
 
         String url = POSTGRESQL_PREFIX + conn.getHost() + ":" + conn.getPort() + "/" + conn.getDbName();
+
         try {
             Connection c = DriverManager.getConnection(url, conn.getUsername(), conn.getPassword() != null ? conn.getPassword() : "");
+
             return Optional.of(c);
         } catch (SQLException e) {
             log.warn("Failed to connect to {}: {}", conn.getName(), e.getMessage());
@@ -75,11 +79,14 @@ public class PgMetadataService {
         if (dbConn.isEmpty() || !"postgresql".equalsIgnoreCase(dbConn.get().getType())) {
             return List.of();
         }
+
         String dbNameFromConfig = dbConn.get().getDbName();
+
         try (Connection conn = getConnection(connectionId).orElse(null)) {
             if (conn == null) {
                 return List.of();
             }
+
             String catalog = conn.getCatalog();
             String name = catalog != null && !catalog.isBlank() ? catalog : dbNameFromConfig;
 
@@ -197,6 +204,7 @@ public class PgMetadataService {
         } else {
             orderBy = " ORDER BY 1 ASC";
         }
+
         return "SELECT * FROM (" + trimmed + ") AS _paged" + orderBy + " LIMIT " + maxLimit + " OFFSET " + Math.max(0, offset);
     }
 }

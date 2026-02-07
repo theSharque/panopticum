@@ -181,11 +181,13 @@ public class MongoController {
                     ? new ModelAndView<>("partials/mongo-table-view-result", model)
                     : new ModelAndView<>("partials/mongo-query-result", model);
         }
+
         String queryText = query != null && !query.isBlank() ? query : "{}";
         int off = offset != null ? Math.max(0, offset) : 0;
         int lim = limit != null && limit > 0 ? limit : 100;
         var result = mongoMetadataService.executeQuery(id, dbName, collection, queryText, off, lim)
                 .orElse(QueryResult.error("Execution failed"));
+
         model.put("error", result.hasError() ? result.getError() : null);
         model.put("columns", result.getColumns());
         model.put("rows", result.getRows());

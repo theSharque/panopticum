@@ -53,12 +53,15 @@ public class DbConnectionRepository {
 
     public List<DbConnection> findAll() {
         ensureTableExists();
+
         String sql = "SELECT id, name, type, host, port, db_name, username, password, created_at FROM db_connections ORDER BY name LIMIT 500";
         List<DbConnection> result = new ArrayList<>();
+
         try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql);
              ResultSet rs = stmt.executeQuery()) {
-            while (rs.next()) {
+
+                while (rs.next()) {
                 result.add(mapRow(rs));
             }
         } catch (SQLException e) {

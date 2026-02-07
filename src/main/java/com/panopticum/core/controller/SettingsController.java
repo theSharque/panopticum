@@ -156,6 +156,7 @@ public class SettingsController {
         model.put("connections", dbConnectionService.findAll());
 
         boolean hxRequest = "true".equalsIgnoreCase(request.getHeaders().get(HX_REQUEST));
+
         if (hxRequest) {
             return new ModelAndView<>("partials/sidebar", model);
         }
