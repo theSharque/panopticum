@@ -46,7 +46,6 @@
         </div>
     </div>
     <p th:if="${items == null or items.isEmpty()}" class="text-dim">Нет схем или ошибка подключения.</p>
-    <div th:replace="~{fragments/query-box :: queryBox(connectionId=${connectionId}, dbName=${dbName}, schema=${schema})}"></div>
 </main>
 </body>
 </html>

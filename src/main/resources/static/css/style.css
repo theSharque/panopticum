@@ -49,6 +49,10 @@
     box-sizing: border-box;
 }
 
+*:focus {
+    outline: none;
+}
+
 body {
     margin: 0;
     font-family: var(--font-mono);
@@ -90,13 +94,11 @@ body {
     color: var(--cyan-500);
     text-decoration: none;
     padding: var(--space-xs) var(--space-sm);
-    border: 1px solid transparent;
     border-radius: 2px;
-    transition: border-color var(--duration), box-shadow var(--duration), background var(--duration);
+    transition: box-shadow var(--duration), background var(--duration);
 }
 
 .header-nav a:hover {
-    border-color: var(--cyan-500);
     background: rgba(0, 240, 255, 0.06);
     box-shadow: 0 0 16px rgba(0, 240, 255, 0.3);
 }
@@ -127,13 +129,11 @@ body {
     padding: var(--space-sm) var(--space-md);
     color: var(--chrome-300);
     text-decoration: none;
-    border-left: 2px solid transparent;
-    transition: border-color var(--duration), color var(--duration), background var(--duration);
+    transition: color var(--duration), background var(--duration);
 }
 
 .sidebar-link:hover {
     color: var(--cyan-500);
-    border-left-color: var(--cyan-500);
     background: rgba(0, 240, 255, 0.04);
 }
 
@@ -275,7 +275,6 @@ body {
 }
 
 .form-group input:focus {
-    outline: none;
     border-color: var(--cyan-500);
     box-shadow: 0 0 16px rgba(0, 240, 255, 0.2);
 }
@@ -302,7 +301,6 @@ body {
 
 .form-group select:focus,
 .connection-type-select:focus {
-    outline: none;
     border-color: var(--cyan-500);
     box-shadow: 0 0 16px rgba(0, 240, 255, 0.2);
 }
@@ -317,7 +315,7 @@ button[type="submit"]:not(.sidebar-delete):not(.query-th-link) {
     padding: var(--space-sm) var(--space-md);
     background: transparent;
     color: var(--cyan-500);
-    border: 1px solid var(--cyan-500);
+    border: none;
     border-radius: 2px;
     cursor: pointer;
     font-family: var(--font-mono);
@@ -350,7 +348,7 @@ button[type="submit"]:not(.sidebar-delete):not(.query-th-link):hover {
     padding: var(--space-sm) var(--space-md);
     background: transparent;
     color: var(--green-500);
-    border: 1px solid rgba(5, 255, 161, 0.5);
+    border: none;
     border-radius: 2px;
     cursor: pointer;
     font-family: var(--font-mono);
@@ -544,7 +542,7 @@ button[type="submit"]:not(.sidebar-delete):not(.query-th-link):hover {
     font-family: var(--font-mono);
     color: var(--cyan-500);
     background: transparent;
-    border: 1px solid rgba(0, 240, 255, 0.4);
+    border: none;
     border-radius: 2px;
     cursor: pointer;
     text-decoration: none;
@@ -559,7 +557,6 @@ button[type="submit"]:not(.sidebar-delete):not(.query-th-link):hover {
 .query-pagination-btn-disabled,
 .query-pagination-btn:disabled {
     color: var(--chrome-500);
-    border-color: rgba(0, 240, 255, 0.2);
     cursor: not-allowed;
     opacity: 0.6;
 }
@@ -622,7 +619,6 @@ button[type="submit"]:not(.sidebar-delete):not(.query-th-link):hover {
 }
 
 .query-textarea:focus {
-    outline: none;
     border-color: var(--cyan-500);
     box-shadow: 0 0 20px rgba(0, 240, 255, 0.15);
 }
@@ -636,7 +632,7 @@ button[type="submit"]:not(.sidebar-delete):not(.query-th-link):hover {
     padding: 0;
     background: rgba(0, 240, 255, 0.06);
     color: var(--cyan-500);
-    border: 1px solid var(--cyan-500);
+    border: none;
     border-radius: 2px;
     cursor: pointer;
     transition: box-shadow var(--duration), background var(--duration);
@@ -790,11 +786,11 @@ button[type="submit"]:not(.sidebar-delete):not(.query-th-link):hover {
     height: 28px;
     padding: 0;
     background: none;
-    border: 1px solid rgba(0, 240, 255, 0.4);
+    border: none;
     color: var(--cyan-500);
     cursor: pointer;
     border-radius: 2px;
-    transition: background var(--duration), border-color var(--duration);
+    transition: background var(--duration);
 }
 
 a.query-detail-link {

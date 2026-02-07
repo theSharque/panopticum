@@ -5,8 +5,6 @@
 <main th:fragment="main" class="main-content">
     <div th:replace="~{fragments/breadcrumbs :: breadcrumbs(items=${breadcrumbs})}"></div>
     <h1>Таблицы и представления</h1>
-    <p><a th:href="@{/pg/{id}/{dbName}/{schema}/sql(id=${connectionId}, dbName=${dbName}, schema=${schema})}"
-          class="pg-list-link">SQL-запрос</a></p>
     <div th:if="${tables != null and !tables.isEmpty()}" class="query-result-data">
         <div class="query-pagination-info">
             <span class="query-pagination-range" th:text="'Строки ' + ${fromRow} + '–' + ${toRow}"></span>
@@ -58,7 +56,6 @@
         </div>
     </div>
     <p th:if="${tables == null or tables.isEmpty()}" class="text-dim">Нет таблиц и представлений или ошибка подключения.</p>
-    <div th:replace="~{fragments/query-box :: queryBox(connectionId=${connectionId}, dbName=${dbName}, schema=${schema})}"></div>
 </main>
 </body>
 </html>
