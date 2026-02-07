@@ -1,4 +1,4 @@
-package com.panopticum.controller;
+package com.panopticum.core.controller;
 
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.MediaType;

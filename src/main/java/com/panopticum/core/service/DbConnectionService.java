@@ -1,7 +1,7 @@
-package com.panopticum.service;
+package com.panopticum.core.service;
 
-import com.panopticum.model.DbConnection;
-import com.panopticum.repository.DbConnectionRepository;
+import com.panopticum.core.model.DbConnection;
+import com.panopticum.core.repository.DbConnectionRepository;
 import jakarta.inject.Singleton;
 import lombok.RequiredArgsConstructor;
 

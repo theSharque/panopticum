@@ -6,6 +6,7 @@ panopticum:
     schemas-page-size: 50
     tables: 1000
     tables-page-size: 50
+    collections: 500
     connections: 500
 
 micronaut:
@@ -36,6 +37,14 @@ micronaut:
         httpMethod: POST
         access:
           - isAuthenticated()
+      - pattern: /settings/add-mongo
+        httpMethod: POST
+        access:
+          - isAuthenticated()
+      - pattern: /settings/test-mongo
+        httpMethod: POST
+        access:
+          - isAuthenticated()
       - pattern: /settings/delete-connection/*
         httpMethod: DELETE
         access:
@@ -44,6 +53,9 @@ micronaut:
         access:
           - isAuthenticated()
       - pattern: /pg/**
+        access:
+          - isAuthenticated()
+      - pattern: /mongo/**
         access:
           - isAuthenticated()
   views:

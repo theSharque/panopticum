@@ -1,7 +1,6 @@
-package com.panopticum.controller;
+package com.panopticum.core.controller;
 
-import com.panopticum.model.DbConnection;
-import com.panopticum.service.DbConnectionService;
+import com.panopticum.core.service.DbConnectionService;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;

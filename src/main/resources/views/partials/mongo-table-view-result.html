@@ -1,0 +1,53 @@
+<div id="table-data" class="query-result">
+    <p th:if="${error}" th:text="${error}" class="query-error"></p>
+    <div th:if="${error == null and columns != null and !columns.isEmpty()}" class="query-result-data">
+        <div class="query-pagination-info" th:if="${rows != null and !rows.isEmpty()}">
+            <span class="query-pagination-range" th:text="'Строки ' + ${fromRow} + '–' + ${toRow}"></span>
+            <span class="query-pagination-nav">
+                <form class="query-pagination-form"
+                      th:action="@{/mongo/{id}/query(id=${connectionId})}"
+                      method="post"
+                      th:attr="hx-post=@{/mongo/{id}/query(id=${connectionId})}"
+                      hx-target="#table-data"
+                      hx-swap="outerHTML">
+                    <input type="hidden" name="query" th:value="${query}"/>
+                    <input type="hidden" name="dbName" th:value="${dbName}"/>
+                    <input type="hidden" name="collection" th:value="${collection}"/>
+                    <input type="hidden" name="limit" th:value="${limit}"/>
+                    <input type="hidden" name="target" value="table"/>
+                    <input type="hidden" name="offset" th:value="${prevOffset}"/>
+                    <button type="submit" class="query-pagination-btn" th:classappend="${!hasPrev} ? 'query-pagination-btn-disabled' : ''" th:disabled="${!hasPrev}">← Назад</button>
+                </form>
+                <form class="query-pagination-form"
+                      th:action="@{/mongo/{id}/query(id=${connectionId})}"
+                      method="post"
+                      th:attr="hx-post=@{/mongo/{id}/query(id=${connectionId})}"
+                      hx-target="#table-data"
+                      hx-swap="outerHTML">
+                    <input type="hidden" name="query" th:value="${query}"/>
+                    <input type="hidden" name="dbName" th:value="${dbName}"/>
+                    <input type="hidden" name="collection" th:value="${collection}"/>
+                    <input type="hidden" name="limit" th:value="${limit}"/>
+                    <input type="hidden" name="target" value="table"/>
+                    <input type="hidden" name="offset" th:value="${nextOffset}"/>
+                    <button type="submit" class="query-pagination-btn" th:classappend="${!hasMore} ? 'query-pagination-btn-disabled' : ''" th:disabled="${!hasMore}">Вперёд →</button>
+                </form>
+            </span>
+        </div>
+        <div class="query-table-wrapper">
+            <table class="query-table">
+                <thead>
+                    <tr>
+                        <th th:each="col : ${columns}" th:text="${col}"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="row : ${rows}">
+                        <td th:each="cell : ${row}" th:text="${cell}"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <p th:if="${error == null and (rows == null or rows.isEmpty())}" class="text-dim">Нет данных.</p>
+</div>

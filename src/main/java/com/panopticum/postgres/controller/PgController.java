@@ -1,24 +1,26 @@
-package com.panopticum.controller;
+package com.panopticum.postgres.controller;
 
-import com.panopticum.model.BreadcrumbItem;
-import com.panopticum.model.DbConnection;
-import com.panopticum.service.DbConnectionService;
-import com.panopticum.service.PgMetadataService;
+import com.panopticum.core.model.BreadcrumbItem;
+import com.panopticum.core.model.DbConnection;
+import com.panopticum.core.model.QueryResult;
+import com.panopticum.core.service.DbConnectionService;
+import com.panopticum.postgres.model.TableInfo;
+import com.panopticum.postgres.service.PgMetadataService;
+import io.micronaut.core.annotation.Nullable;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.Consumes;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
 import io.micronaut.http.annotation.PathVariable;
 import io.micronaut.http.annotation.Post;
-import io.micronaut.core.annotation.Nullable;
-import io.micronaut.http.annotation.QueryValue;
 import io.micronaut.http.annotation.Produces;
+import io.micronaut.http.annotation.QueryValue;
+import io.micronaut.scheduling.TaskExecutors;
+import io.micronaut.scheduling.annotation.ExecuteOn;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import io.micronaut.views.ModelAndView;
 import io.micronaut.views.View;
-import io.micronaut.scheduling.TaskExecutors;
-import io.micronaut.scheduling.annotation.ExecuteOn;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -107,7 +109,7 @@ public class PgController {
         }
         int offset = Math.max(0, (page - 1) * size);
         int limit = Math.min(size, 500);
-        List<PgMetadataService.TableInfo> tables = pgMetadataService.listTables(id, dbName, schema, offset, limit);
+        List<TableInfo> tables = pgMetadataService.listTables(id, dbName, schema, offset, limit);
         List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
         breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/pg/" + id));
         breadcrumbs.add(new BreadcrumbItem(dbName, "/pg/" + id + "/" + dbName));
@@ -183,7 +185,7 @@ public class PgController {
             model.put("order", "");
         } else {
             var result = pgMetadataService.executeQuery(id, sql, off, lim, sort, order)
-                    .orElse(PgMetadataService.QueryResult.error("Ошибка выполнения запроса"));
+                    .orElse(QueryResult.error("Ошибка выполнения запроса"));
             model.put("error", result.hasError() ? result.getError() : null);
             model.put("columns", result.getColumns());
             model.put("rows", result.getRows());
@@ -222,7 +224,7 @@ public class PgController {
         int off = offset != null ? Math.max(0, offset) : 0;
         int lim = limit != null && limit > 0 ? limit : 100;
         var result = pgMetadataService.executeQuery(id, sql, off, lim, sort, order)
-                .orElse(PgMetadataService.QueryResult.error("Execution failed"));
+                .orElse(QueryResult.error("Execution failed"));
         model.put("error", result.hasError() ? result.getError() : null);
         model.put("columns", result.getColumns());
         model.put("rows", result.getRows());

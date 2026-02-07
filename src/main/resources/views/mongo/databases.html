@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(~{::main})}">
+<head></head>
+<body>
+<main th:fragment="main" class="main-content">
+    <div th:replace="~{fragments/breadcrumbs :: breadcrumbs(items=${breadcrumbs})}"></div>
+    <h1>Базы данных</h1>
+    <ul class="pg-list" th:if="${items != null and !items.isEmpty()}">
+        <li th:each="item : ${items}">
+            <a th:href="${itemUrlPrefix + item}" th:text="${item}" class="pg-list-link"></a>
+        </li>
+    </ul>
+    <p th:if="${items == null or items.isEmpty()}" class="text-dim">Нет доступных баз или ошибка подключения.</p>
+</main>
+</body>
+</html>
