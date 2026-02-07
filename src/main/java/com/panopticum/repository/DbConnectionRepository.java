@@ -34,6 +34,7 @@ public class DbConnectionRepository {
         } catch (SQLException e) {
             throw new RuntimeException("Failed to list connections", e);
         }
+
         return result;
     }
 
@@ -42,6 +43,7 @@ public class DbConnectionRepository {
         try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setLong(1, id);
+
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
                     return Optional.of(mapRow(rs));
@@ -50,6 +52,7 @@ public class DbConnectionRepository {
         } catch (SQLException e) {
             throw new RuntimeException("Failed to find connection", e);
         }
+
         return Optional.empty();
     }
 
@@ -57,7 +60,9 @@ public class DbConnectionRepository {
         if (conn.getId() == null) {
             return insert(conn);
         }
+
         update(conn);
+
         return conn;
     }
 
@@ -84,6 +89,7 @@ public class DbConnectionRepository {
             stmt.setString(6, c.getUsername());
             stmt.setString(7, c.getPassword());
             stmt.executeUpdate();
+
             try (ResultSet keys = stmt.getGeneratedKeys()) {
                 if (keys.next()) {
                     c.setId(keys.getLong(1));
@@ -92,6 +98,7 @@ public class DbConnectionRepository {
         } catch (SQLException e) {
             throw new RuntimeException("Failed to insert connection", e);
         }
+
         return c;
     }
 

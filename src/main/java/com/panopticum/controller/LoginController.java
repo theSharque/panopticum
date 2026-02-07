@@ -24,6 +24,7 @@ public class LoginController {
         if (principal != null) {
             return HttpResponse.redirect(java.net.URI.create("/"));
         }
+
         return Collections.<String, Object>emptyMap();
     }
 }

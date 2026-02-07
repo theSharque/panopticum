@@ -34,6 +34,7 @@ public class DefaultAuthorizationExceptionHandlerReplacement extends DefaultAuth
         if (e.isForbidden()) {
             return HttpResponse.status(FORBIDDEN);
         }
+
         return HttpResponse.status(UNAUTHORIZED)
                 .header(WWW_AUTHENTICATE, "Basic realm=\"Panopticum\"");
     }
