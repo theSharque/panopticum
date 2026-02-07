@@ -1,6 +1,7 @@
 package com.panopticum.service;
 
 import com.panopticum.model.DbConnection;
+import io.micronaut.context.annotation.Value;
 import jakarta.inject.Singleton;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -22,6 +23,15 @@ public class PgMetadataService {
     private static final String POSTGRESQL_PREFIX = "jdbc:postgresql://";
 
     private final DbConnectionService dbConnectionService;
+
+    @Value("${panopticum.limits.query-rows:1000}")
+    private int queryRowsLimit;
+
+    @Value("${panopticum.limits.schemas:500}")
+    private int schemasLimit;
+
+    @Value("${panopticum.limits.tables:1000}")
+    private int tablesLimit;
 
     public PgMetadataService(DbConnectionService dbConnectionService) {
         this.dbConnectionService = dbConnectionService;
@@ -79,17 +89,23 @@ public class PgMetadataService {
         }
     }
 
-    public List<String> listSchemas(Long connectionId, String dbName) {
+    public List<String> listSchemas(Long connectionId, String dbName, int offset, int limit) {
         try (Connection conn = getConnection(connectionId).orElse(null)) {
             if (conn == null) {
                 return List.of();
             }
             DatabaseMetaData meta = conn.getMetaData();
             List<String> schemas = new ArrayList<>();
+            int skip = 0;
+            int maxItems = Math.min(limit, schemasLimit - offset);
             try (ResultSet rs = meta.getSchemas(dbName, null)) {
-                while (rs.next()) {
+                while (rs.next() && schemas.size() < maxItems) {
                     String schema = rs.getString("TABLE_SCHEM");
                     if (schema != null && !"information_schema".equals(schema)) {
+                        if (skip < offset) {
+                            skip++;
+                            continue;
+                        }
                         schemas.add(schema);
                     }
                 }
@@ -102,18 +118,24 @@ public class PgMetadataService {
         }
     }
 
-    public List<TableInfo> listTables(Long connectionId, String dbName, String schema) {
+    public List<TableInfo> listTables(Long connectionId, String dbName, String schema, int offset, int limit) {
         try (Connection conn = getConnection(connectionId).orElse(null)) {
             if (conn == null) {
                 return List.of();
             }
             DatabaseMetaData meta = conn.getMetaData();
             List<TableInfo> tables = new ArrayList<>();
+            int skip = 0;
+            int maxItems = Math.min(limit, tablesLimit - offset);
             try (ResultSet rs = meta.getTables(dbName, schema, "%", new String[]{"TABLE", "VIEW"})) {
-                while (rs.next()) {
+                while (rs.next() && tables.size() < maxItems) {
                     String name = rs.getString("TABLE_NAME");
                     String type = rs.getString("TABLE_TYPE");
                     if (name != null) {
+                        if (skip < offset) {
+                            skip++;
+                            continue;
+                        }
                         tables.add(new TableInfo(name, "VIEW".equals(type) ? "view" : "table"));
                     }
                 }
@@ -126,13 +148,15 @@ public class PgMetadataService {
         }
     }
 
-    public Optional<QueryResult> executeQuery(Long connectionId, String sql) {
+    public Optional<QueryResult> executeQuery(Long connectionId, String sql, int offset, int limit,
+                                              String sortBy, String sortOrder) {
         try (Connection conn = getConnection(connectionId).orElse(null)) {
             if (conn == null) {
                 return Optional.of(QueryResult.error("Connection not available"));
             }
+            String pagedSql = wrapWithLimitOffset(sql.trim(), limit, offset, sortBy, sortOrder);
             try (var stmt = conn.createStatement();
-                 ResultSet rs = stmt.executeQuery(sql)) {
+                 ResultSet rs = stmt.executeQuery(pagedSql)) {
                 var meta = rs.getMetaData();
                 int colCount = meta.getColumnCount();
                 List<String> columns = new ArrayList<>();
@@ -148,12 +172,31 @@ public class PgMetadataService {
                     rows.add(row);
                 }
 
-                return Optional.of(new QueryResult(columns, rows, null));
+                boolean hasMore = rows.size() == limit;
+                return Optional.of(new QueryResult(columns, rows, null, offset, limit, hasMore));
             }
         } catch (SQLException e) {
             log.warn("executeQuery failed: {}", e.getMessage());
             return Optional.of(QueryResult.error(e.getMessage()));
         }
+    }
+
+    private String wrapWithLimitOffset(String sql, int limit, int offset, String sortBy, String sortOrder) {
+        String trimmed = sql.strip().replaceFirst(";+\\s*$", "");
+        String upper = trimmed.toUpperCase().stripLeading();
+        if (!upper.startsWith("SELECT") || upper.startsWith("SELECT INTO")) {
+            return sql;
+        }
+        int maxLimit = Math.min(limit, queryRowsLimit);
+        String orderBy;
+        if (sortBy != null && !sortBy.isBlank() && sortOrder != null && !sortOrder.isBlank()
+                && ("asc".equalsIgnoreCase(sortOrder) || "desc".equalsIgnoreCase(sortOrder))) {
+            String quotedCol = "\"" + sortBy.replace("\"", "\"\"") + "\"";
+            orderBy = " ORDER BY " + quotedCol + " " + sortOrder.toUpperCase();
+        } else {
+            orderBy = " ORDER BY 1 ASC";
+        }
+        return "SELECT * FROM (" + trimmed + ") AS _paged" + orderBy + " LIMIT " + maxLimit + " OFFSET " + Math.max(0, offset);
     }
 
     @Getter
@@ -168,19 +211,45 @@ public class PgMetadataService {
         private final List<String> columns;
         private final List<List<Object>> rows;
         private final String error;
+        private final int offset;
+        private final int limit;
+        private final boolean hasMore;
 
-        public QueryResult(List<String> columns, List<List<Object>> rows, String error) {
+        public QueryResult(List<String> columns, List<List<Object>> rows, String error, int offset, int limit, boolean hasMore) {
             this.columns = columns != null ? columns : List.of();
             this.rows = rows != null ? rows : List.of();
             this.error = error;
+            this.offset = offset;
+            this.limit = limit;
+            this.hasMore = hasMore;
         }
 
         public static QueryResult error(String message) {
-            return new QueryResult(List.of(), List.of(), message);
+            return new QueryResult(List.of(), List.of(), message, 0, 0, false);
         }
 
         public boolean hasError() {
             return error != null;
+        }
+
+        public boolean hasPrev() {
+            return offset > 0;
+        }
+
+        public int nextOffset() {
+            return offset + limit;
+        }
+
+        public int prevOffset() {
+            return Math.max(0, offset - limit);
+        }
+
+        public int fromRow() {
+            return offset + 1;
+        }
+
+        public int toRow() {
+            return offset + rows.size();
         }
     }
 }

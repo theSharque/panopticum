@@ -10,6 +10,8 @@ import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
 import io.micronaut.http.annotation.PathVariable;
 import io.micronaut.http.annotation.Post;
+import io.micronaut.core.annotation.Nullable;
+import io.micronaut.http.annotation.QueryValue;
 import io.micronaut.http.annotation.Produces;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
@@ -63,12 +65,17 @@ public class PgController {
     @Produces(MediaType.TEXT_HTML)
     @Get("/{id}/{dbName}")
     @View("pg/schemas")
-    public Map<String, Object> schemas(@PathVariable Long id, @PathVariable String dbName) {
+    public Map<String, Object> schemas(@PathVariable Long id, @PathVariable String dbName,
+                                       @QueryValue(value = "page", defaultValue = "1") int page,
+                                       @QueryValue(value = "size", defaultValue = "50") int size) {
         Map<String, Object> model = baseModel(id);
         Optional<DbConnection> conn = dbConnectionService.findById(id);
         if (conn.isEmpty()) {
             return model;
         }
+        int offset = Math.max(0, (page - 1) * size);
+        int limit = Math.min(size, 500);
+        List<String> schemas = pgMetadataService.listSchemas(id, dbName, offset, limit);
         List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
         breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/pg/" + id));
         breadcrumbs.add(new BreadcrumbItem(dbName, null));
@@ -76,10 +83,13 @@ public class PgController {
         model.put("connectionId", id);
         model.put("dbName", dbName);
         model.put("schema", null);
-        List<String> schemas = pgMetadataService.listSchemas(id, dbName);
         model.put("items", schemas);
         model.put("itemType", "schema");
         model.put("itemUrlPrefix", "/pg/" + id + "/" + dbName + "/");
+        model.put("page", page);
+        model.put("size", limit);
+        model.put("hasPrev", page > 1);
+        model.put("hasMore", schemas.size() == limit);
 
         return model;
     }
@@ -87,12 +97,17 @@ public class PgController {
     @Produces(MediaType.TEXT_HTML)
     @Get("/{id}/{dbName}/{schema}")
     @View("pg/tables")
-    public Map<String, Object> tables(@PathVariable Long id, @PathVariable String dbName, @PathVariable String schema) {
+    public Map<String, Object> tables(@PathVariable Long id, @PathVariable String dbName, @PathVariable String schema,
+                                      @QueryValue(value = "page", defaultValue = "1") int page,
+                                      @QueryValue(value = "size", defaultValue = "50") int size) {
         Map<String, Object> model = baseModel(id);
         Optional<DbConnection> conn = dbConnectionService.findById(id);
         if (conn.isEmpty()) {
             return model;
         }
+        int offset = Math.max(0, (page - 1) * size);
+        int limit = Math.min(size, 500);
+        List<PgMetadataService.TableInfo> tables = pgMetadataService.listTables(id, dbName, schema, offset, limit);
         List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
         breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/pg/" + id));
         breadcrumbs.add(new BreadcrumbItem(dbName, "/pg/" + id + "/" + dbName));
@@ -101,8 +116,88 @@ public class PgController {
         model.put("connectionId", id);
         model.put("dbName", dbName);
         model.put("schema", schema);
-        List<PgMetadataService.TableInfo> tables = pgMetadataService.listTables(id, dbName, schema);
         model.put("tables", tables);
+        model.put("page", page);
+        model.put("size", limit);
+        model.put("hasPrev", page > 1);
+        model.put("hasMore", tables.size() == limit);
+
+        return model;
+    }
+
+    @Produces(MediaType.TEXT_HTML)
+    @Get("/{id}/{dbName}/{schema}/sql")
+    @View("pg/sql")
+    public Map<String, Object> sqlPageGet(@PathVariable Long id, @PathVariable String dbName, @PathVariable String schema,
+                                         @QueryValue(value = "sql", defaultValue = "") String sql,
+                                         @QueryValue(value = "offset", defaultValue = "0") Integer offset,
+                                         @QueryValue(value = "limit", defaultValue = "100") Integer limit,
+                                         @QueryValue(value = "sort", defaultValue = "") String sort,
+                                         @QueryValue(value = "order", defaultValue = "") String order) {
+        return buildSqlPageModel(id, dbName, schema, sql, offset, limit, sort, order);
+    }
+
+    @Produces(MediaType.TEXT_HTML)
+    @Post("/{id}/{dbName}/{schema}/sql")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @View("pg/sql")
+    public Map<String, Object> sqlPagePost(@PathVariable Long id, @PathVariable String dbName, @PathVariable String schema,
+                                          String sql, @Nullable Integer offset, @Nullable Integer limit,
+                                          @Nullable String sort, @Nullable String order) {
+        return buildSqlPageModel(id, dbName, schema, sql, offset, limit, sort, order);
+    }
+
+    private Map<String, Object> buildSqlPageModel(Long id, String dbName, String schema, String sql,
+                                                  Integer offset, Integer limit, String sort, String order) {
+        Map<String, Object> model = baseModel(id);
+        Optional<DbConnection> conn = dbConnectionService.findById(id);
+        if (conn.isEmpty()) {
+            return model;
+        }
+        List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
+        breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/pg/" + id));
+        breadcrumbs.add(new BreadcrumbItem(dbName, "/pg/" + id + "/" + dbName));
+        breadcrumbs.add(new BreadcrumbItem(schema, "/pg/" + id + "/" + dbName + "/" + schema));
+        breadcrumbs.add(new BreadcrumbItem("sql", null));
+        model.put("breadcrumbs", breadcrumbs);
+        model.put("connectionId", id);
+        model.put("dbName", dbName);
+        model.put("schema", schema);
+        model.put("sql", sql != null ? sql : "");
+        int off = offset != null ? Math.max(0, offset) : 0;
+        int lim = limit != null && limit > 0 ? Math.min(limit, 1000) : 100;
+        model.put("size", lim);
+        if (sql == null || sql.isBlank()) {
+            model.put("error", null);
+            model.put("columns", List.<String>of());
+            model.put("rows", List.<List<Object>>of());
+            model.put("offset", 0);
+            model.put("limit", lim);
+            model.put("hasPrev", false);
+            model.put("hasMore", false);
+            model.put("nextOffset", lim);
+            model.put("prevOffset", 0);
+            model.put("fromRow", 0);
+            model.put("toRow", 0);
+            model.put("sort", "");
+            model.put("order", "");
+        } else {
+            var result = pgMetadataService.executeQuery(id, sql, off, lim, sort, order)
+                    .orElse(PgMetadataService.QueryResult.error("Ошибка выполнения запроса"));
+            model.put("error", result.hasError() ? result.getError() : null);
+            model.put("columns", result.getColumns());
+            model.put("rows", result.getRows());
+            model.put("offset", result.getOffset());
+            model.put("limit", result.getLimit());
+            model.put("hasPrev", result.hasPrev());
+            model.put("hasMore", result.isHasMore());
+            model.put("nextOffset", result.nextOffset());
+            model.put("prevOffset", result.prevOffset());
+            model.put("fromRow", result.fromRow());
+            model.put("toRow", result.toRow());
+            model.put("sort", sort != null ? sort : "");
+            model.put("order", order != null ? order : "");
+        }
 
         return model;
     }
@@ -110,23 +205,42 @@ public class PgController {
     @Post("/{id}/query")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces(MediaType.TEXT_HTML)
-    public Object executeQuery(@PathVariable Long id, String sql, String dbName, String schema) {
+    public Object executeQuery(@PathVariable Long id, String sql, String dbName, String schema,
+                              @Nullable Integer offset, @Nullable Integer limit,
+                              @Nullable String sort, @Nullable String order, String target) {
         Map<String, Object> model = new HashMap<>();
         model.put("connectionId", id);
         model.put("dbName", dbName);
         model.put("schema", schema);
         if (sql == null || sql.isBlank()) {
             model.put("error", "Empty query");
-
-            return new ModelAndView<>("partials/query-result", model);
+            return "table".equals(target)
+                    ? new ModelAndView<>("partials/table-view-result", model)
+                    : new ModelAndView<>("partials/query-result", model);
         }
 
-        var result = pgMetadataService.executeQuery(id, sql).orElse(PgMetadataService.QueryResult.error("Execution failed"));
+        int off = offset != null ? Math.max(0, offset) : 0;
+        int lim = limit != null && limit > 0 ? limit : 100;
+        var result = pgMetadataService.executeQuery(id, sql, off, lim, sort, order)
+                .orElse(PgMetadataService.QueryResult.error("Execution failed"));
         model.put("error", result.hasError() ? result.getError() : null);
         model.put("columns", result.getColumns());
         model.put("rows", result.getRows());
+        model.put("sql", sql);
+        model.put("offset", result.getOffset());
+        model.put("limit", result.getLimit());
+        model.put("hasPrev", result.hasPrev());
+        model.put("hasMore", result.isHasMore());
+        model.put("nextOffset", result.nextOffset());
+        model.put("prevOffset", result.prevOffset());
+        model.put("fromRow", result.fromRow());
+        model.put("toRow", result.toRow());
+        model.put("sort", sort != null ? sort : "");
+        model.put("order", order != null ? order : "");
 
-        return new ModelAndView<>("partials/query-result", model);
+        return "table".equals(target)
+                ? new ModelAndView<>("partials/table-view-result", model)
+                : new ModelAndView<>("partials/query-result", model);
     }
 
     private Map<String, Object> baseModel(Long id) {
