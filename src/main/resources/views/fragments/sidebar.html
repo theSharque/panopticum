@@ -9,9 +9,17 @@
     <nav class="sidebar-nav">
         <a th:href="@{/settings}" class="sidebar-link">Настройки</a>
 
-        <div th:each="conn : ${connections}" class="sidebar-db">
-            <a th:href="@{/db/{id}(id=${conn.id})}" th:text="${conn.name}" class="sidebar-link">DB</a>
-        </div>
+        <th:block th:if="${connections != null and !connections.isEmpty()}">
+            <div th:each="conn : ${connections}" class="sidebar-pg">
+                <a th:href="@{/pg/{id}(id=${conn.id})}" th:text="${conn.name}" class="sidebar-link">PG</a>
+                <form class="sidebar-delete-form"
+                      th:attr="hx-delete=@{/settings/delete-connection/{id}(id=${conn.id})}, hx-confirm=${'Удалить подключение «' + conn.name + '»?'}"
+                      hx-target="#sidebar"
+                      hx-swap="outerHTML">
+                    <button type="submit" class="sidebar-delete">Удалить</button>
+                </form>
+            </div>
+        </th:block>
     </nav>
 </aside>
 </body>

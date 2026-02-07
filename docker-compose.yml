@@ -1,0 +1,65 @@
+# Test DBs for local development (ports 43000+). Add connections in Settings:
+# - PostgreSQL: host=localhost, port=43000, db=panopticum_dev, user=panopticum, password=panopticum
+# - MongoDB: mongodb://localhost:43001
+# - Redis: localhost:43002
+# - ClickHouse: http://localhost:43003 (default user, no password)
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "43000:5432"
+    environment:
+      POSTGRES_USER: panopticum
+      POSTGRES_PASSWORD: panopticum
+      POSTGRES_DB: panopticum_dev
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U panopticum"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  mongodb:
+    image: mongo:7
+    ports:
+      - "43001:27017"
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "43002:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:24
+    ports:
+      - "43003:8123"
+      - "43004:9000"
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "-O", "/dev/null", "http://localhost:8123/ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+  mongodb_data:
+  redis_data:
+  clickhouse_data:

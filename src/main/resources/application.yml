@@ -1,10 +1,41 @@
 micronaut:
   application:
     name: panopticum
+  router:
+    static-resources:
+      default:
+        enabled: true
+        mapping: "/css/**"
+        paths: classpath:static/css
   security:
     authentication: basic
     csrf:
       enabled: false
+    intercept-url-map:
+      - pattern: /css/**
+        access:
+          - isAnonymous()
+      - pattern: /login
+        access:
+          - isAnonymous()
+      - pattern: /settings/add-postgres
+        httpMethod: POST
+        access:
+          - isAuthenticated()
+      - pattern: /settings/test-postgres
+        httpMethod: POST
+        access:
+          - isAuthenticated()
+      - pattern: /settings/delete-connection/*
+        httpMethod: DELETE
+        access:
+          - isAuthenticated()
+      - pattern: /settings/**
+        access:
+          - isAuthenticated()
+      - pattern: /pg/**
+        access:
+          - isAuthenticated()
   views:
     throttled-server-mode: false
 
@@ -12,3 +43,9 @@ datasources:
   default:
     url: jdbc:h2:file:${PANOPTICUM_DB_PATH:./data/panopticum};DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
     driver-class-name: org.h2.Driver
+
+flyway:
+  datasources:
+    default:
+      enabled: true
+      locations: classpath:db/migration
