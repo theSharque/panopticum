@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panopticum</title>
+</head>
+<body>
+<header th:fragment="header" class="app-header">
+    <span class="app-name">Panopticum</span>
+    <nav class="header-nav">
+        <a th:href="@{/settings}">Настройки</a>
+    </nav>
+</header>
+</body>
+</html>
