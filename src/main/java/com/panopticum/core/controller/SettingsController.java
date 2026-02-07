@@ -3,6 +3,8 @@ package com.panopticum.core.controller;
 import com.panopticum.clickhouse.service.ClickHouseMetadataService;
 import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.service.DbConnectionService;
+import com.panopticum.i18n.LocaleFilter;
+import com.panopticum.i18n.Messages;
 import com.panopticum.mongo.service.MongoMetadataService;
 import com.panopticum.postgres.service.PgMetadataService;
 import com.panopticum.redis.service.RedisMetadataService;
@@ -95,18 +97,27 @@ public class SettingsController {
     @Post("/test-postgres")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces(MediaType.TEXT_HTML)
-    public ModelAndView<Map<String, Object>> testPostgres(
+    public ModelAndView<Map<String, Object>> testPostgres(HttpRequest<?> request,
             String host, Integer port, String database, String username, String password) {
         Map<String, Object> model = new HashMap<>();
-        int p = port != null ? port : 5432;
-        var error = pgMetadataService.testConnection(
-                host != null ? host : "",
-                p,
-                database != null ? database : "",
-                username != null ? username : "",
-                password != null ? password : "");
-        model.put("success", error.isEmpty());
-        model.put("message", error.orElse("connectionTest.success"));
+        try {
+            int p = port != null ? port : 5432;
+            var error = pgMetadataService.testConnection(
+                    host != null ? host : "",
+                    p,
+                    database != null ? database : "",
+                    username != null ? username : "",
+                    password != null ? password : "");
+            model.put("success", error.isEmpty());
+            String messageKey = error.orElse("connectionTest.success");
+            model.put("message", messageKey);
+            putDisplayText(model, request, messageKey);
+        } catch (Exception e) {
+            model.put("success", false);
+            String messageKey = e.getMessage() != null ? e.getMessage() : "error.queryExecutionFailed";
+            model.put("message", messageKey);
+            putDisplayText(model, request, messageKey);
+        }
 
         return new ModelAndView<>("partials/connection-test-result", model);
     }
@@ -145,7 +156,7 @@ public class SettingsController {
     @Post("/test-mongo")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces(MediaType.TEXT_HTML)
-    public ModelAndView<Map<String, Object>> testMongo(
+    public ModelAndView<Map<String, Object>> testMongo(HttpRequest<?> request,
             String host, Integer port, String database, String username, String password) {
         Map<String, Object> model = new HashMap<>();
         int p = port != null ? port : 27017;
@@ -156,7 +167,9 @@ public class SettingsController {
                 username != null ? username : "",
                 password != null ? password : "");
         model.put("success", error.isEmpty());
-        model.put("message", error.orElse("connectionTest.success"));
+        String messageKey = error.orElse("connectionTest.success");
+        model.put("message", messageKey);
+        putDisplayText(model, request, messageKey);
 
         return new ModelAndView<>("partials/connection-test-result", model);
     }
@@ -195,7 +208,7 @@ public class SettingsController {
     @Post("/test-redis")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces(MediaType.TEXT_HTML)
-    public ModelAndView<Map<String, Object>> testRedis(
+    public ModelAndView<Map<String, Object>> testRedis(HttpRequest<?> request,
             String host, Integer port, String database, String password) {
         Map<String, Object> model = new HashMap<>();
         int p = port != null ? port : 6379;
@@ -212,7 +225,9 @@ public class SettingsController {
                 password != null ? password : "",
                 dbIndex);
         model.put("success", error.isEmpty());
-        model.put("message", error.orElse("connectionTest.success"));
+        String messageKey = error.orElse("connectionTest.success");
+        model.put("message", messageKey);
+        putDisplayText(model, request, messageKey);
 
         return new ModelAndView<>("partials/connection-test-result", model);
     }
@@ -251,7 +266,7 @@ public class SettingsController {
     @Post("/test-clickhouse")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces(MediaType.TEXT_HTML)
-    public ModelAndView<Map<String, Object>> testClickhouse(
+    public ModelAndView<Map<String, Object>> testClickhouse(HttpRequest<?> request,
             String host, Integer port, String database, String username, String password) {
         Map<String, Object> model = new HashMap<>();
         int p = port != null ? port : 8123;
@@ -262,7 +277,9 @@ public class SettingsController {
                 username != null ? username : "",
                 password != null ? password : "");
         model.put("success", error.isEmpty());
-        model.put("message", error.orElse("connectionTest.success"));
+        String messageKey = error.orElse("connectionTest.success");
+        model.put("message", messageKey);
+        putDisplayText(model, request, messageKey);
 
         return new ModelAndView<>("partials/connection-test-result", model);
     }
@@ -282,5 +299,11 @@ public class SettingsController {
         }
 
         return HttpResponse.redirect(URI.create("/settings"));
+    }
+
+    private void putDisplayText(Map<String, Object> model, HttpRequest<?> request, String messageKey) {
+        String locale = (String) request.getAttribute(LocaleFilter.LOCALE_ATTR).orElse("en");
+        String text = Messages.forLocale(locale).getOrDefault(messageKey, messageKey);
+        model.put("displayText", text);
     }
 }

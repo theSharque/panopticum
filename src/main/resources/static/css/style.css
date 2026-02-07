@@ -456,6 +456,17 @@ button[type="submit"]:not(.sidebar-delete):not(.query-th-link):hover {
     display: none;
 }
 
+.connection-test-indicator {
+    display: none;
+    font-size: 13px;
+    color: var(--green-500);
+    margin-right: var(--space-sm);
+}
+
+.connection-test-indicator.htmx-request {
+    display: inline;
+}
+
 .connection-test-ok {
     color: var(--green-500);
     border: 1px solid rgba(5, 255, 161, 0.4);
