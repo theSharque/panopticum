@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Sidebar</title>
+</head>
+<body>
+<aside th:fragment="sidebar(connections)" id="sidebar" class="sidebar">
+    <nav class="sidebar-nav">
+        <a th:href="@{/settings}" class="sidebar-link">Настройки</a>
+        <div th:each="conn : ${connections}" class="sidebar-db">
+            <a th:href="@{/db/{id}(id=${conn.id})}" th:text="${conn.name}" class="sidebar-link">DB</a>
+        </div>
+    </nav>
+</aside>
+</body>
+</html>

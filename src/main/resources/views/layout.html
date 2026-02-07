@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:fragment="layout(content)">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${pageTitle} ?: 'Panopticum'">Panopticum</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div class="layout">
+    <div th:replace="~{fragments/sidebar :: sidebar(connections=${connections})}"></div>
+    <div class="main-wrapper">
+        <div th:replace="~{fragments/header :: header}"></div>
+        <main class="main-content" th:replace="${content}">
+        </main>
+    </div>
+</div>
+</body>
+</html>

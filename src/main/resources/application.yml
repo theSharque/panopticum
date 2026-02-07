@@ -1,0 +1,14 @@
+micronaut:
+  application:
+    name: panopticum
+  security:
+    authentication: basic
+    csrf:
+      enabled: false
+  views:
+    throttled-server-mode: false
+
+datasources:
+  default:
+    url: jdbc:h2:file:${PANOPTICUM_DB_PATH:./data/panopticum};DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
