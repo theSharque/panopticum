@@ -12,7 +12,6 @@ import io.micronaut.views.View;
 import java.net.URI;
 import java.security.Principal;
 import java.util.Collections;
-import java.util.Map;
 
 @Controller("/login")
 @Secured(SecurityRule.IS_ANONYMOUS)

@@ -118,17 +118,6 @@ body {
     box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3);
 }
 
-.sidebar::before {
-    content: "NAV";
-    display: block;
-    padding: var(--space-sm) var(--space-md);
-    font-size: 10px;
-    letter-spacing: 0.25em;
-    color: var(--chrome-500);
-    border-bottom: 1px solid rgba(0, 240, 255, 0.15);
-    margin-bottom: var(--space-sm);
-}
-
 .sidebar-nav {
     display: flex;
     flex-direction: column;
@@ -167,23 +156,26 @@ body {
 }
 
 .sidebar-delete {
-    padding: var(--space-xs) var(--space-sm);
-    font-size: 11px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    font-size: 24px;
+    line-height: 1;
     font-family: var(--font-mono);
-    color: var(--chrome-500);
-    background: transparent;
-    border: 1px solid rgba(255, 42, 109, 0.4);
-    border-radius: 2px;
+    color: var(--red-500);
+    background: none;
+    border: none;
+    border-radius: 0;
     cursor: pointer;
-    transition: color var(--duration), background var(--duration), border-color var(--duration),
-        box-shadow var(--duration);
+    transition: color var(--duration), background var(--duration);
 }
 
 .sidebar-delete:hover {
-    color: var(--magenta-500);
-    background: rgba(255, 42, 109, 0.08);
-    border-color: var(--magenta-500);
-    box-shadow: var(--magenta-glow);
+    color: var(--red-500);
+    background: rgba(255, 71, 87, 0.15);
 }
 
 .main-content {
@@ -288,7 +280,7 @@ body {
     box-shadow: 0 0 16px rgba(0, 240, 255, 0.2);
 }
 
-button[type="submit"] {
+button[type="submit"]:not(.sidebar-delete) {
     padding: var(--space-sm) var(--space-md);
     background: transparent;
     color: var(--cyan-500);
@@ -302,7 +294,7 @@ button[type="submit"] {
     transition: box-shadow var(--duration), background var(--duration);
 }
 
-button[type="submit"]:hover {
+button[type="submit"]:not(.sidebar-delete):hover {
     background: rgba(0, 240, 255, 0.1);
     box-shadow: var(--cyan-glow);
 }
@@ -603,17 +595,22 @@ button[type="submit"]:hover {
 }
 
 .query-execute {
-    align-self: flex-start;
-    padding: var(--space-sm) var(--space-md);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
     background: rgba(0, 240, 255, 0.06);
     color: var(--cyan-500);
     border: 1px solid var(--cyan-500);
     border-radius: 2px;
     cursor: pointer;
-    font-family: var(--font-mono);
-    font-size: 12px;
-    letter-spacing: 0.1em;
     transition: box-shadow var(--duration), background var(--duration);
+}
+
+.query-execute .icon-refresh {
+    display: block;
 }
 
 .query-execute:hover {
@@ -692,6 +689,89 @@ button[type="submit"]:hover {
 
 .query-table tr:hover td {
     background: rgba(0, 240, 255, 0.03);
+}
+
+.query-row-clickable {
+    cursor: pointer;
+}
+
+.query-th-detail {
+    width: 40px;
+}
+
+.query-detail-cell {
+    white-space: nowrap;
+}
+
+.query-detail-cell .icon-link {
+    display: block;
+}
+
+.query-row-detail-form {
+    display: inline;
+    margin: 0;
+    padding: 0;
+}
+
+.query-detail-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    background: none;
+    border: 1px solid rgba(0, 240, 255, 0.4);
+    color: var(--cyan-500);
+    cursor: pointer;
+    border-radius: 2px;
+    transition: background var(--duration), border-color var(--duration);
+}
+
+a.query-detail-link {
+    text-decoration: none;
+}
+
+.query-detail-link:hover {
+    background: rgba(0, 240, 255, 0.1);
+}
+
+.detail-block {
+    margin-top: var(--space-md);
+}
+
+.detail-field {
+    margin-bottom: var(--space-md);
+    padding: var(--space-sm);
+    border: 1px solid rgba(0, 240, 255, 0.15);
+    border-radius: 4px;
+}
+
+.detail-field-name {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--cyan-500);
+    margin-bottom: var(--space-xs);
+}
+
+.detail-field-value {
+    font-size: 13px;
+    word-break: break-word;
+}
+
+.detail-json {
+    margin-top: var(--space-md);
+    padding: var(--space-md);
+    background: var(--void-500);
+    border: 1px solid rgba(0, 240, 255, 0.2);
+    border-radius: 4px;
+    overflow-x: auto;
+    font-size: 13px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: var(--chrome-100);
 }
 
 .text-dim {

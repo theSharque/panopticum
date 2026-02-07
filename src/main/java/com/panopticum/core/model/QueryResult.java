@@ -8,15 +8,24 @@ import java.util.List;
 public class QueryResult {
 
     private final List<String> columns;
+    private final List<String> columnTypes;
     private final List<List<Object>> rows;
+    private final List<String> docIds;
     private final String error;
     private final int offset;
     private final int limit;
     private final boolean hasMore;
 
     public QueryResult(List<String> columns, List<List<Object>> rows, String error, int offset, int limit, boolean hasMore) {
+        this(columns, null, rows, null, error, offset, limit, hasMore);
+    }
+
+    public QueryResult(List<String> columns, List<String> columnTypes, List<List<Object>> rows, List<String> docIds,
+                       String error, int offset, int limit, boolean hasMore) {
         this.columns = columns != null ? columns : List.of();
+        this.columnTypes = columnTypes;
         this.rows = rows != null ? rows : List.of();
+        this.docIds = docIds;
         this.error = error;
         this.offset = offset;
         this.limit = limit;

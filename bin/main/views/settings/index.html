@@ -47,6 +47,48 @@
         <div id="connection-test-result" class="connection-test-result"></div>
     </form>
 
+    <h2>Добавить MongoDB</h2>
+    <form action="/settings/add-mongo" method="post" class="add-connection-form"
+          hx-post="/settings/add-mongo"
+          hx-target="#sidebar"
+          hx-swap="outerHTML">
+        <div class="form-group">
+            <label for="name-mongo">Название</label>
+            <input type="text" id="name-mongo" name="name" required placeholder="Например: Production Mongo">
+        </div>
+        <div class="form-group">
+            <label for="host-mongo">Хост</label>
+            <input type="text" id="host-mongo" name="host" required placeholder="localhost" value="localhost">
+        </div>
+        <div class="form-group">
+            <label for="port-mongo">Порт</label>
+            <input type="number" id="port-mongo" name="port" value="27017">
+        </div>
+        <div class="form-group">
+            <label for="database-mongo">База данных</label>
+            <input type="text" id="database-mongo" name="database" placeholder="admin">
+        </div>
+        <div class="form-group">
+            <label for="username-mongo">Пользователь</label>
+            <input type="text" id="username-mongo" name="username" placeholder="user">
+        </div>
+        <div class="form-group">
+            <label for="password-mongo">Пароль</label>
+            <input type="password" id="password-mongo" name="password" placeholder="password">
+        </div>
+        <div class="form-actions">
+            <button type="button" class="btn-check"
+                    hx-post="/settings/test-mongo"
+                    hx-include="closest('form')"
+                    hx-target="#connection-test-result-mongo"
+                    hx-swap="innerHTML">
+                Проверить
+            </button>
+            <button type="submit">Добавить</button>
+        </div>
+        <div id="connection-test-result-mongo" class="connection-test-result"></div>
+    </form>
+
     <h2>Добавленные подключения</h2>
     <p>Список подключений отображается в меню слева.</p>
 </main>

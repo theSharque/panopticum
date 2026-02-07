@@ -12,6 +12,8 @@ import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.Document;
 import org.bson.conversions.Bson;
+import org.bson.json.JsonWriterSettings;
+import org.bson.types.ObjectId;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -234,6 +236,7 @@ public class MongoMetadataService {
         boolean hasMore = docs.size() > limit;
         List<Document> rowsDocs = hasMore ? docs.subList(0, limit) : docs;
         List<List<Object>> rows = new ArrayList<>();
+        List<String> docIds = new ArrayList<>();
 
         for (Document doc : rowsDocs) {
             List<Object> row = new ArrayList<>();
@@ -243,8 +246,40 @@ public class MongoMetadataService {
             }
 
             rows.add(row);
+            Object idVal = doc.get("_id");
+            docIds.add(idVal instanceof ObjectId ? ((ObjectId) idVal).toHexString() : (idVal != null ? idVal.toString() : ""));
         }
 
-        return new QueryResult(columnList, rows, null, offset, limit, hasMore);
+        return new QueryResult(columnList, null, rows, docIds, null, offset, limit, hasMore);
+    }
+
+    public Optional<Document> getDocument(Long connectionId, String dbName, String collectionName, String docId) {
+        if (docId == null || docId.isBlank() || collectionName == null || collectionName.isBlank()
+                || dbName == null || dbName.isBlank()) {
+            return Optional.empty();
+        }
+        try (MongoClient client = createClient(connectionId).orElse(null)) {
+            if (client == null) {
+                return Optional.empty();
+            }
+            MongoCollection<Document> collection = client.getDatabase(dbName).getCollection(collectionName);
+            Document doc;
+            if (docId.length() == 24 && docId.matches("[0-9a-fA-F]+")) {
+                doc = collection.find(new Document("_id", new ObjectId(docId))).first();
+            } else {
+                doc = collection.find(new Document("_id", docId)).first();
+            }
+            return Optional.ofNullable(doc);
+        } catch (Exception e) {
+            log.warn("getDocument failed: {}", e.getMessage());
+            return Optional.empty();
+        }
+    }
+
+    public String documentToPrettyJson(Document doc) {
+        if (doc == null) {
+            return "{}";
+        }
+        return doc.toJson(JsonWriterSettings.builder().indent(true).build());
     }
 }
