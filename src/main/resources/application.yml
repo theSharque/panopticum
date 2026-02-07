@@ -69,6 +69,17 @@ micronaut:
         httpMethod: POST
         access:
           - isAuthenticated()
+      - pattern: /settings/add-clickhouse
+        httpMethod: POST
+        access:
+          - isAuthenticated()
+      - pattern: /settings/test-clickhouse
+        httpMethod: POST
+        access:
+          - isAuthenticated()
+      - pattern: /ch/**
+        access:
+          - isAuthenticated()
       - pattern: /redis/**
         access:
           - isAuthenticated()

@@ -12,6 +12,7 @@
             <option value="postgresql">PostgreSQL</option>
             <option value="mongodb">MongoDB</option>
             <option value="redis">Redis</option>
+            <option value="clickhouse">ClickHouse</option>
         </select>
     </div>
 
@@ -137,12 +138,55 @@
         </form>
     </div>
 
+    <div id="form-clickhouse" class="connection-form-block" hidden>
+        <form action="/settings/add-clickhouse" method="post" class="add-connection-form"
+              hx-post="/settings/add-clickhouse"
+              hx-target="#sidebar"
+              hx-swap="outerHTML">
+            <div class="form-group">
+                <label for="name-clickhouse" th:text="${msg['common.name']}">Name</label>
+                <input type="text" id="name-clickhouse" name="name" required th:attr="placeholder=${msg['settings.placeholderNameCh']}">
+            </div>
+            <div class="form-group">
+                <label for="host-clickhouse" th:text="${msg['settings.host']}">Host</label>
+                <input type="text" id="host-clickhouse" name="host" required placeholder="localhost" value="localhost">
+            </div>
+            <div class="form-group">
+                <label for="port-clickhouse" th:text="${msg['settings.port']}">Port</label>
+                <input type="number" id="port-clickhouse" name="port" value="8123">
+            </div>
+            <div class="form-group">
+                <label for="database-clickhouse" th:text="${msg['settings.database']}">Database</label>
+                <input type="text" id="database-clickhouse" name="database" placeholder="default" value="default">
+            </div>
+            <div class="form-group">
+                <label for="username-clickhouse" th:text="${msg['settings.username']}">Username</label>
+                <input type="text" id="username-clickhouse" name="username" placeholder="default">
+            </div>
+            <div class="form-group">
+                <label for="password-clickhouse" th:text="${msg['settings.password']}">Password</label>
+                <input type="password" id="password-clickhouse" name="password" placeholder="password">
+            </div>
+            <div class="form-actions">
+                <button type="button" class="btn-check"
+                        hx-post="/settings/test-clickhouse"
+                        hx-include="closest('form')"
+                        hx-target="#connection-test-result-clickhouse"
+                        hx-swap="innerHTML"
+                        th:text="${msg['settings.test']}">Test</button>
+                <button type="submit" th:text="${msg['settings.add']}">Add</button>
+            </div>
+            <div id="connection-test-result-clickhouse" class="connection-test-result"></div>
+        </form>
+    </div>
+
     <script>
         document.getElementById('connection-type').addEventListener('change', function () {
             var type = this.value;
             document.getElementById('form-postgres').hidden = type !== 'postgresql';
             document.getElementById('form-mongo').hidden = type !== 'mongodb';
             document.getElementById('form-redis').hidden = type !== 'redis';
+            document.getElementById('form-clickhouse').hidden = type !== 'clickhouse';
         });
     </script>
 
