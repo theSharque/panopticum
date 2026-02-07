@@ -38,8 +38,8 @@
             <table class="query-table">
                 <thead>
                     <tr>
-                        <th class="query-th-detail"></th>
-                        <th th:each="col : ${columns}" class="query-th-sortable">
+                        <th class="query-th query-th-detail"></th>
+                        <th th:each="col : ${columns}" class="query-th query-th-sortable">
                             <form th:if="${sort != col or sort == null}"
                                   th:action="@{/pg/{id}/query(id=${connectionId})}"
                                   method="post"

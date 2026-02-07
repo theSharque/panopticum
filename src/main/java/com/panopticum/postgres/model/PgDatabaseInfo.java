@@ -9,11 +9,9 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class TableInfo {
+public class PgDatabaseInfo {
 
     private String name;
-    private String type;
-    private long approximateRowCount;
     private long sizeOnDisk;
     private String sizeOnDiskFormatted;
 }

@@ -29,6 +29,7 @@ dependencies {
     implementation("io.micronaut.validation:micronaut-validation")
     compileOnly("org.projectlombok:lombok")
     runtimeOnly("ch.qos.logback:logback-classic")
+    runtimeOnly("ch.qos.logback:logback-core")
     runtimeOnly("com.h2database:h2")
     runtimeOnly("org.postgresql:postgresql")
     implementation("org.mongodb:mongodb-driver-sync")
@@ -51,4 +52,8 @@ micronaut {
         incremental(true)
         annotations("com.panopticum.*")
     }
+}
+
+shadowJar {
+    mergeServiceFiles()
 }

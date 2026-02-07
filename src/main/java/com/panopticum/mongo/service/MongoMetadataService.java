@@ -7,6 +7,8 @@ import com.mongodb.client.MongoDatabase;
 import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.model.QueryResult;
 import com.panopticum.core.service.DbConnectionService;
+import com.panopticum.mongo.model.MongoCollectionInfo;
+import com.panopticum.mongo.model.MongoDatabaseInfo;
 import io.micronaut.context.annotation.Value;
 import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
@@ -98,16 +100,39 @@ public class MongoMetadataService {
     }
 
     public List<String> listDatabases(Long connectionId) {
+        return listDatabaseInfos(connectionId).stream().map(MongoDatabaseInfo::getName).collect(Collectors.toList());
+    }
+
+    public List<MongoDatabaseInfo> listDatabaseInfos(Long connectionId) {
         try (MongoClient client = createClient(connectionId).orElse(null)) {
             if (client == null) {
                 return List.of();
             }
 
-            return StreamSupport.stream(client.listDatabaseNames().spliterator(), false).collect(Collectors.toList());
+            List<MongoDatabaseInfo> infos = new ArrayList<>();
+            for (Document doc : client.listDatabases()) {
+                String name = doc.getString("name");
+                long sizeOnDisk = doc.getLong("sizeOnDisk") != null ? doc.getLong("sizeOnDisk") : 0L;
+                infos.add(new MongoDatabaseInfo(name, sizeOnDisk, formatSize(sizeOnDisk)));
+            }
+            return infos;
         } catch (Exception e) {
-            log.warn("listDatabases failed: {}", e.getMessage());
+            log.warn("listDatabaseInfos failed: {}", e.getMessage());
             return List.of();
         }
+    }
+
+    private static String formatSize(long bytes) {
+        if (bytes < 1024) {
+            return bytes + " B";
+        }
+        if (bytes < 1024 * 1024) {
+            return String.format("%.1f KB", bytes / 1024.0);
+        }
+        if (bytes < 1024 * 1024 * 1024) {
+            return String.format("%.1f MB", bytes / (1024.0 * 1024));
+        }
+        return String.format("%.2f GB", bytes / (1024.0 * 1024 * 1024));
     }
 
     public List<String> listCollections(Long connectionId, String dbName, int offset, int limit) {
@@ -124,6 +149,37 @@ public class MongoMetadataService {
             return offset < all.size() ? all.subList(offset, end) : List.of();
         } catch (Exception e) {
             log.warn("listCollections failed: {}", e.getMessage());
+            return List.of();
+        }
+    }
+
+    public List<MongoCollectionInfo> listCollectionInfos(Long connectionId, String dbName, List<String> collectionNames) {
+        if (collectionNames == null || collectionNames.isEmpty()) {
+            return List.of();
+        }
+        try (MongoClient client = createClient(connectionId).orElse(null)) {
+            if (client == null || dbName == null || dbName.isBlank()) {
+                return List.of();
+            }
+
+            MongoDatabase database = client.getDatabase(dbName);
+            List<MongoCollectionInfo> infos = new ArrayList<>();
+            for (String name : collectionNames) {
+                try {
+                    Document stats = database.runCommand(new Document("collStats", name));
+                    Number countNum = (Number) stats.get("count");
+                    Number sizeNum = (Number) stats.get("size");
+                    long count = countNum != null ? countNum.longValue() : 0L;
+                    long size = sizeNum != null ? sizeNum.longValue() : 0L;
+                    infos.add(new MongoCollectionInfo(name, count, size, formatSize(size)));
+                } catch (Exception e) {
+                    log.debug("collStats for {} failed: {}", name, e.getMessage());
+                    infos.add(new MongoCollectionInfo(name, 0L, 0L, "—"));
+                }
+            }
+            return infos;
+        } catch (Exception e) {
+            log.warn("listCollectionInfos failed: {}", e.getMessage());
             return List.of();
         }
     }
