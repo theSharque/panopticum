@@ -1,0 +1,12 @@
+.git
+.gitignore
+.cursor
+*.md
+build
+!gradle/wrapper/gradle-wrapper.jar
+.gradle
+**/node_modules
+*.iml
+.idea
+*.log
+docker-compose.yml

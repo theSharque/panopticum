@@ -1,6 +1,6 @@
 # Panopticum
 
-A tool for developers and QA — web interface for viewing and managing database connections. Designed for deployment in Kubernetes.
+A tool for developers and QA — web interface for viewing and managing database connections. Designed for deployment in Kubernetes or Docker.
 
 ## Stack
 
@@ -8,13 +8,28 @@ A tool for developers and QA — web interface for viewing and managing database
 - **Views:** Thymeleaf + HTMX
 - **Auth:** HTTP Basic (login/password from environment)
 - **Storage:** H2 (Flyway migrations)
+- **i18n:** English and Russian
+
+## Supported databases
+
+| Type | Features |
+|------|----------|
+| **PostgreSQL** | Browse databases, schemas, tables; run SQL |
+| **MongoDB** | Browse databases and collections; run queries |
+| **Redis** | Browse databases and keys; view key types and values |
+| **ClickHouse** | Browse databases and tables; run SQL |
+
+Connections are stored in H2. In Settings you can add connections, test them, and delete them.
 
 ## Features
 
-- Authentication via login and password (Basic Auth)
-- Add and store PostgreSQL connection settings
-- Menu with list of connections and settings section
-- View connected databases (MVP: stub, planned — collection browser and search)
+- HTTP Basic Auth (credentials from env)
+- Sidebar with saved connections and quick access to Settings
+- Add, test, and remove connections per database type
+- Browse metadata (schemas, tables, collections, keys) with pagination
+- Execute SQL (PostgreSQL, ClickHouse) and queries (MongoDB)
+- HTMX for partial updates without full page reloads
+- Localization: EN and RU (browser or path)
 
 ## Running
 
@@ -39,3 +54,24 @@ Application: **http://localhost:8080**
 ```
 
 JAR: `build/libs/panopticum-0.1-all.jar`
+
+## Docker
+
+Build image:
+
+```bash
+docker build -t panopticum:latest .
+```
+
+Run (persist H2 data and set auth via env):
+
+```bash
+docker run -d --name panopticum \
+  -p 8080:8080 \
+  -v panopticum-data:/data \
+  -e PANOPTICUM_USER=admin \
+  -e PANOPTICUM_PASSWORD=changeme \
+  panopticum:latest
+```
+
+Open **http://localhost:8080**. For Kubernetes, use the same env vars and mount a volume at `/data` for H2 persistence.
