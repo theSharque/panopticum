@@ -6,6 +6,7 @@ RUN apk add --no-cache bash
 
 COPY gradle gradle
 COPY gradlew build.gradle settings.gradle gradle.properties ./
+COPY src src/
 
 RUN ./gradlew shadowJar --no-daemon
 

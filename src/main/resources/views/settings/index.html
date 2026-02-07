@@ -17,7 +17,7 @@
     </div>
 
     <div id="form-postgres" class="connection-form-block" hidden>
-        <form action="/settings/add-postgres" method="post" class="add-connection-form"
+        <form id="connection-form-postgres" action="/settings/add-postgres" method="post" class="add-connection-form"
               hx-post="/settings/add-postgres"
               hx-target="#sidebar"
               hx-swap="outerHTML">
@@ -46,11 +46,13 @@
                 <input type="password" id="password" name="password" placeholder="password">
             </div>
             <div class="form-actions">
+                <span id="test-indicator-pg" class="connection-test-indicator" aria-hidden="true" th:text="${msg['settings.testing']}">Checking...</span>
                 <button type="button" class="btn-check"
                         hx-post="/settings/test-postgres"
-                        hx-include="closest('form')"
+                        hx-include="#connection-form-postgres"
                         hx-target="#connection-test-result"
-                        hx-swap="innerHTML"
+                        hx-swap="innerHTML show:bottom"
+                        hx-indicator="#test-indicator-pg"
                         th:text="${msg['settings.test']}">Test</button>
                 <button type="submit" th:text="${msg['settings.add']}">Add</button>
             </div>
@@ -59,7 +61,7 @@
     </div>
 
     <div id="form-mongo" class="connection-form-block" hidden>
-        <form action="/settings/add-mongo" method="post" class="add-connection-form"
+        <form id="connection-form-mongo" action="/settings/add-mongo" method="post" class="add-connection-form"
               hx-post="/settings/add-mongo"
               hx-target="#sidebar"
               hx-swap="outerHTML">
@@ -88,11 +90,13 @@
                 <input type="password" id="password-mongo" name="password" placeholder="password">
             </div>
             <div class="form-actions">
+                <span id="test-indicator-mongo" class="connection-test-indicator" aria-hidden="true" th:text="${msg['settings.testing']}">Checking...</span>
                 <button type="button" class="btn-check"
                         hx-post="/settings/test-mongo"
-                        hx-include="closest('form')"
+                        hx-include="#connection-form-mongo"
                         hx-target="#connection-test-result-mongo"
-                        hx-swap="innerHTML"
+                        hx-swap="innerHTML show:bottom"
+                        hx-indicator="#test-indicator-mongo"
                         th:text="${msg['settings.test']}">Test</button>
                 <button type="submit" th:text="${msg['settings.add']}">Add</button>
             </div>
@@ -101,7 +105,7 @@
     </div>
 
     <div id="form-redis" class="connection-form-block" hidden>
-        <form action="/settings/add-redis" method="post" class="add-connection-form"
+        <form id="connection-form-redis" action="/settings/add-redis" method="post" class="add-connection-form"
               hx-post="/settings/add-redis"
               hx-target="#sidebar"
               hx-swap="outerHTML">
@@ -126,11 +130,13 @@
                 <input type="password" id="password-redis" name="password" placeholder="password">
             </div>
             <div class="form-actions">
+                <span id="test-indicator-redis" class="connection-test-indicator" aria-hidden="true" th:text="${msg['settings.testing']}">Checking...</span>
                 <button type="button" class="btn-check"
                         hx-post="/settings/test-redis"
-                        hx-include="closest('form')"
+                        hx-include="#connection-form-redis"
                         hx-target="#connection-test-result-redis"
-                        hx-swap="innerHTML"
+                        hx-swap="innerHTML show:bottom"
+                        hx-indicator="#test-indicator-redis"
                         th:text="${msg['settings.test']}">Test</button>
                 <button type="submit" th:text="${msg['settings.add']}">Add</button>
             </div>
@@ -139,7 +145,7 @@
     </div>
 
     <div id="form-clickhouse" class="connection-form-block" hidden>
-        <form action="/settings/add-clickhouse" method="post" class="add-connection-form"
+        <form id="connection-form-clickhouse" action="/settings/add-clickhouse" method="post" class="add-connection-form"
               hx-post="/settings/add-clickhouse"
               hx-target="#sidebar"
               hx-swap="outerHTML">
@@ -168,11 +174,13 @@
                 <input type="password" id="password-clickhouse" name="password" placeholder="password">
             </div>
             <div class="form-actions">
+                <span id="test-indicator-clickhouse" class="connection-test-indicator" aria-hidden="true" th:text="${msg['settings.testing']}">Checking...</span>
                 <button type="button" class="btn-check"
                         hx-post="/settings/test-clickhouse"
-                        hx-include="closest('form')"
+                        hx-include="#connection-form-clickhouse"
                         hx-target="#connection-test-result-clickhouse"
-                        hx-swap="innerHTML"
+                        hx-swap="innerHTML show:bottom"
+                        hx-indicator="#test-indicator-clickhouse"
                         th:text="${msg['settings.test']}">Test</button>
                 <button type="submit" th:text="${msg['settings.add']}">Add</button>
             </div>
