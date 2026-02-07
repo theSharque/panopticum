@@ -5,11 +5,6 @@
 <main th:fragment="main" class="main-content">
     <div th:replace="~{fragments/breadcrumbs :: breadcrumbs(items=${breadcrumbs})}"></div>
     <h1>Схемы</h1>
-    <nav th:if="${hasPrev or hasMore}" class="pg-pagination">
-        <a th:if="${hasPrev}" th:href="@{/pg/{id}/{db}(id=${connectionId}, db=${dbName})}?page=${page - 1}&amp;size=${size}" class="query-pagination-btn">← Назад</a>
-        <span class="pg-pagination-info" th:text="'Страница ' + ${page}"></span>
-        <a th:if="${hasMore}" th:href="@{/pg/{id}/{db}(id=${connectionId}, db=${dbName})}?page=${page + 1}&amp;size=${size}" class="query-pagination-btn">Вперёд →</a>
-    </nav>
     <ul class="pg-list" th:if="${items != null and !items.isEmpty()}">
         <li th:each="item : ${items}">
             <a th:href="${itemUrlPrefix + item}" th:text="${item}" class="pg-list-link"></a>

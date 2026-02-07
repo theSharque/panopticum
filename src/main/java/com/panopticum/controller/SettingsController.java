@@ -97,6 +97,7 @@ public class SettingsController {
     }
 
     @Delete("/delete-connection/{id}")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces(MediaType.TEXT_HTML)
     public Object deleteConnection(HttpRequest<?> request, @PathVariable Long id) {
         dbConnectionService.deleteById(id);

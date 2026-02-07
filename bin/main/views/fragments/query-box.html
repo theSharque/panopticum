@@ -9,7 +9,6 @@
           hx-swap="innerHTML">
         <input type="hidden" name="dbName" th:value="${dbName}"/>
         <input type="hidden" name="schema" th:value="${schema}"/>
-        <input type="hidden" name="offset" value="0"/>
         <textarea name="sql" class="query-textarea" rows="4" placeholder="SELECT * FROM ..."></textarea>
         <button type="submit" class="query-execute">Execute</button>
     </form>

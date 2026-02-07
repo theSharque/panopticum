@@ -2,12 +2,26 @@
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(~{::main})}">
 <head></head>
 <body>
-<main th:fragment="main">
+<main th:fragment="main" class="main-content">
     <div th:replace="~{fragments/breadcrumbs :: breadcrumbs(items=${breadcrumbs})}"></div>
     <h1>Таблицы и представления</h1>
+    <p><a th:href="@{/pg/{id}/{dbName}/{schema}/sql(id=${connectionId}, dbName=${dbName}, schema=${schema})}"
+          class="pg-list-link">SQL-запрос</a></p>
+    <nav th:if="${hasPrev or hasMore}" class="pg-pagination">
+        <a th:if="${hasPrev}" th:href="@{/pg/{id}/{db}/{schema}(id=${connectionId}, db=${dbName}, schema=${schema})}?page=${page - 1}&amp;size=${size}" class="query-pagination-btn">← Назад</a>
+        <span class="pg-pagination-info" th:text="'Страница ' + ${page}"></span>
+        <a th:if="${hasMore}" th:href="@{/pg/{id}/{db}/{schema}(id=${connectionId}, db=${dbName}, schema=${schema})}?page=${page + 1}&amp;size=${size}" class="query-pagination-btn">Вперёд →</a>
+    </nav>
     <ul class="pg-list" th:if="${tables != null and !tables.isEmpty()}">
         <li th:each="t : ${tables}">
-            <span th:text="${t.name}" class="pg-list-name"></span>
+            <form th:action="@{/pg/{id}/{dbName}/{schema}/sql(id=${connectionId}, dbName=${dbName}, schema=${schema})}"
+                  method="post" class="pg-list-form">
+                <input type="hidden" name="sql"
+                       th:value="|SELECT * FROM &quot;${schema}&quot;.&quot;${t.name}&quot;|"/>
+                <input type="hidden" name="offset" value="0"/>
+                <input type="hidden" name="limit" value="100"/>
+                <button type="submit" th:text="${t.name}" class="pg-list-link pg-list-name"></button>
+            </form>
             <span th:text="${t.type}" class="pg-list-type"></span>
         </li>
     </ul>

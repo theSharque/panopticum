@@ -1,13 +1,3 @@
-panopticum:
-  limits:
-    query-rows: 1000
-    query-page-size: 100
-    schemas: 500
-    schemas-page-size: 50
-    tables: 1000
-    tables-page-size: 50
-    connections: 500
-
 micronaut:
   application:
     name: panopticum
