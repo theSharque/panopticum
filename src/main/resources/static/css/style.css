@@ -72,6 +72,8 @@ body {
 }
 
 .app-header {
+    position: relative;
+    z-index: 10;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -89,6 +91,82 @@ body {
     color: var(--cyan-500);
     text-shadow: var(--cyan-glow);
     text-decoration: none;
+}
+
+.lang-dropdown {
+    position: relative;
+}
+
+.lang-trigger {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    padding: var(--space-xs) var(--space-sm);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--chrome-300);
+    background: transparent;
+    border: 1px solid rgba(0, 240, 255, 0.3);
+    border-radius: 2px;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    list-style: none;
+    transition: color var(--duration), border-color var(--duration), background var(--duration);
+}
+
+.lang-trigger::-webkit-details-marker,
+.lang-trigger::marker {
+    display: none;
+}
+
+.lang-trigger:hover {
+    color: var(--cyan-500);
+    border-color: var(--cyan-500);
+    background: rgba(0, 240, 255, 0.06);
+}
+
+.lang-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    z-index: 11;
+    margin: var(--space-xs) 0 0 0;
+    padding: var(--space-xs);
+    list-style: none;
+    background: var(--void-500);
+    border: 1px solid rgba(0, 240, 255, 0.3);
+    border-radius: 2px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    min-width: 120px;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-4px);
+    transition: opacity var(--duration), visibility var(--duration), transform var(--duration);
+}
+
+.lang-dropdown[open] .lang-menu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.lang-menu li {
+    margin: 0;
+}
+
+.lang-menu a {
+    display: block;
+    padding: var(--space-xs) var(--space-sm);
+    color: var(--chrome-300);
+    text-decoration: none;
+    font-size: 12px;
+    border-radius: 2px;
+    transition: color var(--duration), background var(--duration);
+}
+
+.lang-menu a:hover {
+    color: var(--cyan-500);
+    background: rgba(0, 240, 255, 0.06);
 }
 
 .header-nav a {
@@ -124,6 +202,10 @@ body {
 .sidebar-nav {
     display: flex;
     flex-direction: column;
+}
+
+.sidebar-nav > .sidebar-link {
+    color: var(--cyan-500);
 }
 
 .sidebar-link {

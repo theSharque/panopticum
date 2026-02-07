@@ -7,18 +7,19 @@
 <body>
 <aside th:fragment="sidebar(connections)" id="sidebar" class="sidebar">
     <nav class="sidebar-nav">
-        <a th:href="@{/settings}" class="sidebar-link">добавить подключение</a>
+        <a th:href="@{/settings}" class="sidebar-link" th:text="${msg['sidebar.addConnection']}">add connection</a>
 
         <th:block th:if="${connections != null and !connections.isEmpty()}">
             <div th:each="conn : ${connections}" class="sidebar-pg">
                 <a th:if="${conn.type == 'postgresql'}" th:href="@{/pg/{id}(id=${conn.id})}" th:text="${conn.name}" class="sidebar-link">PG</a>
                 <a th:if="${conn.type == 'mongodb'}" th:href="@{/mongo/{id}(id=${conn.id})}" th:text="${conn.name}" class="sidebar-link">Mongo</a>
-                <a th:if="${conn.type != 'postgresql' and conn.type != 'mongodb'}" th:href="@{/pg/{id}(id=${conn.id})}" th:text="${conn.name}" class="sidebar-link"></a>
+                <a th:if="${conn.type == 'redis'}" th:href="@{/redis/{id}(id=${conn.id})}" th:text="${conn.name}" class="sidebar-link">Redis</a>
+                <a th:if="${conn.type != 'postgresql' and conn.type != 'mongodb' and conn.type != 'redis'}" th:href="@{/pg/{id}(id=${conn.id})}" th:text="${conn.name}" class="sidebar-link"></a>
                 <form class="sidebar-delete-form"
-                      th:attr="hx-delete=@{/settings/delete-connection/{id}(id=${conn.id})}, hx-confirm=${'Удалить подключение «' + conn.name + '»?'}"
+                      th:attr="hx-delete=@{/settings/delete-connection/{id}(id=${conn.id})}, hx-confirm=${msg['sidebar.deleteConfirmPrefix'] + conn.name + msg['sidebar.deleteConfirmSuffix']}"
                       hx-target="#sidebar"
                       hx-swap="outerHTML">
-                    <button type="submit" class="sidebar-delete" aria-label="Удалить" title="Удалить">×</button>
+                    <button type="submit" class="sidebar-delete" th:attr="aria-label=${msg['sidebar.delete']}, title=${msg['sidebar.delete']}">×</button>
                 </form>
             </div>
         </th:block>

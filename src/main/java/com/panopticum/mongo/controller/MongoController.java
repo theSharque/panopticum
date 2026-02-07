@@ -204,7 +204,7 @@ public class MongoController {
         } else {
             String queryText = query != null && !query.isBlank() ? query : "{}";
             var result = mongoMetadataService.executeQuery(id, dbName, collection, queryText, off, lim)
-                    .orElse(QueryResult.error("Ошибка выполнения запроса"));
+                    .orElse(QueryResult.error("error.queryExecutionFailed"));
             model.put("error", result.hasError() ? result.getError() : null);
             model.put("columns", result.getColumns());
             model.put("rows", result.getRows());
@@ -265,7 +265,7 @@ public class MongoController {
         model.put("dbName", dbName);
         model.put("collection", collection);
         if (collection == null || collection.isBlank()) {
-            model.put("error", "Укажите коллекцию");
+            model.put("error", "error.specifyCollection");
             model.put("docIds", List.<String>of());
             return "table".equals(target)
                     ? new ModelAndView<>("partials/mongo-table-view-result", model)
@@ -276,7 +276,7 @@ public class MongoController {
         int off = offset != null ? Math.max(0, offset) : 0;
         int lim = limit != null && limit > 0 ? limit : 100;
         var result = mongoMetadataService.executeQuery(id, dbName, collection, queryText, off, lim)
-                .orElse(QueryResult.error("Execution failed"));
+                .orElse(QueryResult.error("error.queryExecutionFailed"));
 
         model.put("error", result.hasError() ? result.getError() : null);
         model.put("columns", result.getColumns());

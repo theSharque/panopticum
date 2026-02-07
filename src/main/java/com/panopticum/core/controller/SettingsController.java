@@ -4,6 +4,7 @@ import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.mongo.service.MongoMetadataService;
 import com.panopticum.postgres.service.PgMetadataService;
+import com.panopticum.redis.service.RedisMetadataService;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.MediaType;
@@ -35,12 +36,14 @@ public class SettingsController {
     private final DbConnectionService dbConnectionService;
     private final PgMetadataService pgMetadataService;
     private final MongoMetadataService mongoMetadataService;
+    private final RedisMetadataService redisMetadataService;
 
     public SettingsController(DbConnectionService dbConnectionService, PgMetadataService pgMetadataService,
-                              MongoMetadataService mongoMetadataService) {
+                              MongoMetadataService mongoMetadataService, RedisMetadataService redisMetadataService) {
         this.dbConnectionService = dbConnectionService;
         this.pgMetadataService = pgMetadataService;
         this.mongoMetadataService = mongoMetadataService;
+        this.redisMetadataService = redisMetadataService;
     }
 
     @Produces(MediaType.TEXT_HTML)
@@ -95,7 +98,7 @@ public class SettingsController {
                 username != null ? username : "",
                 password != null ? password : "");
         model.put("success", error.isEmpty());
-        model.put("message", error.orElse("Подключение успешно"));
+        model.put("message", error.orElse("connectionTest.success"));
 
         return new ModelAndView<>("partials/connection-test-result", model);
     }
@@ -142,7 +145,60 @@ public class SettingsController {
                 username != null ? username : "",
                 password != null ? password : "");
         model.put("success", error.isEmpty());
-        model.put("message", error.orElse("Подключение успешно"));
+        model.put("message", error.orElse("connectionTest.success"));
+
+        return new ModelAndView<>("partials/connection-test-result", model);
+    }
+
+    @Post("/add-redis")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @Produces(MediaType.TEXT_HTML)
+    public Object addRedis(HttpRequest<?> request,
+                          String name, String host, Integer port, String database, String password) {
+        DbConnection conn = DbConnection.builder()
+                .name(name != null ? name : "")
+                .type("redis")
+                .host(host != null ? host : "localhost")
+                .port(port != null ? port : 6379)
+                .dbName(database != null && !database.isBlank() ? database : "0")
+                .username("")
+                .password(password != null ? password : "")
+                .build();
+        dbConnectionService.save(conn);
+
+        Map<String, Object> model = new HashMap<>();
+        model.put("connections", dbConnectionService.findAll());
+
+        boolean hxRequest = "true".equalsIgnoreCase(request.getHeaders().get(HX_REQUEST));
+
+        if (hxRequest) {
+            return new ModelAndView<>("partials/sidebar", model);
+        }
+
+        return new ModelAndView<>("settings/index", model);
+    }
+
+    @Post("/test-redis")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @Produces(MediaType.TEXT_HTML)
+    public ModelAndView<Map<String, Object>> testRedis(
+            String host, Integer port, String database, String password) {
+        Map<String, Object> model = new HashMap<>();
+        int p = port != null ? port : 6379;
+        int dbIndex = 0;
+        if (database != null && !database.isBlank()) {
+            try {
+                dbIndex = Integer.parseInt(database.trim());
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        var error = redisMetadataService.testConnection(
+                host != null ? host : "",
+                p,
+                password != null ? password : "",
+                dbIndex);
+        model.put("success", error.isEmpty());
+        model.put("message", error.orElse("connectionTest.success"));
 
         return new ModelAndView<>("partials/connection-test-result", model);
     }

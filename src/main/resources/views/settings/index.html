@@ -3,14 +3,15 @@
 <head></head>
 <body>
 <main th:fragment="main" class="main-content">
-    <h1>Добавить подключение</h1>
+    <h1 th:text="${msg['settings.title']}">Add connection</h1>
 
     <div class="form-group">
-        <label for="connection-type">Тип подключения</label>
+        <label for="connection-type" th:text="${msg['settings.connectionType']}">Connection type</label>
         <select id="connection-type" class="connection-type-select">
-            <option value="">Выберите тип</option>
+            <option value="" th:text="${msg['settings.selectType']}">Select type</option>
             <option value="postgresql">PostgreSQL</option>
             <option value="mongodb">MongoDB</option>
+            <option value="redis">Redis</option>
         </select>
     </div>
 
@@ -20,27 +21,27 @@
               hx-target="#sidebar"
               hx-swap="outerHTML">
             <div class="form-group">
-                <label for="name">Название</label>
-                <input type="text" id="name" name="name" required placeholder="Например: Production DB">
+                <label for="name" th:text="${msg['common.name']}">Name</label>
+                <input type="text" id="name" name="name" required th:attr="placeholder=${msg['settings.placeholderNamePg']}">
             </div>
             <div class="form-group">
-                <label for="host">Хост</label>
+                <label for="host" th:text="${msg['settings.host']}">Host</label>
                 <input type="text" id="host" name="host" required placeholder="localhost" value="localhost">
             </div>
             <div class="form-group">
-                <label for="port">Порт</label>
+                <label for="port" th:text="${msg['settings.port']}">Port</label>
                 <input type="number" id="port" name="port" value="5432">
             </div>
             <div class="form-group">
-                <label for="database">База данных</label>
+                <label for="database" th:text="${msg['settings.database']}">Database</label>
                 <input type="text" id="database" name="database" required placeholder="mydb">
             </div>
             <div class="form-group">
-                <label for="username">Пользователь</label>
+                <label for="username" th:text="${msg['settings.username']}">Username</label>
                 <input type="text" id="username" name="username" required placeholder="user">
             </div>
             <div class="form-group">
-                <label for="password">Пароль</label>
+                <label for="password" th:text="${msg['settings.password']}">Password</label>
                 <input type="password" id="password" name="password" placeholder="password">
             </div>
             <div class="form-actions">
@@ -48,10 +49,9 @@
                         hx-post="/settings/test-postgres"
                         hx-include="closest('form')"
                         hx-target="#connection-test-result"
-                        hx-swap="innerHTML">
-                    Проверить
-                </button>
-                <button type="submit">Добавить</button>
+                        hx-swap="innerHTML"
+                        th:text="${msg['settings.test']}">Test</button>
+                <button type="submit" th:text="${msg['settings.add']}">Add</button>
             </div>
             <div id="connection-test-result" class="connection-test-result"></div>
         </form>
@@ -63,27 +63,27 @@
               hx-target="#sidebar"
               hx-swap="outerHTML">
             <div class="form-group">
-                <label for="name-mongo">Название</label>
-                <input type="text" id="name-mongo" name="name" required placeholder="Например: Production Mongo">
+                <label for="name-mongo" th:text="${msg['common.name']}">Name</label>
+                <input type="text" id="name-mongo" name="name" required th:attr="placeholder=${msg['settings.placeholderNameMongo']}">
             </div>
             <div class="form-group">
-                <label for="host-mongo">Хост</label>
+                <label for="host-mongo" th:text="${msg['settings.host']}">Host</label>
                 <input type="text" id="host-mongo" name="host" required placeholder="localhost" value="localhost">
             </div>
             <div class="form-group">
-                <label for="port-mongo">Порт</label>
+                <label for="port-mongo" th:text="${msg['settings.port']}">Port</label>
                 <input type="number" id="port-mongo" name="port" value="27017">
             </div>
             <div class="form-group">
-                <label for="database-mongo">База данных</label>
+                <label for="database-mongo" th:text="${msg['settings.database']}">Database</label>
                 <input type="text" id="database-mongo" name="database" placeholder="admin">
             </div>
             <div class="form-group">
-                <label for="username-mongo">Пользователь</label>
+                <label for="username-mongo" th:text="${msg['settings.username']}">Username</label>
                 <input type="text" id="username-mongo" name="username" placeholder="user">
             </div>
             <div class="form-group">
-                <label for="password-mongo">Пароль</label>
+                <label for="password-mongo" th:text="${msg['settings.password']}">Password</label>
                 <input type="password" id="password-mongo" name="password" placeholder="password">
             </div>
             <div class="form-actions">
@@ -91,12 +91,49 @@
                         hx-post="/settings/test-mongo"
                         hx-include="closest('form')"
                         hx-target="#connection-test-result-mongo"
-                        hx-swap="innerHTML">
-                    Проверить
-                </button>
-                <button type="submit">Добавить</button>
+                        hx-swap="innerHTML"
+                        th:text="${msg['settings.test']}">Test</button>
+                <button type="submit" th:text="${msg['settings.add']}">Add</button>
             </div>
             <div id="connection-test-result-mongo" class="connection-test-result"></div>
+        </form>
+    </div>
+
+    <div id="form-redis" class="connection-form-block" hidden>
+        <form action="/settings/add-redis" method="post" class="add-connection-form"
+              hx-post="/settings/add-redis"
+              hx-target="#sidebar"
+              hx-swap="outerHTML">
+            <div class="form-group">
+                <label for="name-redis" th:text="${msg['common.name']}">Name</label>
+                <input type="text" id="name-redis" name="name" required th:attr="placeholder=${msg['settings.placeholderNameRedis']}">
+            </div>
+            <div class="form-group">
+                <label for="host-redis" th:text="${msg['settings.host']}">Host</label>
+                <input type="text" id="host-redis" name="host" required placeholder="localhost" value="localhost">
+            </div>
+            <div class="form-group">
+                <label for="port-redis" th:text="${msg['settings.port']}">Port</label>
+                <input type="number" id="port-redis" name="port" value="6379">
+            </div>
+            <div class="form-group">
+                <label for="database-redis" th:text="${msg['settings.databaseRedis']}">DB (0–15)</label>
+                <input type="number" id="database-redis" name="database" placeholder="0" value="0" min="0" max="15">
+            </div>
+            <div class="form-group">
+                <label for="password-redis" th:text="${msg['settings.password']}">Password</label>
+                <input type="password" id="password-redis" name="password" placeholder="password">
+            </div>
+            <div class="form-actions">
+                <button type="button" class="btn-check"
+                        hx-post="/settings/test-redis"
+                        hx-include="closest('form')"
+                        hx-target="#connection-test-result-redis"
+                        hx-swap="innerHTML"
+                        th:text="${msg['settings.test']}">Test</button>
+                <button type="submit" th:text="${msg['settings.add']}">Add</button>
+            </div>
+            <div id="connection-test-result-redis" class="connection-test-result"></div>
         </form>
     </div>
 
@@ -105,11 +142,12 @@
             var type = this.value;
             document.getElementById('form-postgres').hidden = type !== 'postgresql';
             document.getElementById('form-mongo').hidden = type !== 'mongodb';
+            document.getElementById('form-redis').hidden = type !== 'redis';
         });
     </script>
 
-    <h2>Добавленные подключения</h2>
-    <p>Список подключений отображается в меню слева.</p>
+    <h2 th:text="${msg['settings.addedConnections']}">Saved connections</h2>
+    <p th:text="${msg['settings.connectionsInMenu']}">Connections are shown in the menu on the left.</p>
 </main>
 </body>
 </html>

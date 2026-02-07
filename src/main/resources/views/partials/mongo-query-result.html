@@ -1,8 +1,8 @@
 <div id="query-result" class="query-result">
-    <p th:if="${error}" th:text="${error}" class="query-error"></p>
+    <p th:if="${error}" th:text="${msg != null && msg[error] != null ? msg[error] : error}" class="query-error"></p>
     <div th:if="${error == null and columns != null and !columns.isEmpty()}" class="query-result-data">
         <div class="query-pagination-info" th:if="${rows != null and !rows.isEmpty()}">
-            <span class="query-pagination-range" th:text="'Строки ' + ${fromRow} + '–' + ${toRow}"></span>
+            <span class="query-pagination-range" th:text="${msg['common.rowsRange'] + fromRow + '–' + toRow}"></span>
             <span class="query-pagination-nav">
                 <form class="query-pagination-form"
                       th:attr="hx-post=@{/mongo/{id}/query(id=${connectionId})}"
@@ -13,7 +13,7 @@
                     <input type="hidden" name="collection" th:value="${collection}"/>
                     <input type="hidden" name="limit" th:value="${limit}"/>
                     <input type="hidden" name="offset" th:value="${prevOffset}"/>
-                    <button type="submit" class="query-pagination-btn" th:classappend="${!hasPrev} ? 'query-pagination-btn-disabled' : ''" th:disabled="${!hasPrev}">← Назад</button>
+                    <button type="submit" class="query-pagination-btn" th:classappend="${!hasPrev} ? 'query-pagination-btn-disabled' : ''" th:disabled="${!hasPrev}" th:text="${'← ' + msg['common.prev']}">← Back</button>
                 </form>
                 <form class="query-pagination-form"
                       th:attr="hx-post=@{/mongo/{id}/query(id=${connectionId})}"
@@ -24,7 +24,7 @@
                     <input type="hidden" name="collection" th:value="${collection}"/>
                     <input type="hidden" name="limit" th:value="${limit}"/>
                     <input type="hidden" name="offset" th:value="${nextOffset}"/>
-                    <button type="submit" class="query-pagination-btn" th:classappend="${!hasMore} ? 'query-pagination-btn-disabled' : ''" th:disabled="${!hasMore}">Вперёд →</button>
+                    <button type="submit" class="query-pagination-btn" th:classappend="${!hasMore} ? 'query-pagination-btn-disabled' : ''" th:disabled="${!hasMore}" th:text="${msg['common.next'] + ' →'}">Next →</button>
                 </form>
             </span>
         </div>

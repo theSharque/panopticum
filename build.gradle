@@ -33,6 +33,7 @@ dependencies {
     runtimeOnly("com.h2database:h2")
     runtimeOnly("org.postgresql:postgresql")
     implementation("org.mongodb:mongodb-driver-sync")
+    implementation("io.lettuce:lettuce-core:6.5.4.RELEASE")
     runtimeOnly("org.yaml:snakeyaml")
 }
 

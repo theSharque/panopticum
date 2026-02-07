@@ -18,4 +18,14 @@ public final class StringUtils {
         }
         return s.substring(0, MAX_CELL_LENGTH) + ELLIPSIS;
     }
+
+    public static String truncate(String s) {
+        if (s == null) {
+            return null;
+        }
+        if (s.length() <= MAX_CELL_LENGTH) {
+            return s;
+        }
+        return s.substring(0, MAX_CELL_LENGTH) + ELLIPSIS;
+    }
 }

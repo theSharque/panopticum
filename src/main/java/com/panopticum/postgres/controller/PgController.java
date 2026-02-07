@@ -261,7 +261,7 @@ public class PgController {
             model.put("order", "");
         } else {
             var result = pgMetadataService.executeQuery(id, dbName, sql, off, lim, sort, order)
-                    .orElse(QueryResult.error("Ошибка выполнения запроса"));
+                    .orElse(QueryResult.error("error.queryExecutionFailed"));
             model.put("error", result.hasError() ? result.getError() : null);
             model.put("columns", result.getColumns());
             model.put("columnTypes", result.getColumnTypes() != null ? result.getColumnTypes() : List.<String>of());

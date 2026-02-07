@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Вход — Panopticum</title>
+    <title th:text="${msg != null ? msg['login.title'] : 'Sign in — Panopticum'}">Sign in — Panopticum</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
@@ -13,9 +13,9 @@
 <div class="login-page">
     <h1>Panopticum</h1>
 
-    <p>Введите учётные данные в диалоге браузера.</p>
+    <p th:text="${msg != null ? msg['login.prompt'] : 'Enter credentials in the browser dialog.'}">Enter credentials in the browser dialog.</p>
 
-    <p><a th:href="@{/}">Перейти на главную</a> — браузер запросит логин и пароль.</p>
+    <p><a th:href="@{/}" th:text="${msg != null ? msg['login.goHome'] : 'Go to home'}">Go to home</a><span th:text="${msg != null ? msg['login.browserPrompt'] : ' — the browser will ask for login and password.'}"> — the browser will ask for login and password.</span></p>
 </div>
 </body>
 </html>

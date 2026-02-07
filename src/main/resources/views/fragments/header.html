@@ -8,6 +8,16 @@
 <body>
 <header th:fragment="header" class="app-header">
     <a th:href="@{/}" class="app-name">Panopticum</a>
+    <details class="lang-dropdown">
+        <summary class="lang-trigger"
+                 th:text="${locale == 'ru' ? msg['lang.ru'] : msg['lang.en']}">en</summary>
+        <ul class="lang-menu" role="listbox">
+            <li><a th:href="@{/locale(lang='en', redirect=${requestUri})}"
+                   th:text="${msg['lang.en']}">English</a></li>
+            <li><a th:href="@{/locale(lang='ru', redirect=${requestUri})}"
+                   th:text="${msg['lang.ru']}">Russian</a></li>
+        </ul>
+    </details>
 </header>
 </body>
 </html>
