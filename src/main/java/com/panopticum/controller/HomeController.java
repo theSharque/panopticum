@@ -29,6 +29,7 @@ public class HomeController {
     public Map<String, Object> index() {
         Map<String, Object> model = new HashMap<>();
         model.put("connections", dbConnectionService.findAll());
+
         return model;
     }
 }

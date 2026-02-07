@@ -26,9 +26,11 @@ public class BasicAuthProvider implements AuthenticationProvider {
     public AuthenticationResponse authenticate(@Nullable Object httpRequest, @NonNull AuthenticationRequest authenticationRequest) {
         String identity = (String) authenticationRequest.getIdentity();
         String secret = (String) authenticationRequest.getSecret();
+
         if (expectedUsername.equals(identity) && expectedPassword.equals(secret)) {
             return AuthenticationResponse.success(identity);
         }
+
         return AuthenticationResponse.failure(AuthenticationFailureReason.CREDENTIALS_DO_NOT_MATCH);
     }
 }

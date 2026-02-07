@@ -8,6 +8,7 @@
 <aside th:fragment="sidebar(connections)" id="sidebar" class="sidebar">
     <nav class="sidebar-nav">
         <a th:href="@{/settings}" class="sidebar-link">Настройки</a>
+
         <div th:each="conn : ${connections}" class="sidebar-db">
             <a th:href="@{/db/{id}(id=${conn.id})}" th:text="${conn.name}" class="sidebar-link">DB</a>
         </div>

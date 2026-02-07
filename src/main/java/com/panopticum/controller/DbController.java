@@ -30,6 +30,7 @@ public class DbController {
         Map<String, Object> model = new HashMap<>();
         model.put("connections", dbConnectionService.findAll());
         dbConnectionService.findById(id).ifPresent(conn -> model.put("connection", conn));
+
         return model;
     }
 }

@@ -58,9 +58,11 @@ public class SettingsController {
         model.put("connections", dbConnectionService.findAll());
 
         boolean hxRequest = "true".equalsIgnoreCase(request.getHeaders().get(HX_REQUEST));
+
         if (hxRequest) {
             return new io.micronaut.views.ModelAndView<>("partials/sidebar", model);
         }
+
         return new io.micronaut.views.ModelAndView<>("settings/index", model);
     }
 }

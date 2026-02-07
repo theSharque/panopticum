@@ -4,8 +4,10 @@
 <body>
 <main th:fragment="main">
     <h1>База данных</h1>
+
     <p th:if="${connection}" th:text="'Подключение: ' + ${connection.name}">Подключение</p>
     <p th:unless="${connection}">Подключение не найдено.</p>
+
     <p><em>Просмотр данных будет реализован в следующих итерациях.</em></p>
 </main>
 </body>
