@@ -1,3 +1,4 @@
-<div id="connection-test-result" class="connection-test-result" th:classappend="${success} ? 'connection-test-ok' : 'connection-test-error'">
-    <span th:text="${msg != null && msg[message] != null ? msg[message] : message}">Test result</span>
+<div class="connection-test-result" th:classappend="${success} ? 'connection-test-ok' : 'connection-test-error'">
+    <span th:if="${success}" th:text="'✓ ' + (msg != null && msg[message] != null ? msg[message] : message)">✓ Success</span>
+    <span th:if="${!success}" th:text="'✗ ' + (msg != null && msg[message] != null ? msg[message] : message)">✗ Error</span>
 </div>

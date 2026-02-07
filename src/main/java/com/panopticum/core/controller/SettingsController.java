@@ -1,10 +1,12 @@
 package com.panopticum.core.controller;
 
+import com.panopticum.clickhouse.service.ClickHouseMetadataService;
 import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.mongo.service.MongoMetadataService;
 import com.panopticum.postgres.service.PgMetadataService;
 import com.panopticum.redis.service.RedisMetadataService;
+import com.panopticum.config.HxRedirectFilter;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.MediaType;
@@ -37,13 +39,16 @@ public class SettingsController {
     private final PgMetadataService pgMetadataService;
     private final MongoMetadataService mongoMetadataService;
     private final RedisMetadataService redisMetadataService;
+    private final ClickHouseMetadataService clickHouseMetadataService;
 
     public SettingsController(DbConnectionService dbConnectionService, PgMetadataService pgMetadataService,
-                              MongoMetadataService mongoMetadataService, RedisMetadataService redisMetadataService) {
+                              MongoMetadataService mongoMetadataService, RedisMetadataService redisMetadataService,
+                              ClickHouseMetadataService clickHouseMetadataService) {
         this.dbConnectionService = dbConnectionService;
         this.pgMetadataService = pgMetadataService;
         this.mongoMetadataService = mongoMetadataService;
         this.redisMetadataService = redisMetadataService;
+        this.clickHouseMetadataService = clickHouseMetadataService;
     }
 
     @Produces(MediaType.TEXT_HTML)
@@ -70,7 +75,7 @@ public class SettingsController {
                 .username(username != null ? username : "")
                 .password(password != null ? password : "")
                 .build();
-        dbConnectionService.save(conn);
+        DbConnection saved = dbConnectionService.save(conn);
 
         Map<String, Object> model = new HashMap<>();
         model.put("connections", dbConnectionService.findAll());
@@ -78,6 +83,9 @@ public class SettingsController {
         boolean hxRequest = "true".equalsIgnoreCase(request.getHeaders().get(HX_REQUEST));
 
         if (hxRequest) {
+            if (saved.getId() != null) {
+                request.setAttribute(HxRedirectFilter.HX_REDIRECT_ATTR, "/pg/" + saved.getId());
+            }
             return new ModelAndView<>("partials/sidebar", model);
         }
 
@@ -117,7 +125,7 @@ public class SettingsController {
                 .username(username != null ? username : "")
                 .password(password != null ? password : "")
                 .build();
-        dbConnectionService.save(conn);
+        DbConnection saved = dbConnectionService.save(conn);
 
         Map<String, Object> model = new HashMap<>();
         model.put("connections", dbConnectionService.findAll());
@@ -125,6 +133,9 @@ public class SettingsController {
         boolean hxRequest = "true".equalsIgnoreCase(request.getHeaders().get(HX_REQUEST));
 
         if (hxRequest) {
+            if (saved.getId() != null) {
+                request.setAttribute(HxRedirectFilter.HX_REDIRECT_ATTR, "/mongo/" + saved.getId());
+            }
             return new ModelAndView<>("partials/sidebar", model);
         }
 
@@ -164,7 +175,7 @@ public class SettingsController {
                 .username("")
                 .password(password != null ? password : "")
                 .build();
-        dbConnectionService.save(conn);
+        DbConnection saved = dbConnectionService.save(conn);
 
         Map<String, Object> model = new HashMap<>();
         model.put("connections", dbConnectionService.findAll());
@@ -172,6 +183,9 @@ public class SettingsController {
         boolean hxRequest = "true".equalsIgnoreCase(request.getHeaders().get(HX_REQUEST));
 
         if (hxRequest) {
+            if (saved.getId() != null) {
+                request.setAttribute(HxRedirectFilter.HX_REDIRECT_ATTR, "/redis/" + saved.getId());
+            }
             return new ModelAndView<>("partials/sidebar", model);
         }
 
@@ -197,6 +211,56 @@ public class SettingsController {
                 p,
                 password != null ? password : "",
                 dbIndex);
+        model.put("success", error.isEmpty());
+        model.put("message", error.orElse("connectionTest.success"));
+
+        return new ModelAndView<>("partials/connection-test-result", model);
+    }
+
+    @Post("/add-clickhouse")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @Produces(MediaType.TEXT_HTML)
+    public Object addClickhouse(HttpRequest<?> request,
+                               String name, String host, Integer port, String database, String username, String password) {
+        DbConnection conn = DbConnection.builder()
+                .name(name != null ? name : "")
+                .type("clickhouse")
+                .host(host != null ? host : "localhost")
+                .port(port != null ? port : 8123)
+                .dbName(database != null && !database.isBlank() ? database : "default")
+                .username(username != null ? username : "")
+                .password(password != null ? password : "")
+                .build();
+        DbConnection saved = dbConnectionService.save(conn);
+
+        Map<String, Object> model = new HashMap<>();
+        model.put("connections", dbConnectionService.findAll());
+
+        boolean hxRequest = "true".equalsIgnoreCase(request.getHeaders().get(HX_REQUEST));
+
+        if (hxRequest) {
+            if (saved.getId() != null) {
+                request.setAttribute(HxRedirectFilter.HX_REDIRECT_ATTR, "/ch/" + saved.getId());
+            }
+            return new ModelAndView<>("partials/sidebar", model);
+        }
+
+        return new ModelAndView<>("settings/index", model);
+    }
+
+    @Post("/test-clickhouse")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @Produces(MediaType.TEXT_HTML)
+    public ModelAndView<Map<String, Object>> testClickhouse(
+            String host, Integer port, String database, String username, String password) {
+        Map<String, Object> model = new HashMap<>();
+        int p = port != null ? port : 8123;
+        var error = clickHouseMetadataService.testConnection(
+                host != null ? host : "",
+                p,
+                database != null ? database : "default",
+                username != null ? username : "",
+                password != null ? password : "");
         model.put("success", error.isEmpty());
         model.put("message", error.orElse("connectionTest.success"));
 
