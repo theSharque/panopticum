@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(~{::main})}">
+<head></head>
+<body>
+<main th:fragment="main">
+    <div th:replace="~{fragments/breadcrumbs :: breadcrumbs(items=${breadcrumbs})}"></div>
+    <h1>Таблицы и представления</h1>
+    <ul class="pg-list" th:if="${tables != null and !tables.isEmpty()}">
+        <li th:each="t : ${tables}">
+            <span th:text="${t.name}" class="pg-list-name"></span>
+            <span th:text="${t.type}" class="pg-list-type"></span>
+        </li>
+    </ul>
+    <p th:if="${tables == null or tables.isEmpty()}" class="text-dim">Нет таблиц и представлений или ошибка подключения.</p>
+    <div th:replace="~{fragments/query-box :: queryBox(connectionId=${connectionId}, dbName=${dbName}, schema=${schema})}"></div>
+</main>
+</body>
+</html>

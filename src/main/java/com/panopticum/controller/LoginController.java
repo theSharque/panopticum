@@ -9,6 +9,7 @@ import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import io.micronaut.views.View;
 
+import java.net.URI;
 import java.security.Principal;
 import java.util.Collections;
 import java.util.Map;
@@ -22,7 +23,7 @@ public class LoginController {
     @View("login")
     public Object login(Principal principal) {
         if (principal != null) {
-            return HttpResponse.redirect(java.net.URI.create("/"));
+            return HttpResponse.redirect(URI.create("/"));
         }
 
         return Collections.<String, Object>emptyMap();

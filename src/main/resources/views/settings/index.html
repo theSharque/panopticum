@@ -34,7 +34,17 @@
             <label for="password">Пароль</label>
             <input type="password" id="password" name="password" placeholder="password">
         </div>
-        <button type="submit">Добавить</button>
+        <div class="form-actions">
+            <button type="button" class="btn-check"
+                    hx-post="/settings/test-postgres"
+                    hx-include="closest('form')"
+                    hx-target="#connection-test-result"
+                    hx-swap="innerHTML">
+                Проверить
+            </button>
+            <button type="submit">Добавить</button>
+        </div>
+        <div id="connection-test-result" class="connection-test-result"></div>
     </form>
 
     <h2>Добавленные подключения</h2>

@@ -12,17 +12,47 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Singleton
 public class DbConnectionRepository {
 
+    private static final String CREATE_TABLE_SQL =
+            "CREATE TABLE IF NOT EXISTS db_connections ("
+                    + "id BIGINT AUTO_INCREMENT PRIMARY KEY, "
+                    + "name VARCHAR(255) NOT NULL, "
+                    + "type VARCHAR(50) NOT NULL DEFAULT 'postgresql', "
+                    + "host VARCHAR(255) NOT NULL, "
+                    + "port INT NOT NULL DEFAULT 5432, "
+                    + "db_name VARCHAR(255) NOT NULL, "
+                    + "username VARCHAR(255) NOT NULL, "
+                    + "password VARCHAR(255), "
+                    + "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL"
+                    + ")";
+
     private final DataSource dataSource;
+    private final AtomicBoolean tableChecked = new AtomicBoolean(false);
 
     public DbConnectionRepository(DataSource dataSource) {
         this.dataSource = dataSource;
     }
 
+    private void ensureTableExists() {
+        if (!tableChecked.compareAndSet(false, true)) {
+            return;
+        }
+
+        try (Connection conn = dataSource.getConnection();
+             Statement stmt = conn.createStatement()) {
+            stmt.executeUpdate(CREATE_TABLE_SQL);
+        } catch (SQLException e) {
+            tableChecked.set(false);
+            throw new RuntimeException("Failed to ensure db_connections table", e);
+        }
+    }
+
     public List<DbConnection> findAll() {
+        ensureTableExists();
         String sql = "SELECT id, name, type, host, port, db_name, username, password, created_at FROM db_connections ORDER BY name";
         List<DbConnection> result = new ArrayList<>();
         try (Connection conn = dataSource.getConnection();
@@ -32,13 +62,15 @@ public class DbConnectionRepository {
                 result.add(mapRow(rs));
             }
         } catch (SQLException e) {
-            throw new RuntimeException("Failed to list connections", e);
+            return List.of();
         }
 
         return result;
     }
 
     public Optional<DbConnection> findById(Long id) {
+        ensureTableExists();
+
         String sql = "SELECT id, name, type, host, port, db_name, username, password, created_at FROM db_connections WHERE id = ?";
         try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -78,6 +110,8 @@ public class DbConnectionRepository {
     }
 
     private DbConnection insert(DbConnection c) {
+        ensureTableExists();
+
         String sql = "INSERT INTO db_connections (name, type, host, port, db_name, username, password) VALUES (?, ?, ?, ?, ?, ?, ?)";
         try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {

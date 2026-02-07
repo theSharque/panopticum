@@ -1,0 +1,17 @@
+<div id="query-result" class="query-result">
+    <p th:if="${error}" th:text="${error}" class="query-error"></p>
+    <div th:if="${error == null and columns != null and !columns.isEmpty()}" class="query-table-wrapper">
+        <table class="query-table">
+            <thead>
+                <tr>
+                    <th th:each="col : ${columns}" th:text="${col}"></th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="row : ${rows}">
+                    <td th:each="cell : ${row}" th:text="${cell}"></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
