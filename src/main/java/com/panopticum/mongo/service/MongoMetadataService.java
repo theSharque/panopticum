@@ -6,6 +6,7 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.model.QueryResult;
+import com.panopticum.core.util.StringUtils;
 import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.mongo.model.MongoCollectionInfo;
 import com.panopticum.mongo.model.MongoDatabaseInfo;
@@ -298,7 +299,7 @@ public class MongoMetadataService {
             List<Object> row = new ArrayList<>();
 
             for (String col : columnList) {
-                row.add(doc.get(col));
+                row.add(StringUtils.truncateCell(doc.get(col)));
             }
 
             rows.add(row);

@@ -88,6 +88,7 @@ body {
     letter-spacing: 0.2em;
     color: var(--cyan-500);
     text-shadow: var(--cyan-glow);
+    text-decoration: none;
 }
 
 .header-nav a {

@@ -9,7 +9,7 @@ import com.panopticum.postgres.model.PgSchemaInfo;
 import com.panopticum.postgres.model.TableInfo;
 import com.panopticum.postgres.service.PgMetadataService;
 import io.micronaut.core.annotation.Nullable;
-import io.micronaut.http.HttpRequest;
+import io.micronaut.http.HttpResponse;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.Consumes;
 import io.micronaut.http.annotation.Controller;
@@ -89,6 +89,16 @@ public class PgController {
         model.put("nextOffset", offset + limit);
 
         return model;
+    }
+
+    @Get("/{id}/detail")
+    public HttpResponse<?> detailRedirect(@PathVariable Long id) {
+        return HttpResponse.redirect(java.net.URI.create("/pg/" + id));
+    }
+
+    @Get("/{id}/{dbName}/{schema}/detail")
+    public HttpResponse<?> detailRedirectWithContext(@PathVariable Long id, @PathVariable String dbName, @PathVariable String schema) {
+        return HttpResponse.redirect(java.net.URI.create("/pg/" + id + "/" + dbName + "/" + schema));
     }
 
     @Produces(MediaType.TEXT_HTML)
@@ -314,11 +324,11 @@ public class PgController {
     }
 
     @Produces(MediaType.TEXT_HTML)
-    @Post("/{id}/detail")
+    @Post("/{id}/{dbName}/{schema}/detail")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @View("pg/detail")
-    public Map<String, Object> rowDetail(@PathVariable Long id, String dbName, String schema,
-                                         Integer rowCount, HttpRequest<?> request) {
+    public Map<String, Object> rowDetail(@PathVariable Long id, @PathVariable String dbName, @PathVariable String schema,
+                                         String sql, Integer rowNum, String sort, String order) {
         Map<String, Object> model = baseModel(id);
         Optional<DbConnection> conn = dbConnectionService.findById(id);
         if (conn.isEmpty()) {
@@ -327,25 +337,35 @@ public class PgController {
         List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
         breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/pg/" + id));
         breadcrumbs.add(new BreadcrumbItem(dbName != null ? dbName : "", "/pg/" + id + "/" + (dbName != null ? dbName : "")));
-        breadcrumbs.add(new BreadcrumbItem(schema != null ? schema : "", null));
+        String schemaUrl = (dbName != null && schema != null && !dbName.isBlank() && !schema.isBlank())
+                ? "/pg/" + id + "/" + dbName + "/" + schema
+                : null;
+        breadcrumbs.add(new BreadcrumbItem(schema != null ? schema : "", schemaUrl));
         breadcrumbs.add(new BreadcrumbItem("detail", null));
         model.put("breadcrumbs", breadcrumbs);
         model.put("connectionId", id);
         model.put("dbName", dbName != null ? dbName : "");
         model.put("schema", schema != null ? schema : "");
 
-        int count = rowCount != null && rowCount > 0 ? Math.min(rowCount, 200) : 0;
         List<Map<String, String>> detailRows = new ArrayList<>();
-        var params = request.getParameters();
-        for (int i = 0; i < count; i++) {
-            String col = params.get("rowCol" + i);
-            String type = params.get("rowType" + i);
-            String val = params.get("rowVal" + i);
-            Map<String, String> entry = new HashMap<>();
-            entry.put("name", col != null ? col : "");
-            entry.put("type", type != null ? type : "");
-            entry.put("value", val != null ? val : "");
-            detailRows.add(entry);
+        if (sql != null && !sql.isBlank() && rowNum != null && rowNum >= 0) {
+            int offset = Math.max(0, rowNum);
+            var result = pgMetadataService.executeQuery(id, dbName, sql, offset, 1, sort, order, false);
+            if (result.isPresent() && !result.get().hasError() && result.get().getRows() != null && !result.get().getRows().isEmpty()) {
+                List<String> columns = result.get().getColumns();
+                List<String> columnTypes = result.get().getColumnTypes() != null ? result.get().getColumnTypes() : List.of();
+                List<Object> row = result.get().getRows().get(0);
+                for (int i = 0; i < columns.size(); i++) {
+                    String col = columns.get(i);
+                    String type = i < columnTypes.size() ? columnTypes.get(i) : "unknown";
+                    Object val = i < row.size() ? row.get(i) : null;
+                    Map<String, String> entry = new HashMap<>();
+                    entry.put("name", col);
+                    entry.put("type", type);
+                    entry.put("value", val != null ? val.toString() : "");
+                    detailRows.add(entry);
+                }
+            }
         }
         model.put("detailRows", detailRows);
 

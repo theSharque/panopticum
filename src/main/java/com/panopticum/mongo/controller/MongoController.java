@@ -141,9 +141,14 @@ public class MongoController {
 
     @Produces(MediaType.TEXT_HTML)
     @Get("/{id}/{dbName}/query")
+    public io.micronaut.http.HttpResponse<?> queryRedirect(@PathVariable Long id, @PathVariable String dbName) {
+        return io.micronaut.http.HttpResponse.redirect(java.net.URI.create("/mongo/" + id + "/" + dbName));
+    }
+
+    @Produces(MediaType.TEXT_HTML)
+    @Get("/{id}/{dbName}/{collection}/query")
     @View("mongo/query")
-    public Map<String, Object> queryPageGet(@PathVariable Long id, @PathVariable String dbName,
-                                            @QueryValue(value = "collection", defaultValue = "") String collection,
+    public Map<String, Object> queryPageGet(@PathVariable Long id, @PathVariable String dbName, @PathVariable String collection,
                                             @QueryValue(value = "query", defaultValue = "") String query,
                                             @QueryValue(value = "offset", defaultValue = "0") Integer offset,
                                             @QueryValue(value = "limit", defaultValue = "100") Integer limit) {
@@ -151,12 +156,11 @@ public class MongoController {
     }
 
     @Produces(MediaType.TEXT_HTML)
-    @Post("/{id}/{dbName}/query")
+    @Post("/{id}/{dbName}/{collection}/query")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @View("mongo/query")
-    public Map<String, Object> queryPagePost(@PathVariable Long id, @PathVariable String dbName,
-                                             @Nullable String collection, @Nullable String query,
-                                             @Nullable Integer offset, @Nullable Integer limit) {
+    public Map<String, Object> queryPagePost(@PathVariable Long id, @PathVariable String dbName, @PathVariable String collection,
+                                             @Nullable String query, @Nullable Integer offset, @Nullable Integer limit) {
         return buildQueryPageModel(id, dbName, collection, query, offset, limit);
     }
 
@@ -170,6 +174,10 @@ public class MongoController {
         List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
         breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/mongo/" + id));
         breadcrumbs.add(new BreadcrumbItem(dbName, "/mongo/" + id + "/" + dbName));
+        String collectionUrl = (collection != null && !collection.isBlank())
+                ? "/mongo/" + id + "/" + dbName + "/" + collection + "/query"
+                : null;
+        breadcrumbs.add(new BreadcrumbItem(collection != null ? collection : "", collectionUrl));
         breadcrumbs.add(new BreadcrumbItem("query", null));
         model.put("breadcrumbs", breadcrumbs);
         model.put("connectionId", id);
@@ -229,7 +237,10 @@ public class MongoController {
         List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
         breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/mongo/" + id));
         breadcrumbs.add(new BreadcrumbItem(dbName, "/mongo/" + id + "/" + dbName));
-        breadcrumbs.add(new BreadcrumbItem(collection != null ? collection : "", "/mongo/" + id + "/" + dbName + "/query?collection=" + (collection != null ? collection : "")));
+        String collectionDetailUrl = (collection != null && !collection.isBlank())
+                ? "/mongo/" + id + "/" + dbName + "/" + collection + "/query"
+                : null;
+        breadcrumbs.add(new BreadcrumbItem(collection != null ? collection : "", collectionDetailUrl));
         breadcrumbs.add(new BreadcrumbItem("detail", null));
         model.put("breadcrumbs", breadcrumbs);
         model.put("connectionId", id);

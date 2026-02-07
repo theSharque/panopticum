@@ -8,7 +8,7 @@
 
     <section class="query-panel query-panel-table">
         <h3 class="query-panel-title">Query</h3>
-        <form th:action="@{/mongo/{id}/query(id=${connectionId})}"
+        <form th:action="@{/mongo/{id}/{dbName}/{collection}/query(id=${connectionId}, dbName=${dbName}, collection=${collection})}"
               method="post"
               th:attr="hx-post=@{/mongo/{id}/query(id=${connectionId})}"
               hx-target="#table-data"

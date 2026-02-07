@@ -2,6 +2,7 @@ package com.panopticum.postgres.service;
 
 import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.model.QueryResult;
+import com.panopticum.core.util.StringUtils;
 import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.postgres.model.PgDatabaseInfo;
 import com.panopticum.postgres.model.PgSchemaInfo;
@@ -11,7 +12,6 @@ import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
 
 import java.sql.Connection;
-import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -212,6 +212,11 @@ public class PgMetadataService {
 
     public Optional<QueryResult> executeQuery(Long connectionId, String dbName, String sql, int offset, int limit,
                                               String sortBy, String sortOrder) {
+        return executeQuery(connectionId, dbName, sql, offset, limit, sortBy, sortOrder, true);
+    }
+
+    public Optional<QueryResult> executeQuery(Long connectionId, String dbName, String sql, int offset, int limit,
+                                              String sortBy, String sortOrder, boolean truncateCells) {
         try (Connection conn = getConnection(connectionId, dbName).orElse(null)) {
             if (conn == null) {
                 return Optional.of(QueryResult.error("Connection not available"));
@@ -235,7 +240,8 @@ public class PgMetadataService {
                 while (rs.next()) {
                     List<Object> row = new ArrayList<>();
                     for (int i = 1; i <= colCount; i++) {
-                        row.add(rs.getObject(i));
+                        Object cell = rs.getObject(i);
+                        row.add(truncateCells ? StringUtils.truncateCell(cell) : cell);
                     }
                     rows.add(row);
                 }
