@@ -95,20 +95,14 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr th:each="row : ${rows}" class="query-data-row query-row-clickable"
+                    <tr th:each="row, rowStat : ${rows}" class="query-data-row query-row-clickable"
                         onclick="var f = this.querySelector('.query-row-detail-form'); if (f && !event.target.closest('button')) f.submit();">
                         <td class="query-detail-cell">
-                            <form th:action="@{/pg/{id}/detail(id=${connectionId})}" method="post" class="query-row-detail-form">
-                                <input type="hidden" name="dbName" th:value="${dbName}"/>
-                                <input type="hidden" name="schema" th:value="${schema}"/>
-                                <input type="hidden" name="rowCount" th:value="${columns.size()}"/>
-                                <th:block th:each="col, colStat : ${columns}">
-                                    <input type="hidden" th:name="'rowCol' + ${colStat.index}" th:value="${col}"/>
-                                    <input type="hidden" th:name="'rowType' + ${colStat.index}"
-                                           th:value="${columnTypes != null and columnTypes.size() > colStat.index ? columnTypes[colStat.index] : 'unknown'}"/>
-                                    <input type="hidden" th:name="'rowVal' + ${colStat.index}"
-                                           th:value="${row[colStat.index] != null ? row[colStat.index].toString() : ''}"/>
-                                </th:block>
+                            <form th:action="@{/pg/{id}/{dbName}/{schema}/detail(id=${connectionId}, dbName=${dbName}, schema=${schema})}" method="post" class="query-row-detail-form">
+                                <input type="hidden" name="sql" th:value="${sql}"/>
+                                <input type="hidden" name="sort" th:value="${sort}"/>
+                                <input type="hidden" name="order" th:value="${order}"/>
+                                <input type="hidden" name="rowNum" th:value="${offset + rowStat.index}"/>
                                 <button type="submit" class="query-detail-link" aria-label="Открыть" title="Открыть">
                                     <svg class="icon-link" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
                                 </button>
