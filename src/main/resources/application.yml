@@ -8,6 +8,9 @@ panopticum:
     tables-page-size: 50
     collections: 500
     connections: 500
+    redis:
+      keys-per-page: 100
+      value-preview-length: 10000
 
 micronaut:
   application:
@@ -56,6 +59,17 @@ micronaut:
         access:
           - isAuthenticated()
       - pattern: /mongo/**
+        access:
+          - isAuthenticated()
+      - pattern: /settings/add-redis
+        httpMethod: POST
+        access:
+          - isAuthenticated()
+      - pattern: /settings/test-redis
+        httpMethod: POST
+        access:
+          - isAuthenticated()
+      - pattern: /redis/**
         access:
           - isAuthenticated()
   views:

@@ -48,7 +48,7 @@ public class MongoMetadataService {
 
     public Optional<String> testConnection(String host, int port, String dbName, String username, String password) {
         if (host == null || host.isBlank()) {
-            return Optional.of("Укажите хост");
+            return Optional.of("error.specifyHost");
         }
 
         String uri = buildConnectionString(host.trim(), port, dbName != null ? dbName.trim() : "", username != null ? username.trim() : "", password != null ? password : "");
@@ -188,15 +188,15 @@ public class MongoMetadataService {
     public Optional<QueryResult> executeQuery(Long connectionId, String dbName, String collectionName, String queryText,
                                               int offset, int limit) {
         if (collectionName == null || collectionName.isBlank()) {
-            return Optional.of(QueryResult.error("Укажите коллекцию"));
+            return Optional.of(QueryResult.error("error.specifyCollection"));
         }
         try (MongoClient client = createClient(connectionId).orElse(null)) {
             if (client == null) {
-                return Optional.of(QueryResult.error("Connection not available"));
+                return Optional.of(QueryResult.error("error.connectionNotAvailable"));
             }
 
             if (dbName == null || dbName.isBlank()) {
-                return Optional.of(QueryResult.error("Укажите базу данных"));
+                return Optional.of(QueryResult.error("error.specifyDatabase"));
             }
 
             MongoCollection<Document> collection = client.getDatabase(dbName).getCollection(collectionName);
@@ -235,7 +235,7 @@ public class MongoMetadataService {
         try {
             List<Bson> pipeline = parsePipeline(queryText);
             if (pipeline.isEmpty()) {
-                return Optional.of(QueryResult.error("Неверный формат pipeline (ожидается массив этапов)"));
+                return Optional.of(QueryResult.error("error.invalidPipelineFormat"));
             }
 
             List<Bson> withLimit = new ArrayList<>(pipeline);

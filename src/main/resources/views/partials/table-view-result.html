@@ -1,8 +1,8 @@
 <div id="table-data" class="query-result">
-    <p th:if="${error}" th:text="${error}" class="query-error"></p>
+    <p th:if="${error}" th:text="${msg != null && msg[error] != null ? msg[error] : error}" class="query-error"></p>
     <div th:if="${error == null and columns != null and !columns.isEmpty()}" class="query-result-data">
         <div class="query-pagination-info" th:if="${rows != null and !rows.isEmpty()}">
-            <span class="query-pagination-range" th:text="'Строки ' + ${fromRow} + '–' + ${toRow}"></span>
+            <span class="query-pagination-range" th:text="${msg['common.rowsRange'] + fromRow + '–' + toRow}"></span>
             <span class="query-pagination-nav">
                 <form class="query-pagination-form"
                       th:action="@{/pg/{id}/query(id=${connectionId})}"
@@ -16,7 +16,7 @@
                     <input type="hidden" name="limit" th:value="${limit}"/>
                     <input type="hidden" name="target" value="table"/>
                     <input type="hidden" name="offset" th:value="${prevOffset}"/>
-                    <button type="submit" class="query-pagination-btn" th:classappend="${!hasPrev} ? 'query-pagination-btn-disabled' : ''" th:disabled="${!hasPrev}">← Назад</button>
+                    <button type="submit" class="query-pagination-btn" th:classappend="${!hasPrev} ? 'query-pagination-btn-disabled' : ''" th:disabled="${!hasPrev}" th:text="${'← ' + msg['common.prev']}">← Back</button>
                 </form>
                 <form class="query-pagination-form"
                       th:action="@{/pg/{id}/query(id=${connectionId})}"
@@ -30,7 +30,7 @@
                     <input type="hidden" name="limit" th:value="${limit}"/>
                     <input type="hidden" name="target" value="table"/>
                     <input type="hidden" name="offset" th:value="${nextOffset}"/>
-                    <button type="submit" class="query-pagination-btn" th:classappend="${!hasMore} ? 'query-pagination-btn-disabled' : ''" th:disabled="${!hasMore}">Вперёд →</button>
+                    <button type="submit" class="query-pagination-btn" th:classappend="${!hasMore} ? 'query-pagination-btn-disabled' : ''" th:disabled="${!hasMore}" th:text="${msg['common.next'] + ' →'}">Next →</button>
                 </form>
             </span>
         </div>
@@ -103,7 +103,7 @@
                                 <input type="hidden" name="sort" th:value="${sort}"/>
                                 <input type="hidden" name="order" th:value="${order}"/>
                                 <input type="hidden" name="rowNum" th:value="${offset + rowStat.index}"/>
-                                <button type="submit" class="query-detail-link" aria-label="Открыть" title="Открыть">
+                                <button type="submit" class="query-detail-link" th:attr="aria-label=${msg['common.open']}, title=${msg['common.open']}">
                                     <svg class="icon-link" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
                                 </button>
                             </form>
@@ -114,5 +114,5 @@
             </table>
         </div>
     </div>
-    <p th:if="${error == null and (rows == null or rows.isEmpty())}" class="text-dim">Нет данных.</p>
+    <p th:if="${error == null and (rows == null or rows.isEmpty())}" class="text-dim" th:text="${msg['common.noData']}">No data.</p>
 </div>

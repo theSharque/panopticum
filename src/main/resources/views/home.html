@@ -3,15 +3,15 @@
 <head></head>
 <body>
 <main th:fragment="main" class="main-content">
-    <h1>Panopticum — место, откуда видно всё</h1>
+    <h1 th:text="${msg['home.title']}">Panopticum — place from which everything is visible</h1>
 
-    <p class="text-dim">
-        Название восходит к греческому pan (всё) и optikon (видение) — «всевидящий».
-        Идея паноптикума — единая точка обзора, с которой всё подконтрольное пространство видно целиком.
-        Здесь это инструмент для просмотра и управления подключениями к базам данных — MongoDB, PostgreSQL, Redis, ClickHouse — из одного места.
+    <p class="text-dim" th:text="${msg['home.description']}">
+        The name derives from Greek pan (all) and optikon (vision). The idea is a single vantage point
+        from which the entire controlled space is visible. Here it is a tool for viewing and managing
+        connections to MongoDB, PostgreSQL, Redis, ClickHouse from one place.
     </p>
 
-    <p>Выберите базу данных в меню или перейдите в настройки для добавления подключения.</p>
+    <p th:text="${msg['home.pickDb']}">Pick a database from the menu or go to settings to add a connection.</p>
 </main>
 </body>
 </html>

@@ -4,13 +4,13 @@
 <body>
 <main th:fragment="main" class="main-content">
     <div th:replace="~{fragments/breadcrumbs :: breadcrumbs(items=${breadcrumbs})}"></div>
-    <h1>Коллекции</h1>
+    <h1 th:text="${msg['mongo.collections']}">Collections</h1>
     <div th:if="${items != null and !items.isEmpty()}" class="query-result-data">
         <div class="query-pagination-info">
-            <span class="query-pagination-range" th:text="'Строки ' + ${fromRow} + '–' + ${toRow}"></span>
+            <span class="query-pagination-range" th:text="${msg['common.rowsRange'] + fromRow + '–' + toRow}"></span>
             <span class="query-pagination-nav">
-                <a th:if="${hasPrev}" th:href="@{/mongo/{id}/{db}(id=${connectionId}, db=${dbName})}(page=${page - 1}, size=${size}, sort=${sort}, order=${order})" class="query-pagination-btn">← Назад</a>
-                <a th:if="${hasMore}" th:href="@{/mongo/{id}/{db}(id=${connectionId}, db=${dbName})}(page=${page + 1}, size=${size}, sort=${sort}, order=${order})" class="query-pagination-btn">Вперёд →</a>
+                <a th:if="${hasPrev}" th:href="@{/mongo/{id}/{db}(id=${connectionId}, db=${dbName})}(page=${page - 1}, size=${size}, sort=${sort}, order=${order})" class="query-pagination-btn" th:text="${'← ' + msg['common.prev']}">← Back</a>
+                <a th:if="${hasMore}" th:href="@{/mongo/{id}/{db}(id=${connectionId}, db=${dbName})}(page=${page + 1}, size=${size}, sort=${sort}, order=${order})" class="query-pagination-btn" th:text="${msg['common.next'] + ' →'}">Next →</a>
             </span>
         </div>
         <div class="query-table-wrapper">
@@ -19,13 +19,13 @@
                     <tr>
                         <th class="query-th query-th-detail"></th>
                         <th class="query-th query-th-sortable">
-                            <a th:href="@{/mongo/{id}/{db}(id=${connectionId}, db=${dbName}, page=1, size=${size}, sort='name', order=(order == 'asc' ? 'desc' : 'asc'))}" class="query-th-link">Название <span th:if="${sort == 'name' and order == 'asc'}" class="query-sort-ind">▲</span><span th:if="${sort == 'name' and order == 'desc'}" class="query-sort-ind">▼</span></a>
+                            <a th:href="@{/mongo/{id}/{db}(id=${connectionId}, db=${dbName}, page=1, size=${size}, sort='name', order=(order == 'asc' ? 'desc' : 'asc'))}" class="query-th-link"><span th:text="${msg['common.name']}">Name</span> <span th:if="${sort == 'name' and order == 'asc'}" class="query-sort-ind">▲</span><span th:if="${sort == 'name' and order == 'desc'}" class="query-sort-ind">▼</span></a>
                         </th>
                         <th class="query-th query-th-sortable">
-                            <a th:href="@{/mongo/{id}/{db}(id=${connectionId}, db=${dbName}, page=1, size=${size}, sort='count', order=(order == 'asc' ? 'desc' : 'asc'))}" class="query-th-link">Документов <span th:if="${sort == 'count' and order == 'asc'}" class="query-sort-ind">▲</span><span th:if="${sort == 'count' and order == 'desc'}" class="query-sort-ind">▼</span></a>
+                            <a th:href="@{/mongo/{id}/{db}(id=${connectionId}, db=${dbName}, page=1, size=${size}, sort='count', order=(order == 'asc' ? 'desc' : 'asc'))}" class="query-th-link"><span th:text="${msg['mongo.documents']}">Documents</span> <span th:if="${sort == 'count' and order == 'asc'}" class="query-sort-ind">▲</span><span th:if="${sort == 'count' and order == 'desc'}" class="query-sort-ind">▼</span></a>
                         </th>
                         <th class="query-th query-th-sortable">
-                            <a th:href="@{/mongo/{id}/{db}(id=${connectionId}, db=${dbName}, page=1, size=${size}, sort='size', order=(order == 'asc' ? 'desc' : 'asc'))}" class="query-th-link">Размер <span th:if="${sort == 'size' and order == 'asc'}" class="query-sort-ind">▲</span><span th:if="${sort == 'size' and order == 'desc'}" class="query-sort-ind">▼</span></a>
+                            <a th:href="@{/mongo/{id}/{db}(id=${connectionId}, db=${dbName}, page=1, size=${size}, sort='size', order=(order == 'asc' ? 'desc' : 'asc'))}" class="query-th-link"><span th:text="${msg['common.size']}">Size</span> <span th:if="${sort == 'size' and order == 'asc'}" class="query-sort-ind">▲</span><span th:if="${sort == 'size' and order == 'desc'}" class="query-sort-ind">▼</span></a>
                         </th>
                     </tr>
                 </thead>
@@ -33,7 +33,7 @@
                     <tr th:each="item : ${items}" class="query-data-row query-row-clickable"
                         onclick="var a = this.querySelector('a.query-detail-link'); if (a) location.href = a.href;">
                         <td class="query-detail-cell">
-                            <a th:href="@{/mongo/{id}/{dbName}/{collection}/query(id=${connectionId}, dbName=${dbName}, collection=${item.name})}" class="query-detail-link" aria-label="Открыть" title="Открыть">
+                            <a th:href="@{/mongo/{id}/{dbName}/{collection}/query(id=${connectionId}, dbName=${dbName}, collection=${item.name})}" class="query-detail-link" th:attr="aria-label=${msg['common.open']}, title=${msg['common.open']}">
                                 <svg class="icon-link" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
                             </a>
                         </td>
@@ -45,7 +45,7 @@
             </table>
         </div>
     </div>
-    <p th:if="${items == null or items.isEmpty()}" class="text-dim">Нет коллекций или ошибка подключения.</p>
+    <p th:if="${items == null or items.isEmpty()}" class="text-dim" th:text="${msg['common.noCollectionsOrError']}">No collections or connection error.</p>
 </main>
 </body>
 </html>

@@ -4,7 +4,7 @@
 <body>
 <main th:fragment="main" class="main-content">
     <div th:replace="~{fragments/breadcrumbs :: breadcrumbs(items=${breadcrumbs})}"></div>
-    <h1>Детали документа</h1>
+    <h1 th:text="${msg['mongo.documentDetail']}">Document details</h1>
     <pre class="detail-json" th:text="${prettyJson}"></pre>
 </main>
 </body>

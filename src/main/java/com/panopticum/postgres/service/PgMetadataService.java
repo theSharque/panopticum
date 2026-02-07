@@ -68,7 +68,7 @@ public class PgMetadataService {
 
     public Optional<String> testConnection(String host, int port, String dbName, String username, String password) {
         if (host == null || host.isBlank() || dbName == null || dbName.isBlank() || username == null || username.isBlank()) {
-            return Optional.of("Укажите хост, базу и пользователя");
+            return Optional.of("error.specifyHostDbUser");
         }
 
         String url = POSTGRESQL_PREFIX + host.trim() + ":" + port + "/" + dbName.trim();
