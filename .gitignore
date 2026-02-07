@@ -1,7 +1,10 @@
 # Gradle
 .gradle/
+.gradletasknamecache
 build/
+gradle-app.setting
 !gradle/wrapper/gradle-wrapper.jar
+!gradle-wrapper.properties
 
 # IDE
 .idea/
