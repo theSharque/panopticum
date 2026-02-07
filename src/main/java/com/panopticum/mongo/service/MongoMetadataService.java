@@ -45,9 +45,12 @@ public class MongoMetadataService {
         if (host == null || host.isBlank()) {
             return Optional.of("Укажите хост");
         }
+
         String uri = buildConnectionString(host.trim(), port, dbName != null ? dbName.trim() : "", username != null ? username.trim() : "", password != null ? password : "");
+
         try (MongoClient client = MongoClients.create(uri)) {
             client.getDatabase(dbName != null && !dbName.isBlank() ? dbName : "admin").runCommand(new Document("ping", 1));
+
             return Optional.empty();
         } catch (Exception e) {
             return Optional.of(e.getMessage());
@@ -64,6 +67,7 @@ public class MongoMetadataService {
         try {
             String uri = buildConnectionString(conn.getHost(), conn.getPort(), conn.getDbName() != null ? conn.getDbName() : "",
                     conn.getUsername() != null ? conn.getUsername() : "", conn.getPassword() != null ? conn.getPassword() : "");
+
             return Optional.of(MongoClients.create(uri));
         } catch (Exception e) {
             log.warn("Failed to connect to {}: {}", conn.getName(), e.getMessage());
@@ -76,15 +80,18 @@ public class MongoMetadataService {
         StringBuilder sb = new StringBuilder(MONGO_PREFIX);
         if (username != null && !username.isBlank()) {
             sb.append(URLEncoder.encode(username, StandardCharsets.UTF_8));
+
             if (password != null && !password.isBlank()) {
                 sb.append(':').append(URLEncoder.encode(password, StandardCharsets.UTF_8));
             }
             sb.append('@');
         }
+
         sb.append(host).append(':').append(p);
         if (dbName != null && !dbName.isBlank()) {
             sb.append('/').append(dbName);
         }
+
         return sb.toString();
     }
 
@@ -93,6 +100,7 @@ public class MongoMetadataService {
             if (client == null) {
                 return List.of();
             }
+
             return StreamSupport.stream(client.listDatabaseNames().spliterator(), false).collect(Collectors.toList());
         } catch (Exception e) {
             log.warn("listDatabases failed: {}", e.getMessage());
@@ -105,10 +113,12 @@ public class MongoMetadataService {
             if (client == null || dbName == null || dbName.isBlank()) {
                 return List.of();
             }
+
             MongoDatabase database = client.getDatabase(dbName);
             List<String> all = StreamSupport.stream(database.listCollectionNames().spliterator(), false).collect(Collectors.toList());
             int maxItems = Math.min(limit, Math.max(0, collectionsLimit - offset));
             int end = Math.min(offset + maxItems, all.size());
+
             return offset < all.size() ? all.subList(offset, end) : List.of();
         } catch (Exception e) {
             log.warn("listCollections failed: {}", e.getMessage());
@@ -125,9 +135,11 @@ public class MongoMetadataService {
             if (client == null) {
                 return Optional.of(QueryResult.error("Connection not available"));
             }
+
             if (dbName == null || dbName.isBlank()) {
                 return Optional.of(QueryResult.error("Укажите базу данных"));
             }
+
             MongoCollection<Document> collection = client.getDatabase(dbName).getCollection(collectionName);
             String trimmed = queryText != null ? queryText.trim() : "";
             int lim = limit > 0 ? Math.min(limit, queryRowsLimit) : Math.min(100, queryRowsLimit);
@@ -153,6 +165,7 @@ public class MongoMetadataService {
         try {
             Bson filter = Document.parse(queryText);
             List<Document> docs = collection.find(filter).skip(offset).limit(limit + 1).into(new ArrayList<>());
+
             return Optional.of(documentsToQueryResult(docs, limit, offset));
         } catch (Exception e) {
             return Optional.of(QueryResult.error(e.getMessage()));
@@ -165,10 +178,12 @@ public class MongoMetadataService {
             if (pipeline.isEmpty()) {
                 return Optional.of(QueryResult.error("Неверный формат pipeline (ожидается массив этапов)"));
             }
+
             List<Bson> withLimit = new ArrayList<>(pipeline);
             withLimit.add(new Document("$skip", offset));
             withLimit.add(new Document("$limit", limit + 1));
             List<Document> docs = collection.aggregate(withLimit).into(new ArrayList<>());
+
             return Optional.of(documentsToQueryResult(docs, limit, offset));
         } catch (Exception e) {
             return Optional.of(QueryResult.error(e.getMessage()));
@@ -180,13 +195,17 @@ public class MongoMetadataService {
         if (!trimmed.startsWith("[") || !trimmed.endsWith("]")) {
             return List.of();
         }
+
         List<Bson> result = new ArrayList<>();
         String inner = trimmed.substring(1, trimmed.length() - 1).trim();
+
         if (inner.isEmpty()) {
             return result;
         }
+
         int depth = 0;
         int start = 0;
+
         for (int i = 0; i < inner.length(); i++) {
             char c = inner.charAt(i);
             if (c == '{') {
@@ -201,6 +220,7 @@ public class MongoMetadataService {
                 }
             }
         }
+
         return result;
     }
 
@@ -209,17 +229,22 @@ public class MongoMetadataService {
         for (Document doc : docs) {
             columns.addAll(doc.keySet());
         }
+
         List<String> columnList = new ArrayList<>(columns);
         boolean hasMore = docs.size() > limit;
         List<Document> rowsDocs = hasMore ? docs.subList(0, limit) : docs;
         List<List<Object>> rows = new ArrayList<>();
+
         for (Document doc : rowsDocs) {
             List<Object> row = new ArrayList<>();
+
             for (String col : columnList) {
                 row.add(doc.get(col));
             }
+
             rows.add(row);
         }
+
         return new QueryResult(columnList, rows, null, offset, limit, hasMore);
     }
 }
