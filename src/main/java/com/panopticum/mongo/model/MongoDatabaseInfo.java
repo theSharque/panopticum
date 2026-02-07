@@ -1,4 +1,4 @@
-package com.panopticum.postgres.model;
+package com.panopticum.mongo.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -9,11 +9,9 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class TableInfo {
+public class MongoDatabaseInfo {
 
     private String name;
-    private String type;
-    private long approximateRowCount;
     private long sizeOnDisk;
     private String sizeOnDiskFormatted;
 }

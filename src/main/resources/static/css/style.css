@@ -280,7 +280,40 @@ body {
     box-shadow: 0 0 16px rgba(0, 240, 255, 0.2);
 }
 
-button[type="submit"]:not(.sidebar-delete) {
+.form-group select,
+.connection-type-select {
+    width: 100%;
+    max-width: 440px;
+    padding: var(--space-sm) var(--space-md);
+    border: 1px solid rgba(0, 240, 255, 0.3);
+    border-radius: 2px;
+    background: var(--void-600);
+    color: var(--chrome-100);
+    font-family: var(--font-mono);
+    font-size: 14px;
+    cursor: pointer;
+    transition: box-shadow var(--duration), border-color var(--duration);
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2300f0ff' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right var(--space-md) center;
+    padding-right: calc(var(--space-md) + 16px);
+}
+
+.form-group select:focus,
+.connection-type-select:focus {
+    outline: none;
+    border-color: var(--cyan-500);
+    box-shadow: 0 0 16px rgba(0, 240, 255, 0.2);
+}
+
+.form-group select option,
+.connection-type-select option {
+    background: var(--void-500);
+    color: var(--chrome-100);
+}
+
+button[type="submit"]:not(.sidebar-delete):not(.query-th-link) {
     padding: var(--space-sm) var(--space-md);
     background: transparent;
     color: var(--cyan-500);
@@ -294,7 +327,7 @@ button[type="submit"]:not(.sidebar-delete) {
     transition: box-shadow var(--duration), background var(--duration);
 }
 
-button[type="submit"]:not(.sidebar-delete):hover {
+button[type="submit"]:not(.sidebar-delete):not(.query-th-link):hover {
     background: rgba(0, 240, 255, 0.1);
     box-shadow: var(--cyan-glow);
 }
@@ -641,11 +674,23 @@ button[type="submit"]:not(.sidebar-delete):hover {
     font-size: 13px;
 }
 
-.query-table th,
 .query-table td {
     padding: var(--space-sm) var(--space-md);
     text-align: left;
     border-bottom: 1px solid rgba(0, 240, 255, 0.1);
+}
+
+.query-th {
+    padding: var(--space-sm) var(--space-md);
+    text-align: left;
+    border: none;
+    border-bottom: 1px solid rgba(0, 240, 255, 0.1);
+    background: rgba(0, 240, 255, 0.06);
+    color: var(--cyan-500);
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
 }
 
 .query-th-sortable {
@@ -661,6 +706,8 @@ button[type="submit"]:not(.sidebar-delete):hover {
 .query-th-link {
     background: none;
     border: none;
+    outline: none;
+    box-shadow: none;
     color: inherit;
     font: inherit;
     cursor: pointer;
@@ -672,19 +719,15 @@ button[type="submit"]:not(.sidebar-delete):hover {
     color: var(--cyan-500);
 }
 
+.query-th-link:focus {
+    outline: none;
+    box-shadow: none;
+}
+
 .query-sort-ind {
     color: var(--cyan-500);
     font-size: 10px;
     margin-left: 2px;
-}
-
-.query-table th {
-    background: rgba(0, 240, 255, 0.06);
-    color: var(--cyan-500);
-    font-weight: 600;
-    font-size: 11px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
 }
 
 .query-table tr:hover td {
@@ -703,8 +746,34 @@ button[type="submit"]:not(.sidebar-delete):hover {
     white-space: nowrap;
 }
 
+.query-cell-mono {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
 .query-detail-cell .icon-link {
     display: block;
+    width: 16px;
+    height: 16px;
+    stroke: var(--cyan-500);
+    fill: none;
+    stroke-width: 2;
+}
+
+.icon-link {
+    flex-shrink: 0;
+    stroke: var(--cyan-500);
+    fill: none;
+    stroke-width: 2;
+}
+
+.icon-refresh {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    stroke: var(--cyan-500);
+    fill: none;
+    stroke-width: 2;
 }
 
 .query-row-detail-form {

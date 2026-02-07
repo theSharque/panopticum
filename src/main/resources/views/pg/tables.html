@@ -19,12 +19,18 @@
             <table class="query-table">
                 <thead>
                     <tr>
-                        <th class="query-th-detail"></th>
-                        <th class="query-th-sortable">
+                        <th class="query-th query-th-detail"></th>
+                        <th class="query-th query-th-sortable">
                             <a th:href="@{/pg/{id}/{db}/{schema}(id=${connectionId}, db=${dbName}, schema=${schema}, page=1, size=${size}, sort='name', order=(sort == 'name' and order == 'asc' ? 'desc' : 'asc'))}" class="query-th-link">Название <span th:if="${sort == 'name' and order == 'asc'}" class="query-sort-ind">▲</span><span th:if="${sort == 'name' and order == 'desc'}" class="query-sort-ind">▼</span></a>
                         </th>
-                        <th class="query-th-sortable">
+                        <th class="query-th query-th-sortable">
                             <a th:href="@{/pg/{id}/{db}/{schema}(id=${connectionId}, db=${dbName}, schema=${schema}, page=1, size=${size}, sort='type', order=(sort == 'type' and order == 'asc' ? 'desc' : 'asc'))}" class="query-th-link">Тип <span th:if="${sort == 'type' and order == 'asc'}" class="query-sort-ind">▲</span><span th:if="${sort == 'type' and order == 'desc'}" class="query-sort-ind">▼</span></a>
+                        </th>
+                        <th class="query-th query-th-sortable">
+                            <a th:href="@{/pg/{id}/{db}/{schema}(id=${connectionId}, db=${dbName}, schema=${schema}, page=1, size=${size}, sort='rows', order=(sort == 'rows' and order == 'asc' ? 'desc' : 'asc'))}" class="query-th-link">Строк ≈ <span th:if="${sort == 'rows' and order == 'asc'}" class="query-sort-ind">▲</span><span th:if="${sort == 'rows' and order == 'desc'}" class="query-sort-ind">▼</span></a>
+                        </th>
+                        <th class="query-th query-th-sortable">
+                            <a th:href="@{/pg/{id}/{db}/{schema}(id=${connectionId}, db=${dbName}, schema=${schema}, page=1, size=${size}, sort='size', order=(sort == 'size' and order == 'asc' ? 'desc' : 'asc'))}" class="query-th-link">Размер <span th:if="${sort == 'size' and order == 'asc'}" class="query-sort-ind">▲</span><span th:if="${sort == 'size' and order == 'desc'}" class="query-sort-ind">▼</span></a>
                         </th>
                     </tr>
                 </thead>
@@ -44,6 +50,8 @@
                         </td>
                         <td th:text="${t.name}"></td>
                         <td th:text="${t.type}"></td>
+                        <td th:text="${t.approximateRowCount}" class="query-cell-mono"></td>
+                        <td th:text="${t.sizeOnDiskFormatted}" class="query-cell-mono"></td>
                     </tr>
                 </tbody>
             </table>

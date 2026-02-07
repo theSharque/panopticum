@@ -4,6 +4,8 @@ import com.panopticum.core.model.BreadcrumbItem;
 import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.model.QueryResult;
 import com.panopticum.core.service.DbConnectionService;
+import com.panopticum.postgres.model.PgDatabaseInfo;
+import com.panopticum.postgres.model.PgSchemaInfo;
 import com.panopticum.postgres.model.TableInfo;
 import com.panopticum.postgres.service.PgMetadataService;
 import io.micronaut.core.annotation.Nullable;
@@ -47,7 +49,9 @@ public class PgController {
     @View("pg/databases")
     public Map<String, Object> databases(@PathVariable Long id,
                                          @QueryValue(value = "page", defaultValue = "1") int page,
-                                         @QueryValue(value = "size", defaultValue = "50") int size) {
+                                         @QueryValue(value = "size", defaultValue = "50") int size,
+                                         @QueryValue(value = "sort", defaultValue = "name") String sort,
+                                         @QueryValue(value = "order", defaultValue = "asc") String order) {
         Map<String, Object> model = baseModel(id);
         Optional<DbConnection> conn = dbConnectionService.findById(id);
         if (conn.isEmpty()) {
@@ -59,20 +63,28 @@ public class PgController {
         model.put("connectionId", id);
         model.put("dbName", null);
         model.put("schema", null);
-        List<String> all = pgMetadataService.listDatabases(id);
+        List<PgDatabaseInfo> all = new ArrayList<>(pgMetadataService.listDatabaseInfos(id));
+        boolean desc = "desc".equalsIgnoreCase(order);
+        String sortBy = sort != null ? sort : "name";
+        if ("size".equals(sortBy)) {
+            all.sort(desc ? (a, b) -> Long.compare(b.getSizeOnDisk(), a.getSizeOnDisk()) : (a, b) -> Long.compare(a.getSizeOnDisk(), b.getSizeOnDisk()));
+        } else {
+            all.sort(desc ? (a, b) -> b.getName().compareToIgnoreCase(a.getName()) : (a, b) -> a.getName().compareToIgnoreCase(b.getName()));
+        }
         int limit = Math.min(Math.max(1, size), 500);
         int offset = Math.max(0, (page - 1) * limit);
-        int total = all.size();
-        List<String> dbs = offset < total ? all.subList(offset, Math.min(offset + limit, total)) : List.of();
+        List<PgDatabaseInfo> dbs = offset < all.size() ? all.subList(offset, Math.min(offset + limit, all.size())) : List.of();
         model.put("items", dbs);
         model.put("itemType", "database");
         model.put("itemUrlPrefix", "/pg/" + id + "/");
         model.put("page", page);
         model.put("size", limit);
-        model.put("fromRow", total == 0 ? 0 : offset + 1);
+        model.put("sort", sortBy);
+        model.put("order", order != null ? order : "asc");
+        model.put("fromRow", all.isEmpty() ? 0 : offset + 1);
         model.put("toRow", offset + dbs.size());
         model.put("hasPrev", page > 1);
-        model.put("hasMore", offset + dbs.size() < total);
+        model.put("hasMore", offset + dbs.size() < all.size());
         model.put("prevOffset", Math.max(0, offset - limit));
         model.put("nextOffset", offset + limit);
 
@@ -93,12 +105,18 @@ public class PgController {
             return model;
         }
         int limit = Math.min(Math.max(1, size), 500);
-        List<String> all = pgMetadataService.listSchemas(id, dbName, 0, 500);
-        all = new ArrayList<>(all);
+        List<PgSchemaInfo> all = new ArrayList<>(pgMetadataService.listSchemaInfos(id, dbName));
         boolean desc = "desc".equalsIgnoreCase(order);
-        all.sort(desc ? (a, b) -> b.compareToIgnoreCase(a) : (a, b) -> a.compareToIgnoreCase(b));
+        String sortBy = sort != null ? sort : "name";
+        if ("tables".equals(sortBy)) {
+            all.sort(desc ? (a, b) -> Integer.compare(b.getTableCount(), a.getTableCount()) : (a, b) -> Integer.compare(a.getTableCount(), b.getTableCount()));
+        } else if ("owner".equals(sortBy)) {
+            all.sort(desc ? (a, b) -> (b.getOwner() != null ? b.getOwner() : "").compareToIgnoreCase(a.getOwner() != null ? a.getOwner() : "") : (a, b) -> (a.getOwner() != null ? a.getOwner() : "").compareToIgnoreCase(b.getOwner() != null ? b.getOwner() : ""));
+        } else {
+            all.sort(desc ? (a, b) -> b.getName().compareToIgnoreCase(a.getName()) : (a, b) -> a.getName().compareToIgnoreCase(b.getName()));
+        }
         int offset = Math.max(0, (page - 1) * limit);
-        List<String> schemas = offset < all.size() ? all.subList(offset, Math.min(offset + limit, all.size())) : List.of();
+        List<PgSchemaInfo> pageItems = offset < all.size() ? all.subList(offset, Math.min(offset + limit, all.size())) : List.of();
         List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
         breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/pg/" + id));
         breadcrumbs.add(new BreadcrumbItem(dbName, null));
@@ -106,17 +124,17 @@ public class PgController {
         model.put("connectionId", id);
         model.put("dbName", dbName);
         model.put("schema", null);
-        model.put("items", schemas);
+        model.put("items", pageItems);
         model.put("itemType", "schema");
         model.put("itemUrlPrefix", "/pg/" + id + "/" + dbName + "/");
         model.put("page", page);
         model.put("size", limit);
-        model.put("sort", sort != null ? sort : "name");
+        model.put("sort", sortBy);
         model.put("order", order != null ? order : "asc");
         model.put("fromRow", all.isEmpty() ? 0 : offset + 1);
-        model.put("toRow", offset + schemas.size());
+        model.put("toRow", offset + pageItems.size());
         model.put("hasPrev", page > 1);
-        model.put("hasMore", offset + schemas.size() < all.size());
+        model.put("hasMore", offset + pageItems.size() < all.size());
         model.put("prevOffset", Math.max(0, offset - limit));
         model.put("nextOffset", offset + limit);
 
@@ -137,12 +155,15 @@ public class PgController {
             return model;
         }
         int limit = Math.min(Math.max(1, size), 500);
-        List<TableInfo> all = pgMetadataService.listTables(id, dbName, schema, 0, 500);
-        all = new ArrayList<>(all);
+        List<TableInfo> all = new ArrayList<>(pgMetadataService.listTableInfos(id, dbName, schema));
         boolean desc = "desc".equalsIgnoreCase(order);
         String sortBy = sort != null ? sort : "name";
         if ("type".equalsIgnoreCase(sortBy)) {
-            all.sort(desc ? (a, b) -> b.getType().compareToIgnoreCase(a.getType()) : (a, b) -> a.getType().compareToIgnoreCase(b.getType()));
+            all.sort(desc ? (a, b) -> (b.getType() != null ? b.getType() : "").compareToIgnoreCase(a.getType() != null ? a.getType() : "") : (a, b) -> (a.getType() != null ? a.getType() : "").compareToIgnoreCase(b.getType() != null ? b.getType() : ""));
+        } else if ("size".equals(sortBy)) {
+            all.sort(desc ? (a, b) -> Long.compare(b.getSizeOnDisk(), a.getSizeOnDisk()) : (a, b) -> Long.compare(a.getSizeOnDisk(), b.getSizeOnDisk()));
+        } else if ("rows".equals(sortBy)) {
+            all.sort(desc ? (a, b) -> Long.compare(b.getApproximateRowCount(), a.getApproximateRowCount()) : (a, b) -> Long.compare(a.getApproximateRowCount(), b.getApproximateRowCount()));
         } else {
             all.sort(desc ? (a, b) -> b.getName().compareToIgnoreCase(a.getName()) : (a, b) -> a.getName().compareToIgnoreCase(b.getName()));
         }
@@ -229,7 +250,7 @@ public class PgController {
             model.put("sort", "");
             model.put("order", "");
         } else {
-            var result = pgMetadataService.executeQuery(id, sql, off, lim, sort, order)
+            var result = pgMetadataService.executeQuery(id, dbName, sql, off, lim, sort, order)
                     .orElse(QueryResult.error("Ошибка выполнения запроса"));
             model.put("error", result.hasError() ? result.getError() : null);
             model.put("columns", result.getColumns());
@@ -269,7 +290,7 @@ public class PgController {
 
         int off = offset != null ? Math.max(0, offset) : 0;
         int lim = limit != null && limit > 0 ? limit : 100;
-        var result = pgMetadataService.executeQuery(id, sql, off, lim, sort, order)
+        var result = pgMetadataService.executeQuery(id, dbName, sql, off, lim, sort, order)
                 .orElse(QueryResult.error("Execution failed"));
         model.put("error", result.hasError() ? result.getError() : null);
         model.put("columns", result.getColumns());

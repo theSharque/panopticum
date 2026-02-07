@@ -4,6 +4,8 @@ import com.panopticum.core.model.BreadcrumbItem;
 import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.model.QueryResult;
 import com.panopticum.core.service.DbConnectionService;
+import com.panopticum.mongo.model.MongoCollectionInfo;
+import com.panopticum.mongo.model.MongoDatabaseInfo;
 import com.panopticum.mongo.service.MongoMetadataService;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.http.MediaType;
@@ -58,12 +60,17 @@ public class MongoController {
         model.put("breadcrumbs", breadcrumbs);
         model.put("connectionId", id);
         model.put("dbName", null);
-        List<String> all = new ArrayList<>(mongoMetadataService.listDatabases(id));
+        List<MongoDatabaseInfo> all = new ArrayList<>(mongoMetadataService.listDatabaseInfos(id));
         boolean desc = "desc".equalsIgnoreCase(order);
-        all.sort(desc ? (a, b) -> b.compareToIgnoreCase(a) : (a, b) -> a.compareToIgnoreCase(b));
+        String sortBy = sort != null ? sort : "name";
+        if ("size".equals(sortBy)) {
+            all.sort(desc ? (a, b) -> Long.compare(b.getSizeOnDisk(), a.getSizeOnDisk()) : (a, b) -> Long.compare(a.getSizeOnDisk(), b.getSizeOnDisk()));
+        } else {
+            all.sort(desc ? (a, b) -> b.getName().compareToIgnoreCase(a.getName()) : (a, b) -> a.getName().compareToIgnoreCase(b.getName()));
+        }
         int limit = Math.min(Math.max(1, size), 500);
         int offset = Math.max(0, (page - 1) * limit);
-        List<String> dbs = offset < all.size() ? all.subList(offset, Math.min(offset + limit, all.size())) : List.of();
+        List<MongoDatabaseInfo> dbs = offset < all.size() ? all.subList(offset, Math.min(offset + limit, all.size())) : List.of();
         model.put("items", dbs);
         model.put("itemType", "database");
         model.put("itemUrlPrefix", "/mongo/" + id + "/");
@@ -95,29 +102,37 @@ public class MongoController {
             return model;
         }
         int limit = Math.min(Math.max(1, size), 500);
-        List<String> all = mongoMetadataService.listCollections(id, dbName, 0, 500);
-        all = new ArrayList<>(all);
+        List<String> allNames = mongoMetadataService.listCollections(id, dbName, 0, 500);
+        allNames = new ArrayList<>(allNames);
+        List<MongoCollectionInfo> allInfos = mongoMetadataService.listCollectionInfos(id, dbName, allNames);
         boolean desc = "desc".equalsIgnoreCase(order);
-        all.sort(desc ? (a, b) -> b.compareToIgnoreCase(a) : (a, b) -> a.compareToIgnoreCase(b));
+        String sortBy = sort != null ? sort : "name";
+        if ("size".equals(sortBy)) {
+            allInfos.sort(desc ? (a, b) -> Long.compare(b.getSizeOnDisk(), a.getSizeOnDisk()) : (a, b) -> Long.compare(a.getSizeOnDisk(), b.getSizeOnDisk()));
+        } else if ("count".equals(sortBy)) {
+            allInfos.sort(desc ? (a, b) -> Long.compare(b.getDocumentCount(), a.getDocumentCount()) : (a, b) -> Long.compare(a.getDocumentCount(), b.getDocumentCount()));
+        } else {
+            allInfos.sort(desc ? (a, b) -> b.getName().compareToIgnoreCase(a.getName()) : (a, b) -> a.getName().compareToIgnoreCase(b.getName()));
+        }
         int offset = Math.max(0, (page - 1) * limit);
-        List<String> collections = offset < all.size() ? all.subList(offset, Math.min(offset + limit, all.size())) : List.of();
+        List<MongoCollectionInfo> pageInfos = offset < allInfos.size() ? allInfos.subList(offset, Math.min(offset + limit, allInfos.size())) : List.of();
         List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
         breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/mongo/" + id));
         breadcrumbs.add(new BreadcrumbItem(dbName, null));
         model.put("breadcrumbs", breadcrumbs);
         model.put("connectionId", id);
         model.put("dbName", dbName);
-        model.put("items", collections);
+        model.put("items", pageInfos);
         model.put("itemType", "collection");
         model.put("itemUrlPrefix", "/mongo/" + id + "/" + dbName + "/query?collection=");
         model.put("page", page);
         model.put("size", limit);
-        model.put("sort", sort != null ? sort : "name");
+        model.put("sort", sortBy);
         model.put("order", order != null ? order : "asc");
-        model.put("fromRow", all.isEmpty() ? 0 : offset + 1);
-        model.put("toRow", offset + collections.size());
+        model.put("fromRow", allInfos.isEmpty() ? 0 : offset + 1);
+        model.put("toRow", offset + pageInfos.size());
         model.put("hasPrev", page > 1);
-        model.put("hasMore", offset + collections.size() < all.size());
+        model.put("hasMore", offset + pageInfos.size() < allInfos.size());
         model.put("prevOffset", Math.max(0, offset - limit));
         model.put("nextOffset", offset + limit);
 

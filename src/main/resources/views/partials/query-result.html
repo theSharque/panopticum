@@ -32,7 +32,7 @@
             <table class="query-table">
                 <thead>
                     <tr>
-                        <th th:each="col : ${columns}" class="query-th-sortable">
+                        <th th:each="col : ${columns}" class="query-th query-th-sortable">
                             <form th:if="${sort != col or sort == null}" th:attr="hx-post=@{/pg/{id}/query(id=${connectionId})}, hx-target=#query-result, hx-swap=innerHTML" class="query-th-form">
                                 <input type="hidden" name="sql" th:value="${sql}"/>
                                 <input type="hidden" name="dbName" th:value="${dbName}"/>
