@@ -6,6 +6,7 @@ panopticum:
     schemas-page-size: 50
     tables: 1000
     tables-page-size: 50
+    collections: 500
     connections: 500
 
 micronaut:

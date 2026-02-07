@@ -22,10 +22,10 @@ import static io.micronaut.http.HttpStatus.UNAUTHORIZED;
 public class DefaultAuthorizationExceptionHandlerReplacement extends DefaultAuthorizationExceptionHandler {
 
     public DefaultAuthorizationExceptionHandlerReplacement(
-            ErrorResponseProcessor errorResponseProcessor,
+            ErrorResponseProcessor<?> errorResponseProcessor,
             RedirectConfiguration redirectConfiguration,
             RedirectService redirectService,
-            @Nullable PriorToLoginPersistence priorToLoginPersistence) {
+            @Nullable PriorToLoginPersistence<?, ?> priorToLoginPersistence) {
         super(errorResponseProcessor, redirectConfiguration, redirectService, priorToLoginPersistence);
     }
 

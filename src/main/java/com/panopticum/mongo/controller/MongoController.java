@@ -43,7 +43,11 @@ public class MongoController {
     @Produces(MediaType.TEXT_HTML)
     @Get("/{id}")
     @View("mongo/databases")
-    public Map<String, Object> databases(@PathVariable Long id) {
+    public Map<String, Object> databases(@PathVariable Long id,
+                                         @QueryValue(value = "page", defaultValue = "1") int page,
+                                         @QueryValue(value = "size", defaultValue = "50") int size,
+                                         @QueryValue(value = "sort", defaultValue = "name") String sort,
+                                         @QueryValue(value = "order", defaultValue = "asc") String order) {
         Map<String, Object> model = baseModel(id);
         Optional<DbConnection> conn = dbConnectionService.findById(id);
         if (conn.isEmpty()) {
@@ -54,10 +58,25 @@ public class MongoController {
         model.put("breadcrumbs", breadcrumbs);
         model.put("connectionId", id);
         model.put("dbName", null);
-        List<String> dbs = mongoMetadataService.listDatabases(id);
+        List<String> all = new ArrayList<>(mongoMetadataService.listDatabases(id));
+        boolean desc = "desc".equalsIgnoreCase(order);
+        all.sort(desc ? (a, b) -> b.compareToIgnoreCase(a) : (a, b) -> a.compareToIgnoreCase(b));
+        int limit = Math.min(Math.max(1, size), 500);
+        int offset = Math.max(0, (page - 1) * limit);
+        List<String> dbs = offset < all.size() ? all.subList(offset, Math.min(offset + limit, all.size())) : List.of();
         model.put("items", dbs);
         model.put("itemType", "database");
         model.put("itemUrlPrefix", "/mongo/" + id + "/");
+        model.put("page", page);
+        model.put("size", limit);
+        model.put("sort", sort != null ? sort : "name");
+        model.put("order", order != null ? order : "asc");
+        model.put("fromRow", all.isEmpty() ? 0 : offset + 1);
+        model.put("toRow", offset + dbs.size());
+        model.put("hasPrev", page > 1);
+        model.put("hasMore", offset + dbs.size() < all.size());
+        model.put("prevOffset", Math.max(0, offset - limit));
+        model.put("nextOffset", offset + limit);
 
         return model;
     }
@@ -67,15 +86,21 @@ public class MongoController {
     @View("mongo/collections")
     public Map<String, Object> collections(@PathVariable Long id, @PathVariable String dbName,
                                           @QueryValue(value = "page", defaultValue = "1") int page,
-                                          @QueryValue(value = "size", defaultValue = "50") int size) {
+                                          @QueryValue(value = "size", defaultValue = "50") int size,
+                                          @QueryValue(value = "sort", defaultValue = "name") String sort,
+                                          @QueryValue(value = "order", defaultValue = "asc") String order) {
         Map<String, Object> model = baseModel(id);
         Optional<DbConnection> conn = dbConnectionService.findById(id);
         if (conn.isEmpty()) {
             return model;
         }
-        int offset = Math.max(0, (page - 1) * size);
-        int limit = Math.min(size, 500);
-        List<String> collections = mongoMetadataService.listCollections(id, dbName, offset, limit);
+        int limit = Math.min(Math.max(1, size), 500);
+        List<String> all = mongoMetadataService.listCollections(id, dbName, 0, 500);
+        all = new ArrayList<>(all);
+        boolean desc = "desc".equalsIgnoreCase(order);
+        all.sort(desc ? (a, b) -> b.compareToIgnoreCase(a) : (a, b) -> a.compareToIgnoreCase(b));
+        int offset = Math.max(0, (page - 1) * limit);
+        List<String> collections = offset < all.size() ? all.subList(offset, Math.min(offset + limit, all.size())) : List.of();
         List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
         breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/mongo/" + id));
         breadcrumbs.add(new BreadcrumbItem(dbName, null));
@@ -87,8 +112,14 @@ public class MongoController {
         model.put("itemUrlPrefix", "/mongo/" + id + "/" + dbName + "/query?collection=");
         model.put("page", page);
         model.put("size", limit);
+        model.put("sort", sort != null ? sort : "name");
+        model.put("order", order != null ? order : "asc");
+        model.put("fromRow", all.isEmpty() ? 0 : offset + 1);
+        model.put("toRow", offset + collections.size());
         model.put("hasPrev", page > 1);
-        model.put("hasMore", collections.size() == limit);
+        model.put("hasMore", offset + collections.size() < all.size());
+        model.put("prevOffset", Math.max(0, offset - limit));
+        model.put("nextOffset", offset + limit);
 
         return model;
     }
@@ -138,6 +169,7 @@ public class MongoController {
             model.put("error", null);
             model.put("columns", List.<String>of());
             model.put("rows", List.<List<Object>>of());
+            model.put("docIds", List.<String>of());
             model.put("offset", 0);
             model.put("limit", lim);
             model.put("hasPrev", false);
@@ -153,6 +185,7 @@ public class MongoController {
             model.put("error", result.hasError() ? result.getError() : null);
             model.put("columns", result.getColumns());
             model.put("rows", result.getRows());
+            model.put("docIds", result.getDocIds() != null ? result.getDocIds() : List.<String>of());
             model.put("offset", result.getOffset());
             model.put("limit", result.getLimit());
             model.put("hasPrev", result.hasPrev());
@@ -162,6 +195,36 @@ public class MongoController {
             model.put("fromRow", result.fromRow());
             model.put("toRow", result.toRow());
         }
+
+        return model;
+    }
+
+    @Produces(MediaType.TEXT_HTML)
+    @Get("/{id}/{dbName}/detail")
+    @View("mongo/detail")
+    public Map<String, Object> documentDetail(@PathVariable Long id, @PathVariable String dbName,
+                                              @QueryValue(value = "collection", defaultValue = "") String collection,
+                                              @QueryValue(value = "docId", defaultValue = "") String docId) {
+        Map<String, Object> model = baseModel(id);
+        Optional<DbConnection> conn = dbConnectionService.findById(id);
+        if (conn.isEmpty()) {
+            model.put("prettyJson", "{}");
+            return model;
+        }
+        List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
+        breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/mongo/" + id));
+        breadcrumbs.add(new BreadcrumbItem(dbName, "/mongo/" + id + "/" + dbName));
+        breadcrumbs.add(new BreadcrumbItem(collection != null ? collection : "", "/mongo/" + id + "/" + dbName + "/query?collection=" + (collection != null ? collection : "")));
+        breadcrumbs.add(new BreadcrumbItem("detail", null));
+        model.put("breadcrumbs", breadcrumbs);
+        model.put("connectionId", id);
+        model.put("dbName", dbName);
+        model.put("collection", collection != null ? collection : "");
+
+        String json = mongoMetadataService.getDocument(id, dbName, collection, docId)
+                .map(mongoMetadataService::documentToPrettyJson)
+                .orElse("{}");
+        model.put("prettyJson", json);
 
         return model;
     }
@@ -177,6 +240,7 @@ public class MongoController {
         model.put("collection", collection);
         if (collection == null || collection.isBlank()) {
             model.put("error", "Укажите коллекцию");
+            model.put("docIds", List.<String>of());
             return "table".equals(target)
                     ? new ModelAndView<>("partials/mongo-table-view-result", model)
                     : new ModelAndView<>("partials/mongo-query-result", model);
@@ -191,6 +255,7 @@ public class MongoController {
         model.put("error", result.hasError() ? result.getError() : null);
         model.put("columns", result.getColumns());
         model.put("rows", result.getRows());
+        model.put("docIds", result.getDocIds() != null ? result.getDocIds() : List.<String>of());
         model.put("query", queryText);
         model.put("offset", result.getOffset());
         model.put("limit", result.getLimit());

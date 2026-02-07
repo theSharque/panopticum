@@ -12,6 +12,7 @@ import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -168,8 +169,14 @@ public class PgMetadataService {
                 var meta = rs.getMetaData();
                 int colCount = meta.getColumnCount();
                 List<String> columns = new ArrayList<>();
+                List<String> columnTypes = new ArrayList<>();
                 for (int i = 1; i <= colCount; i++) {
                     columns.add(meta.getColumnLabel(i));
+                    String typeName = meta.getColumnTypeName(i);
+                    int nullable = meta.isNullable(i);
+                    String nullability = nullable == ResultSetMetaData.columnNoNulls ? " NOT NULL"
+                            : (nullable == ResultSetMetaData.columnNullable ? " NULL" : "");
+                    columnTypes.add(typeName + nullability);
                 }
                 List<List<Object>> rows = new ArrayList<>();
                 while (rs.next()) {
@@ -181,7 +188,7 @@ public class PgMetadataService {
                 }
 
                 boolean hasMore = rows.size() == limit;
-                return Optional.of(new QueryResult(columns, rows, null, offset, limit, hasMore));
+                return Optional.of(new QueryResult(columns, columnTypes, rows, null, null, offset, limit, hasMore));
             }
         } catch (SQLException e) {
             log.warn("executeQuery failed: {}", e.getMessage());

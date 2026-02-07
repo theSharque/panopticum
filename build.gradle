@@ -13,6 +13,8 @@ repositories {
 dependencies {
     implementation(platform("io.micronaut.platform:micronaut-platform:4.4.2"))
     annotationProcessor("org.projectlombok:lombok")
+    annotationProcessor("io.micronaut:micronaut-core-processor")
+    compileOnly("io.micronaut:micronaut-core-processor")
     annotationProcessor("io.micronaut:micronaut-http-validation")
     annotationProcessor("io.micronaut.security:micronaut-security-annotations")
     annotationProcessor("io.micronaut.serde:micronaut-serde-processor")

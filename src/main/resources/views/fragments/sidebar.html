@@ -18,7 +18,7 @@
                       th:attr="hx-delete=@{/settings/delete-connection/{id}(id=${conn.id})}, hx-confirm=${'Удалить подключение «' + conn.name + '»?'}"
                       hx-target="#sidebar"
                       hx-swap="outerHTML">
-                    <button type="submit" class="sidebar-delete">Удалить</button>
+                    <button type="submit" class="sidebar-delete" aria-label="Удалить" title="Удалить">×</button>
                 </form>
             </div>
         </th:block>

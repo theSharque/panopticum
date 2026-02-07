@@ -7,6 +7,7 @@ import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.postgres.model.TableInfo;
 import com.panopticum.postgres.service.PgMetadataService;
 import io.micronaut.core.annotation.Nullable;
+import io.micronaut.http.HttpRequest;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.Consumes;
 import io.micronaut.http.annotation.Controller;
@@ -44,7 +45,9 @@ public class PgController {
     @Produces(MediaType.TEXT_HTML)
     @Get("/{id}")
     @View("pg/databases")
-    public Map<String, Object> databases(@PathVariable Long id) {
+    public Map<String, Object> databases(@PathVariable Long id,
+                                         @QueryValue(value = "page", defaultValue = "1") int page,
+                                         @QueryValue(value = "size", defaultValue = "50") int size) {
         Map<String, Object> model = baseModel(id);
         Optional<DbConnection> conn = dbConnectionService.findById(id);
         if (conn.isEmpty()) {
@@ -56,10 +59,22 @@ public class PgController {
         model.put("connectionId", id);
         model.put("dbName", null);
         model.put("schema", null);
-        List<String> dbs = pgMetadataService.listDatabases(id);
+        List<String> all = pgMetadataService.listDatabases(id);
+        int limit = Math.min(Math.max(1, size), 500);
+        int offset = Math.max(0, (page - 1) * limit);
+        int total = all.size();
+        List<String> dbs = offset < total ? all.subList(offset, Math.min(offset + limit, total)) : List.of();
         model.put("items", dbs);
         model.put("itemType", "database");
         model.put("itemUrlPrefix", "/pg/" + id + "/");
+        model.put("page", page);
+        model.put("size", limit);
+        model.put("fromRow", total == 0 ? 0 : offset + 1);
+        model.put("toRow", offset + dbs.size());
+        model.put("hasPrev", page > 1);
+        model.put("hasMore", offset + dbs.size() < total);
+        model.put("prevOffset", Math.max(0, offset - limit));
+        model.put("nextOffset", offset + limit);
 
         return model;
     }
@@ -69,15 +84,21 @@ public class PgController {
     @View("pg/schemas")
     public Map<String, Object> schemas(@PathVariable Long id, @PathVariable String dbName,
                                        @QueryValue(value = "page", defaultValue = "1") int page,
-                                       @QueryValue(value = "size", defaultValue = "50") int size) {
+                                       @QueryValue(value = "size", defaultValue = "50") int size,
+                                       @QueryValue(value = "sort", defaultValue = "name") String sort,
+                                       @QueryValue(value = "order", defaultValue = "asc") String order) {
         Map<String, Object> model = baseModel(id);
         Optional<DbConnection> conn = dbConnectionService.findById(id);
         if (conn.isEmpty()) {
             return model;
         }
-        int offset = Math.max(0, (page - 1) * size);
-        int limit = Math.min(size, 500);
-        List<String> schemas = pgMetadataService.listSchemas(id, dbName, offset, limit);
+        int limit = Math.min(Math.max(1, size), 500);
+        List<String> all = pgMetadataService.listSchemas(id, dbName, 0, 500);
+        all = new ArrayList<>(all);
+        boolean desc = "desc".equalsIgnoreCase(order);
+        all.sort(desc ? (a, b) -> b.compareToIgnoreCase(a) : (a, b) -> a.compareToIgnoreCase(b));
+        int offset = Math.max(0, (page - 1) * limit);
+        List<String> schemas = offset < all.size() ? all.subList(offset, Math.min(offset + limit, all.size())) : List.of();
         List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
         breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/pg/" + id));
         breadcrumbs.add(new BreadcrumbItem(dbName, null));
@@ -90,8 +111,14 @@ public class PgController {
         model.put("itemUrlPrefix", "/pg/" + id + "/" + dbName + "/");
         model.put("page", page);
         model.put("size", limit);
+        model.put("sort", sort != null ? sort : "name");
+        model.put("order", order != null ? order : "asc");
+        model.put("fromRow", all.isEmpty() ? 0 : offset + 1);
+        model.put("toRow", offset + schemas.size());
         model.put("hasPrev", page > 1);
-        model.put("hasMore", schemas.size() == limit);
+        model.put("hasMore", offset + schemas.size() < all.size());
+        model.put("prevOffset", Math.max(0, offset - limit));
+        model.put("nextOffset", offset + limit);
 
         return model;
     }
@@ -101,15 +128,26 @@ public class PgController {
     @View("pg/tables")
     public Map<String, Object> tables(@PathVariable Long id, @PathVariable String dbName, @PathVariable String schema,
                                       @QueryValue(value = "page", defaultValue = "1") int page,
-                                      @QueryValue(value = "size", defaultValue = "50") int size) {
+                                      @QueryValue(value = "size", defaultValue = "50") int size,
+                                      @QueryValue(value = "sort", defaultValue = "name") String sort,
+                                      @QueryValue(value = "order", defaultValue = "asc") String order) {
         Map<String, Object> model = baseModel(id);
         Optional<DbConnection> conn = dbConnectionService.findById(id);
         if (conn.isEmpty()) {
             return model;
         }
-        int offset = Math.max(0, (page - 1) * size);
-        int limit = Math.min(size, 500);
-        List<TableInfo> tables = pgMetadataService.listTables(id, dbName, schema, offset, limit);
+        int limit = Math.min(Math.max(1, size), 500);
+        List<TableInfo> all = pgMetadataService.listTables(id, dbName, schema, 0, 500);
+        all = new ArrayList<>(all);
+        boolean desc = "desc".equalsIgnoreCase(order);
+        String sortBy = sort != null ? sort : "name";
+        if ("type".equalsIgnoreCase(sortBy)) {
+            all.sort(desc ? (a, b) -> b.getType().compareToIgnoreCase(a.getType()) : (a, b) -> a.getType().compareToIgnoreCase(b.getType()));
+        } else {
+            all.sort(desc ? (a, b) -> b.getName().compareToIgnoreCase(a.getName()) : (a, b) -> a.getName().compareToIgnoreCase(b.getName()));
+        }
+        int offset = Math.max(0, (page - 1) * limit);
+        List<TableInfo> tables = offset < all.size() ? all.subList(offset, Math.min(offset + limit, all.size())) : List.of();
         List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
         breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/pg/" + id));
         breadcrumbs.add(new BreadcrumbItem(dbName, "/pg/" + id + "/" + dbName));
@@ -121,8 +159,14 @@ public class PgController {
         model.put("tables", tables);
         model.put("page", page);
         model.put("size", limit);
+        model.put("sort", sortBy);
+        model.put("order", order != null ? order : "asc");
+        model.put("fromRow", all.isEmpty() ? 0 : offset + 1);
+        model.put("toRow", offset + tables.size());
         model.put("hasPrev", page > 1);
-        model.put("hasMore", tables.size() == limit);
+        model.put("hasMore", offset + tables.size() < all.size());
+        model.put("prevOffset", Math.max(0, offset - limit));
+        model.put("nextOffset", offset + limit);
 
         return model;
     }
@@ -172,6 +216,7 @@ public class PgController {
         if (sql == null || sql.isBlank()) {
             model.put("error", null);
             model.put("columns", List.<String>of());
+            model.put("columnTypes", List.<String>of());
             model.put("rows", List.<List<Object>>of());
             model.put("offset", 0);
             model.put("limit", lim);
@@ -188,6 +233,7 @@ public class PgController {
                     .orElse(QueryResult.error("Ошибка выполнения запроса"));
             model.put("error", result.hasError() ? result.getError() : null);
             model.put("columns", result.getColumns());
+            model.put("columnTypes", result.getColumnTypes() != null ? result.getColumnTypes() : List.<String>of());
             model.put("rows", result.getRows());
             model.put("offset", result.getOffset());
             model.put("limit", result.getLimit());
@@ -227,6 +273,7 @@ public class PgController {
                 .orElse(QueryResult.error("Execution failed"));
         model.put("error", result.hasError() ? result.getError() : null);
         model.put("columns", result.getColumns());
+        model.put("columnTypes", result.getColumnTypes() != null ? result.getColumnTypes() : List.<String>of());
         model.put("rows", result.getRows());
         model.put("sql", sql);
         model.put("offset", result.getOffset());
@@ -243,6 +290,45 @@ public class PgController {
         return "table".equals(target)
                 ? new ModelAndView<>("partials/table-view-result", model)
                 : new ModelAndView<>("partials/query-result", model);
+    }
+
+    @Produces(MediaType.TEXT_HTML)
+    @Post("/{id}/detail")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @View("pg/detail")
+    public Map<String, Object> rowDetail(@PathVariable Long id, String dbName, String schema,
+                                         Integer rowCount, HttpRequest<?> request) {
+        Map<String, Object> model = baseModel(id);
+        Optional<DbConnection> conn = dbConnectionService.findById(id);
+        if (conn.isEmpty()) {
+            return model;
+        }
+        List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
+        breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/pg/" + id));
+        breadcrumbs.add(new BreadcrumbItem(dbName != null ? dbName : "", "/pg/" + id + "/" + (dbName != null ? dbName : "")));
+        breadcrumbs.add(new BreadcrumbItem(schema != null ? schema : "", null));
+        breadcrumbs.add(new BreadcrumbItem("detail", null));
+        model.put("breadcrumbs", breadcrumbs);
+        model.put("connectionId", id);
+        model.put("dbName", dbName != null ? dbName : "");
+        model.put("schema", schema != null ? schema : "");
+
+        int count = rowCount != null && rowCount > 0 ? Math.min(rowCount, 200) : 0;
+        List<Map<String, String>> detailRows = new ArrayList<>();
+        var params = request.getParameters();
+        for (int i = 0; i < count; i++) {
+            String col = params.get("rowCol" + i);
+            String type = params.get("rowType" + i);
+            String val = params.get("rowVal" + i);
+            Map<String, String> entry = new HashMap<>();
+            entry.put("name", col != null ? col : "");
+            entry.put("type", type != null ? type : "");
+            entry.put("value", val != null ? val : "");
+            detailRows.add(entry);
+        }
+        model.put("detailRows", detailRows);
+
+        return model;
     }
 
     private Map<String, Object> baseModel(Long id) {
