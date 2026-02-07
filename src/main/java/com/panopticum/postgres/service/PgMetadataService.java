@@ -1,10 +1,11 @@
-package com.panopticum.service;
+package com.panopticum.postgres.service;
 
-import com.panopticum.model.DbConnection;
+import com.panopticum.core.model.DbConnection;
+import com.panopticum.core.model.QueryResult;
+import com.panopticum.core.service.DbConnectionService;
+import com.panopticum.postgres.model.TableInfo;
 import io.micronaut.context.annotation.Value;
 import jakarta.inject.Singleton;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.sql.Connection;
@@ -197,59 +198,5 @@ public class PgMetadataService {
             orderBy = " ORDER BY 1 ASC";
         }
         return "SELECT * FROM (" + trimmed + ") AS _paged" + orderBy + " LIMIT " + maxLimit + " OFFSET " + Math.max(0, offset);
-    }
-
-    @Getter
-    @AllArgsConstructor
-    public static class TableInfo {
-        private final String name;
-        private final String type;
-    }
-
-    @Getter
-    public static class QueryResult {
-        private final List<String> columns;
-        private final List<List<Object>> rows;
-        private final String error;
-        private final int offset;
-        private final int limit;
-        private final boolean hasMore;
-
-        public QueryResult(List<String> columns, List<List<Object>> rows, String error, int offset, int limit, boolean hasMore) {
-            this.columns = columns != null ? columns : List.of();
-            this.rows = rows != null ? rows : List.of();
-            this.error = error;
-            this.offset = offset;
-            this.limit = limit;
-            this.hasMore = hasMore;
-        }
-
-        public static QueryResult error(String message) {
-            return new QueryResult(List.of(), List.of(), message, 0, 0, false);
-        }
-
-        public boolean hasError() {
-            return error != null;
-        }
-
-        public boolean hasPrev() {
-            return offset > 0;
-        }
-
-        public int nextOffset() {
-            return offset + limit;
-        }
-
-        public int prevOffset() {
-            return Math.max(0, offset - limit);
-        }
-
-        public int fromRow() {
-            return offset + 1;
-        }
-
-        public int toRow() {
-            return offset + rows.size();
-        }
     }
 }

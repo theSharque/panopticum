@@ -1,6 +1,6 @@
-package com.panopticum.repository;
+package com.panopticum.core.repository;
 
-import com.panopticum.model.DbConnection;
+import com.panopticum.core.model.DbConnection;
 import jakarta.inject.Singleton;
 
 import javax.sql.DataSource;

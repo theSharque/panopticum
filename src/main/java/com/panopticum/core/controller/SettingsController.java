@@ -1,8 +1,9 @@
-package com.panopticum.controller;
+package com.panopticum.core.controller;
 
-import com.panopticum.model.DbConnection;
-import com.panopticum.service.DbConnectionService;
-import com.panopticum.service.PgMetadataService;
+import com.panopticum.core.model.DbConnection;
+import com.panopticum.core.service.DbConnectionService;
+import com.panopticum.mongo.service.MongoMetadataService;
+import com.panopticum.postgres.service.PgMetadataService;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.MediaType;
@@ -33,10 +34,13 @@ public class SettingsController {
 
     private final DbConnectionService dbConnectionService;
     private final PgMetadataService pgMetadataService;
+    private final MongoMetadataService mongoMetadataService;
 
-    public SettingsController(DbConnectionService dbConnectionService, PgMetadataService pgMetadataService) {
+    public SettingsController(DbConnectionService dbConnectionService, PgMetadataService pgMetadataService,
+                              MongoMetadataService mongoMetadataService) {
         this.dbConnectionService = dbConnectionService;
         this.pgMetadataService = pgMetadataService;
+        this.mongoMetadataService = mongoMetadataService;
     }
 
     @Produces(MediaType.TEXT_HTML)
@@ -85,6 +89,53 @@ public class SettingsController {
         Map<String, Object> model = new HashMap<>();
         int p = port != null ? port : 5432;
         var error = pgMetadataService.testConnection(
+                host != null ? host : "",
+                p,
+                database != null ? database : "",
+                username != null ? username : "",
+                password != null ? password : "");
+        model.put("success", error.isEmpty());
+        model.put("message", error.orElse("Подключение успешно"));
+
+        return new ModelAndView<>("partials/connection-test-result", model);
+    }
+
+    @Post("/add-mongo")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @Produces(MediaType.TEXT_HTML)
+    public Object addMongo(HttpRequest<?> request,
+                          String name, String host, Integer port, String database, String username, String password) {
+        DbConnection conn = DbConnection.builder()
+                .name(name != null ? name : "")
+                .type("mongodb")
+                .host(host != null ? host : "localhost")
+                .port(port != null ? port : 27017)
+                .dbName(database != null ? database : "")
+                .username(username != null ? username : "")
+                .password(password != null ? password : "")
+                .build();
+        dbConnectionService.save(conn);
+
+        Map<String, Object> model = new HashMap<>();
+        model.put("connections", dbConnectionService.findAll());
+
+        boolean hxRequest = "true".equalsIgnoreCase(request.getHeaders().get(HX_REQUEST));
+
+        if (hxRequest) {
+            return new ModelAndView<>("partials/sidebar", model);
+        }
+
+        return new ModelAndView<>("settings/index", model);
+    }
+
+    @Post("/test-mongo")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @Produces(MediaType.TEXT_HTML)
+    public ModelAndView<Map<String, Object>> testMongo(
+            String host, Integer port, String database, String username, String password) {
+        Map<String, Object> model = new HashMap<>();
+        int p = port != null ? port : 27017;
+        var error = mongoMetadataService.testConnection(
                 host != null ? host : "",
                 p,
                 database != null ? database : "",

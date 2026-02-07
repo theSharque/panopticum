@@ -1,4 +1,4 @@
-package com.panopticum.model;
+package com.panopticum.core.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
