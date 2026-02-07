@@ -5,8 +5,6 @@
 <main th:fragment="main" class="main-content">
     <div th:replace="~{fragments/breadcrumbs :: breadcrumbs(items=${breadcrumbs})}"></div>
     <h1>Коллекции</h1>
-    <p><a th:href="@{/mongo/{id}/{dbName}/query(id=${connectionId}, dbName=${dbName})}"
-          class="pg-list-link">Запрос</a></p>
     <div th:if="${items != null and !items.isEmpty()}" class="query-result-data">
         <div class="query-pagination-info">
             <span class="query-pagination-range" th:text="'Строки ' + ${fromRow} + '–' + ${toRow}"></span>
