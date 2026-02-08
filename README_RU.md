@@ -57,15 +57,24 @@ JAR: `build/libs/panopticum-0.1-all.jar`
 
 ## Docker
 
-Сборка образа:
+Образ на [Docker Hub](https://hub.docker.com/r/sharque/panopticum): `sharque/panopticum`
+
+Запуск из Docker Hub (данные H2 и учётные данные через env):
+
+```bash
+docker pull sharque/panopticum:latest
+docker run -d --name panopticum \
+  -p 8080:8080 \
+  -v panopticum-data:/data \
+  -e PANOPTICUM_USER=admin \
+  -e PANOPTICUM_PASSWORD=changeme \
+  sharque/panopticum:latest
+```
+
+Или сборка образа локально:
 
 ```bash
 docker build -t panopticum:latest .
-```
-
-Запуск (данные H2 и учётные данные через env):
-
-```bash
 docker run -d --name panopticum \
   -p 8080:8080 \
   -v panopticum-data:/data \
@@ -75,3 +84,14 @@ docker run -d --name panopticum \
 ```
 
 Откройте **http://localhost:8080**. Для Kubernetes используйте те же переменные окружения и смонтируйте том на `/data` для сохранения данных H2.
+
+## CI/CD
+
+Пуш тега версии (например `v0.1`, `v1.0.0`) запускает GitHub Actions: сборка Docker-образа и публикация в [GitHub Container Registry](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry) как `ghcr.io/<owner>/<repo>:<tag>`. Готовые образы также публикуются на [Docker Hub](https://hub.docker.com/r/sharque/panopticum).
+
+```bash
+git tag v0.1
+git push origin v0.1
+```
+
+Образ будет доступен как `ghcr.io/<your-org>/panopticum:v0.1` и `ghcr.io/<your-org>/panopticum:latest`. Для деплоя (обновление Kubernetes deployment или pull на сервере) добавьте job в `.github/workflows/docker-build-push.yml` или отдельный workflow после этого, используя digest или тег собранного образа.
