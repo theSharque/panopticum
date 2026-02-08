@@ -2,12 +2,14 @@ package com.panopticum.mongo.controller;
 
 import com.panopticum.core.model.BreadcrumbItem;
 import com.panopticum.core.model.DbConnection;
+import com.panopticum.core.model.Page;
 import com.panopticum.core.model.QueryResult;
 import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.mongo.model.MongoCollectionInfo;
 import com.panopticum.mongo.model.MongoDatabaseInfo;
 import com.panopticum.mongo.service.MongoMetadataService;
 import io.micronaut.core.annotation.Nullable;
+import io.micronaut.http.HttpResponse;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.Consumes;
 import io.micronaut.http.annotation.Controller;
@@ -23,6 +25,9 @@ import io.micronaut.security.rules.SecurityRule;
 import io.micronaut.views.ModelAndView;
 import io.micronaut.views.View;
 
+import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -55,35 +60,27 @@ public class MongoController {
         if (conn.isEmpty()) {
             return model;
         }
+
         List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
         breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), null));
         model.put("breadcrumbs", breadcrumbs);
         model.put("connectionId", id);
         model.put("dbName", null);
-        List<MongoDatabaseInfo> all = new ArrayList<>(mongoMetadataService.listDatabaseInfos(id));
-        boolean desc = "desc".equalsIgnoreCase(order);
-        String sortBy = sort != null ? sort : "name";
-        if ("size".equals(sortBy)) {
-            all.sort(desc ? (a, b) -> Long.compare(b.getSizeOnDisk(), a.getSizeOnDisk()) : (a, b) -> Long.compare(a.getSizeOnDisk(), b.getSizeOnDisk()));
-        } else {
-            all.sort(desc ? (a, b) -> b.getName().compareToIgnoreCase(a.getName()) : (a, b) -> a.getName().compareToIgnoreCase(b.getName()));
-        }
-        int limit = Math.min(Math.max(1, size), 500);
-        int offset = Math.max(0, (page - 1) * limit);
-        List<MongoDatabaseInfo> dbs = offset < all.size() ? all.subList(offset, Math.min(offset + limit, all.size())) : List.of();
-        model.put("items", dbs);
         model.put("itemType", "database");
         model.put("itemUrlPrefix", "/mongo/" + id + "/");
-        model.put("page", page);
-        model.put("size", limit);
-        model.put("sort", sort != null ? sort : "name");
-        model.put("order", order != null ? order : "asc");
-        model.put("fromRow", all.isEmpty() ? 0 : offset + 1);
-        model.put("toRow", offset + dbs.size());
-        model.put("hasPrev", page > 1);
-        model.put("hasMore", offset + dbs.size() < all.size());
-        model.put("prevOffset", Math.max(0, offset - limit));
-        model.put("nextOffset", offset + limit);
+
+        Page<MongoDatabaseInfo> paged = mongoMetadataService.listDatabasesPaged(id, page, size, sort, order);
+        model.put("items", paged.getItems());
+        model.put("page", paged.getPage());
+        model.put("size", paged.getSize());
+        model.put("sort", paged.getSort());
+        model.put("order", paged.getOrder());
+        model.put("fromRow", paged.getFromRow());
+        model.put("toRow", paged.getToRow());
+        model.put("hasPrev", paged.isHasPrev());
+        model.put("hasMore", paged.isHasMore());
+        model.put("prevOffset", paged.getPrevOffset());
+        model.put("nextOffset", paged.getNextOffset());
 
         return model;
     }
@@ -101,48 +98,36 @@ public class MongoController {
         if (conn.isEmpty()) {
             return model;
         }
-        int limit = Math.min(Math.max(1, size), 500);
-        List<String> allNames = mongoMetadataService.listCollections(id, dbName, 0, 500);
-        allNames = new ArrayList<>(allNames);
-        List<MongoCollectionInfo> allInfos = mongoMetadataService.listCollectionInfos(id, dbName, allNames);
-        boolean desc = "desc".equalsIgnoreCase(order);
-        String sortBy = sort != null ? sort : "name";
-        if ("size".equals(sortBy)) {
-            allInfos.sort(desc ? (a, b) -> Long.compare(b.getSizeOnDisk(), a.getSizeOnDisk()) : (a, b) -> Long.compare(a.getSizeOnDisk(), b.getSizeOnDisk()));
-        } else if ("count".equals(sortBy)) {
-            allInfos.sort(desc ? (a, b) -> Long.compare(b.getDocumentCount(), a.getDocumentCount()) : (a, b) -> Long.compare(a.getDocumentCount(), b.getDocumentCount()));
-        } else {
-            allInfos.sort(desc ? (a, b) -> b.getName().compareToIgnoreCase(a.getName()) : (a, b) -> a.getName().compareToIgnoreCase(b.getName()));
-        }
-        int offset = Math.max(0, (page - 1) * limit);
-        List<MongoCollectionInfo> pageInfos = offset < allInfos.size() ? allInfos.subList(offset, Math.min(offset + limit, allInfos.size())) : List.of();
+
         List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
         breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/mongo/" + id));
         breadcrumbs.add(new BreadcrumbItem(dbName, null));
         model.put("breadcrumbs", breadcrumbs);
         model.put("connectionId", id);
         model.put("dbName", dbName);
-        model.put("items", pageInfos);
         model.put("itemType", "collection");
         model.put("itemUrlPrefix", "/mongo/" + id + "/" + dbName + "/query?collection=");
-        model.put("page", page);
-        model.put("size", limit);
-        model.put("sort", sortBy);
-        model.put("order", order != null ? order : "asc");
-        model.put("fromRow", allInfos.isEmpty() ? 0 : offset + 1);
-        model.put("toRow", offset + pageInfos.size());
-        model.put("hasPrev", page > 1);
-        model.put("hasMore", offset + pageInfos.size() < allInfos.size());
-        model.put("prevOffset", Math.max(0, offset - limit));
-        model.put("nextOffset", offset + limit);
+
+        Page<MongoCollectionInfo> paged = mongoMetadataService.listCollectionsPaged(id, dbName, page, size, sort, order);
+        model.put("items", paged.getItems());
+        model.put("page", paged.getPage());
+        model.put("size", paged.getSize());
+        model.put("sort", paged.getSort());
+        model.put("order", paged.getOrder());
+        model.put("fromRow", paged.getFromRow());
+        model.put("toRow", paged.getToRow());
+        model.put("hasPrev", paged.isHasPrev());
+        model.put("hasMore", paged.isHasMore());
+        model.put("prevOffset", paged.getPrevOffset());
+        model.put("nextOffset", paged.getNextOffset());
 
         return model;
     }
 
     @Produces(MediaType.TEXT_HTML)
     @Get("/{id}/{dbName}/query")
-    public io.micronaut.http.HttpResponse<?> queryRedirect(@PathVariable Long id, @PathVariable String dbName) {
-        return io.micronaut.http.HttpResponse.redirect(java.net.URI.create("/mongo/" + id + "/" + dbName));
+    public HttpResponse<?> queryRedirect(@PathVariable Long id, @PathVariable String dbName) {
+        return HttpResponse.redirect(URI.create("/mongo/" + id + "/" + dbName));
     }
 
     @Produces(MediaType.TEXT_HTML)
@@ -171,6 +156,7 @@ public class MongoController {
         if (conn.isEmpty()) {
             return model;
         }
+
         List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
         breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/mongo/" + id));
         breadcrumbs.add(new BreadcrumbItem(dbName, "/mongo/" + id + "/" + dbName));
@@ -232,8 +218,10 @@ public class MongoController {
         Optional<DbConnection> conn = dbConnectionService.findById(id);
         if (conn.isEmpty()) {
             model.put("prettyJson", "{}");
+
             return model;
         }
+
         List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
         breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/mongo/" + id));
         breadcrumbs.add(new BreadcrumbItem(dbName, "/mongo/" + id + "/" + dbName));
@@ -246,6 +234,7 @@ public class MongoController {
         model.put("connectionId", id);
         model.put("dbName", dbName);
         model.put("collection", collection != null ? collection : "");
+        model.put("docId", docId != null ? docId : "");
 
         String json = mongoMetadataService.getDocument(id, dbName, collection, docId)
                 .map(mongoMetadataService::documentToPrettyJson)
@@ -253,6 +242,47 @@ public class MongoController {
         model.put("prettyJson", json);
 
         return model;
+    }
+
+    @Post("/{id}/{dbName}/detail")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @Produces(MediaType.TEXT_HTML)
+    public Object saveDocument(@PathVariable Long id, @PathVariable String dbName, String collection, String docId, String body) {
+        Optional<String> err = mongoMetadataService.replaceDocument(id, dbName, collection, docId, body);
+
+        if (err.isPresent()) {
+            Map<String, Object> model = baseModel(id);
+            Optional<DbConnection> conn = dbConnectionService.findById(id);
+
+            if (conn.isEmpty()) {
+                model.put("prettyJson", body != null ? body : "{}");
+                model.put("error", err.get());
+                return new ModelAndView<>("mongo/detail", model);
+            }
+
+            List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
+            breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/mongo/" + id));
+            breadcrumbs.add(new BreadcrumbItem(dbName, "/mongo/" + id + "/" + dbName));
+            String collectionDetailUrl = (collection != null && !collection.isBlank())
+                    ? "/mongo/" + id + "/" + dbName + "/" + collection + "/query"
+                    : null;
+            breadcrumbs.add(new BreadcrumbItem(collection != null ? collection : "", collectionDetailUrl));
+            breadcrumbs.add(new BreadcrumbItem("detail", null));
+            model.put("breadcrumbs", breadcrumbs);
+            model.put("connectionId", id);
+            model.put("dbName", dbName);
+            model.put("collection", collection != null ? collection : "");
+            model.put("docId", docId != null ? docId : "");
+            model.put("prettyJson", body != null ? body : "{}");
+            model.put("error", err.get());
+            return new ModelAndView<>("mongo/detail", model);
+        }
+
+        String q = (collection != null && !collection.isBlank() && docId != null && !docId.isBlank())
+                ? "?collection=" + URLEncoder.encode(collection, StandardCharsets.UTF_8)
+                + "&docId=" + URLEncoder.encode(docId, StandardCharsets.UTF_8)
+                : "";
+        return HttpResponse.redirect(URI.create("/mongo/" + id + "/" + dbName + "/detail" + q));
     }
 
     @Post("/{id}/query")
@@ -267,6 +297,7 @@ public class MongoController {
         if (collection == null || collection.isBlank()) {
             model.put("error", "error.specifyCollection");
             model.put("docIds", List.<String>of());
+
             return "table".equals(target)
                     ? new ModelAndView<>("partials/mongo-table-view-result", model)
                     : new ModelAndView<>("partials/mongo-query-result", model);

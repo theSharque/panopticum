@@ -7,20 +7,29 @@ import com.panopticum.redis.model.RedisDbInfo;
 import com.panopticum.redis.model.RedisKeyDetail;
 import com.panopticum.redis.model.RedisKeysPage;
 import com.panopticum.redis.service.RedisMetadataService;
+import io.micronaut.http.HttpResponse;
 import io.micronaut.http.MediaType;
+import io.micronaut.http.annotation.Consumes;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
 import io.micronaut.http.annotation.PathVariable;
+import io.micronaut.http.annotation.Post;
 import io.micronaut.http.annotation.Produces;
 import io.micronaut.http.annotation.QueryValue;
+import io.micronaut.core.annotation.Nullable;
 import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.annotation.ExecuteOn;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
+import io.micronaut.views.ModelAndView;
 import io.micronaut.views.View;
 
+import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -47,10 +56,12 @@ public class RedisController {
         if (conn.isEmpty()) {
             return model;
         }
+
         List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
         breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), null));
         model.put("breadcrumbs", breadcrumbs);
         model.put("connectionId", id);
+
         List<RedisDbInfo> items = redisMetadataService.listDatabases(id);
         model.put("items", items);
         model.put("itemUrlPrefix", "/redis/" + id + "/");
@@ -70,6 +81,7 @@ public class RedisController {
         if (conn.isEmpty()) {
             return model;
         }
+
         List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
         breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/redis/" + id));
         breadcrumbs.add(new BreadcrumbItem("DB " + dbIndex, null));
@@ -97,6 +109,7 @@ public class RedisController {
         if (conn.isEmpty()) {
             return model;
         }
+
         List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
         breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/redis/" + id));
         breadcrumbs.add(new BreadcrumbItem("DB " + dbIndex, "/redis/" + id + "/" + dbIndex));
@@ -110,6 +123,56 @@ public class RedisController {
         model.put("keyDetail", detail.orElse(null));
 
         return model;
+    }
+
+    @Post("/{id}/{dbIndex}/detail")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @Produces(MediaType.TEXT_HTML)
+    public Object saveKey(@PathVariable Long id, @PathVariable int dbIndex, String key, String type,
+                          String value, @Nullable List<String> fieldKeys, @Nullable List<String> fieldValues) {
+        Optional<String> err;
+        if ("hash".equalsIgnoreCase(type != null ? type : "")) {
+            Map<String, String> fields = new LinkedHashMap<>();
+            if (fieldKeys != null && fieldValues != null) {
+                int n = Math.min(fieldKeys.size(), fieldValues.size());
+                for (int i = 0; i < n; i++) {
+                    String k = fieldKeys.get(i);
+                    if (k != null && !k.isBlank()) {
+                        fields.put(k, fieldValues.get(i) != null ? fieldValues.get(i) : "");
+                    }
+                }
+            }
+            err = redisMetadataService.setHash(id, dbIndex, key != null ? key : "", fields);
+        } else {
+            err = redisMetadataService.setKey(id, dbIndex, key != null ? key : "", value);
+        }
+
+        if (err.isPresent()) {
+            Map<String, Object> model = baseModel(id);
+            Optional<DbConnection> conn = dbConnectionService.findById(id);
+            if (conn.isEmpty()) {
+                model.put("error", err.get());
+                model.put("connectionId", id);
+                model.put("dbIndex", dbIndex);
+                model.put("key", key != null ? key : "");
+                model.put("keyDetail", null);
+
+                return new ModelAndView<>("redis/detail", model);
+            }
+
+            List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
+            breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/redis/" + id));
+            breadcrumbs.add(new BreadcrumbItem("DB " + dbIndex, "/redis/" + id + "/" + dbIndex));
+            breadcrumbs.add(new BreadcrumbItem(key != null ? key : "", null));
+            model.put("breadcrumbs", breadcrumbs);
+            model.put("connectionId", id);
+            model.put("dbIndex", dbIndex);
+            model.put("key", key != null ? key : "");
+            model.put("keyDetail", redisMetadataService.getKeyDetail(id, dbIndex, key).orElse(null));
+            model.put("error", err.get());
+            return new ModelAndView<>("redis/detail", model);
+        }
+        return HttpResponse.redirect(URI.create("/redis/" + id + "/" + dbIndex + "/detail?key=" + URLEncoder.encode(key != null ? key : "", StandardCharsets.UTF_8)));
     }
 
     private Map<String, Object> baseModel(Long id) {

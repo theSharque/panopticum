@@ -990,6 +990,48 @@ a.query-detail-link {
     color: var(--text-secondary);
 }
 
+.detail-json-textarea {
+    display: block;
+    width: 100%;
+    min-height: 200px;
+    box-sizing: border-box;
+}
+
+.detail-form {
+    margin-top: var(--space-md);
+}
+
+.detail-actions {
+    margin-top: var(--space-lg);
+}
+
+.detail-edit-input {
+    width: 100%;
+    box-sizing: border-box;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    padding: var(--space-xs) var(--space-sm);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    background: var(--bg-content);
+    color: var(--text-primary);
+}
+
+.query-button {
+    padding: var(--space-sm) var(--space-lg);
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-strong);
+    background: var(--bg-content);
+    color: var(--text-primary);
+    cursor: pointer;
+}
+
+.query-button:hover {
+    background: var(--border-subtle);
+}
+
 .text-dim {
     color: var(--text-muted);
 }

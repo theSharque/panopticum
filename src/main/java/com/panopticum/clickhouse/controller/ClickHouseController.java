@@ -2,6 +2,7 @@ package com.panopticum.clickhouse.controller;
 
 import com.panopticum.core.model.BreadcrumbItem;
 import com.panopticum.core.model.DbConnection;
+import com.panopticum.core.model.Page;
 import com.panopticum.core.model.QueryResult;
 import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.clickhouse.model.ChDatabaseInfo;
@@ -24,6 +25,7 @@ import io.micronaut.security.rules.SecurityRule;
 import io.micronaut.views.ModelAndView;
 import io.micronaut.views.View;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -57,42 +59,34 @@ public class ClickHouseController {
         if (conn.isEmpty()) {
             return model;
         }
+
         List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
         breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), null));
         model.put("breadcrumbs", breadcrumbs);
         model.put("connectionId", id);
         model.put("dbName", null);
-        List<ChDatabaseInfo> all = new ArrayList<>(clickHouseMetadataService.listDatabaseInfos(id));
-        boolean desc = "desc".equalsIgnoreCase(order);
-        String sortBy = sort != null ? sort : "name";
-        if ("size".equals(sortBy)) {
-            all.sort(desc ? (a, b) -> Long.compare(b.getSizeOnDisk(), a.getSizeOnDisk()) : (a, b) -> Long.compare(a.getSizeOnDisk(), b.getSizeOnDisk()));
-        } else {
-            all.sort(desc ? (a, b) -> b.getName().compareToIgnoreCase(a.getName()) : (a, b) -> a.getName().compareToIgnoreCase(b.getName()));
-        }
-        int limit = Math.min(Math.max(1, size), 500);
-        int offset = Math.max(0, (page - 1) * limit);
-        List<ChDatabaseInfo> dbs = offset < all.size() ? all.subList(offset, Math.min(offset + limit, all.size())) : List.of();
-        model.put("items", dbs);
         model.put("itemType", "database");
         model.put("itemUrlPrefix", "/ch/" + id + "/");
-        model.put("page", page);
-        model.put("size", limit);
-        model.put("sort", sortBy);
-        model.put("order", order != null ? order : "asc");
-        model.put("fromRow", all.isEmpty() ? 0 : offset + 1);
-        model.put("toRow", offset + dbs.size());
-        model.put("hasPrev", page > 1);
-        model.put("hasMore", offset + dbs.size() < all.size());
-        model.put("prevOffset", Math.max(0, offset - limit));
-        model.put("nextOffset", offset + limit);
+
+        Page<ChDatabaseInfo> paged = clickHouseMetadataService.listDatabasesPaged(id, page, size, sort, order);
+        model.put("items", paged.getItems());
+        model.put("page", paged.getPage());
+        model.put("size", paged.getSize());
+        model.put("sort", paged.getSort());
+        model.put("order", paged.getOrder());
+        model.put("fromRow", paged.getFromRow());
+        model.put("toRow", paged.getToRow());
+        model.put("hasPrev", paged.isHasPrev());
+        model.put("hasMore", paged.isHasMore());
+        model.put("prevOffset", paged.getPrevOffset());
+        model.put("nextOffset", paged.getNextOffset());
 
         return model;
     }
 
     @Get("/{id}/detail")
     public HttpResponse<?> detailRedirect(@PathVariable Long id) {
-        return HttpResponse.redirect(java.net.URI.create("/ch/" + id));
+        return HttpResponse.redirect(URI.create("/ch/" + id));
     }
 
     @Produces(MediaType.TEXT_HTML)
@@ -108,38 +102,26 @@ public class ClickHouseController {
         if (conn.isEmpty()) {
             return model;
         }
-        int limit = Math.min(Math.max(1, size), 500);
-        List<ChTableInfo> all = new ArrayList<>(clickHouseMetadataService.listTableInfos(id, dbName));
-        boolean desc = "desc".equalsIgnoreCase(order);
-        String sortBy = sort != null ? sort : "name";
-        if ("type".equalsIgnoreCase(sortBy)) {
-            all.sort(desc ? (a, b) -> (b.getType() != null ? b.getType() : "").compareToIgnoreCase(a.getType() != null ? a.getType() : "") : (a, b) -> (a.getType() != null ? a.getType() : "").compareToIgnoreCase(b.getType() != null ? b.getType() : ""));
-        } else if ("size".equals(sortBy)) {
-            all.sort(desc ? (a, b) -> Long.compare(b.getSizeOnDisk(), a.getSizeOnDisk()) : (a, b) -> Long.compare(a.getSizeOnDisk(), b.getSizeOnDisk()));
-        } else if ("rows".equals(sortBy)) {
-            all.sort(desc ? (a, b) -> Long.compare(b.getApproximateRowCount(), a.getApproximateRowCount()) : (a, b) -> Long.compare(a.getApproximateRowCount(), b.getApproximateRowCount()));
-        } else {
-            all.sort(desc ? (a, b) -> b.getName().compareToIgnoreCase(a.getName()) : (a, b) -> a.getName().compareToIgnoreCase(b.getName()));
-        }
-        int offset = Math.max(0, (page - 1) * limit);
-        List<ChTableInfo> tables = offset < all.size() ? all.subList(offset, Math.min(offset + limit, all.size())) : List.of();
+
         List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
         breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/ch/" + id));
         breadcrumbs.add(new BreadcrumbItem(dbName, null));
         model.put("breadcrumbs", breadcrumbs);
         model.put("connectionId", id);
         model.put("dbName", dbName);
-        model.put("tables", tables);
-        model.put("page", page);
-        model.put("size", limit);
-        model.put("sort", sortBy);
-        model.put("order", order != null ? order : "asc");
-        model.put("fromRow", all.isEmpty() ? 0 : offset + 1);
-        model.put("toRow", offset + tables.size());
-        model.put("hasPrev", page > 1);
-        model.put("hasMore", offset + tables.size() < all.size());
-        model.put("prevOffset", Math.max(0, offset - limit));
-        model.put("nextOffset", offset + limit);
+
+        Page<ChTableInfo> paged = clickHouseMetadataService.listTablesPaged(id, dbName, page, size, sort, order);
+        model.put("tables", paged.getItems());
+        model.put("page", paged.getPage());
+        model.put("size", paged.getSize());
+        model.put("sort", paged.getSort());
+        model.put("order", paged.getOrder());
+        model.put("fromRow", paged.getFromRow());
+        model.put("toRow", paged.getToRow());
+        model.put("hasPrev", paged.isHasPrev());
+        model.put("hasMore", paged.isHasMore());
+        model.put("prevOffset", paged.getPrevOffset());
+        model.put("nextOffset", paged.getNextOffset());
 
         return model;
     }
@@ -173,6 +155,7 @@ public class ClickHouseController {
         if (conn.isEmpty()) {
             return model;
         }
+
         List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
         breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/ch/" + id));
         breadcrumbs.add(new BreadcrumbItem(dbName, "/ch/" + id + "/" + dbName));
@@ -181,9 +164,11 @@ public class ClickHouseController {
         model.put("connectionId", id);
         model.put("dbName", dbName);
         model.put("sql", sql != null ? sql : "");
+
         int off = offset != null ? Math.max(0, offset) : 0;
         int lim = limit != null && limit > 0 ? Math.min(limit, 1000) : 100;
         model.put("size", lim);
+
         if (sql == null || sql.isBlank()) {
             model.put("error", null);
             model.put("columns", List.<String>of());
@@ -232,6 +217,7 @@ public class ClickHouseController {
         model.put("dbName", dbName);
         if (sql == null || sql.isBlank()) {
             model.put("error", "Empty query");
+
             return "table".equals(target)
                     ? new ModelAndView<>("partials/ch-table-view-result", model)
                     : new ModelAndView<>("partials/ch-query-result", model);

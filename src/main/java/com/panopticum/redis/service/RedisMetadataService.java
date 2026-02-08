@@ -1,22 +1,21 @@
 package com.panopticum.redis.service;
 
-import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.core.util.StringUtils;
+import com.panopticum.redis.model.RedisConnectionCallback;
 import com.panopticum.redis.model.RedisDbInfo;
 import com.panopticum.redis.model.RedisKeyDetail;
 import com.panopticum.redis.model.RedisKeyInfo;
 import com.panopticum.redis.model.RedisKeysPage;
+import com.panopticum.redis.repository.RedisMetadataRepository;
 import io.lettuce.core.RedisURI;
-import io.lettuce.core.api.StatefulRedisConnection;
-import io.lettuce.core.api.sync.RedisCommands;
-import io.lettuce.core.api.sync.RedisServerCommands;
 import io.micronaut.context.annotation.Value;
 import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Singleton
@@ -26,7 +25,7 @@ public class RedisMetadataService {
     private static final int DEFAULT_PORT = 6379;
     private static final int DEFAULT_DATABASES = 16;
 
-    private final DbConnectionService dbConnectionService;
+    private final RedisMetadataRepository redisMetadataRepository;
 
     @Value("${panopticum.limits.redis.keys-per-page:100}")
     private int keysPerPage;
@@ -34,21 +33,18 @@ public class RedisMetadataService {
     @Value("${panopticum.limits.redis.value-preview-length:10000}")
     private int valuePreviewLength;
 
-    public RedisMetadataService(DbConnectionService dbConnectionService) {
-        this.dbConnectionService = dbConnectionService;
+    public RedisMetadataService(RedisMetadataRepository redisMetadataRepository) {
+        this.redisMetadataRepository = redisMetadataRepository;
     }
 
     public Optional<String> testConnection(String host, int port, String password, int dbIndex) {
         if (host == null || host.isBlank()) {
             return Optional.of("error.specifyHost");
         }
-
-        RedisURI uri = buildUri(host.trim(), port > 0 ? port : DEFAULT_PORT, null, password, dbIndex);
-
+        RedisURI uri = redisMetadataRepository.buildUri(host.trim(), port > 0 ? port : DEFAULT_PORT, null, password, dbIndex);
         try (var client = io.lettuce.core.RedisClient.create(uri);
-             StatefulRedisConnection<String, String> connection = client.connect()) {
+             var connection = client.connect()) {
             connection.sync().ping();
-
             return Optional.empty();
         } catch (Exception e) {
             return Optional.of(e.getMessage());
@@ -59,27 +55,23 @@ public class RedisMetadataService {
         List<RedisDbInfo> result = new ArrayList<>();
         for (int i = 0; i < DEFAULT_DATABASES; i++) {
             int dbIndex = i;
-            withConnection(connectionId, dbIndex, (cmd, dbCmd) -> {
+            redisMetadataRepository.withConnection(connectionId, dbIndex, (cmd, dbCmd) -> {
                 long size = dbCmd.dbsize();
                 return new RedisDbInfo(dbIndex, size);
             }).ifPresent(result::add);
         }
-
         return result;
     }
 
     public RedisKeysPage listKeys(Long connectionId, int dbIndex, String pattern, String cursor, int limit) {
         String pat = pattern != null && !pattern.isBlank() ? pattern : "*";
         int lim = limit > 0 ? Math.min(limit, keysPerPage) : keysPerPage;
-
-        return withConnection(connectionId, dbIndex, (cmd, dbCmd) -> {
+        return redisMetadataRepository.withConnection(connectionId, dbIndex, (cmd, dbCmd) -> {
             io.lettuce.core.ScanCursor sc = "0".equals(cursor) || cursor == null || cursor.isBlank()
                     ? io.lettuce.core.ScanCursor.INITIAL
                     : io.lettuce.core.ScanCursor.of(cursor);
-
             io.lettuce.core.ScanArgs args = io.lettuce.core.ScanArgs.Builder.matches(pat).limit(lim);
             io.lettuce.core.KeyScanCursor<String> scanResult = cmd.scan(sc, args);
-
             List<RedisKeyInfo> infos = new ArrayList<>();
             for (String key : scanResult.getKeys()) {
                 try {
@@ -94,7 +86,6 @@ public class RedisMetadataService {
                     infos.add(new RedisKeyInfo(key, "?", null));
                 }
             }
-
             return new RedisKeysPage(infos,
                     scanResult.getCursor() != null ? scanResult.getCursor() : "0",
                     !scanResult.isFinished());
@@ -105,18 +96,15 @@ public class RedisMetadataService {
         if (key == null || key.isBlank()) {
             return Optional.empty();
         }
-
-        return withConnectionForKeyDetail(connectionId, dbIndex, (cmd, dbCmd) -> {
+        return redisMetadataRepository.withConnection(connectionId, dbIndex, (cmd, dbCmd) -> {
             String type = cmd.type(key);
             if (type == null || "none".equalsIgnoreCase(type)) {
                 return null;
             }
-
             Long ttl = cmd.pttl(key);
             if (ttl != null && ttl < 0) {
                 ttl = null;
             }
-
             Object value = switch (type.toLowerCase()) {
                 case "string" -> StringUtils.truncate(cmd.get(key));
                 case "hash" -> cmd.hgetall(key);
@@ -125,51 +113,32 @@ public class RedisMetadataService {
                 case "zset" -> cmd.zrangeWithScores(key, 0, valuePreviewLength - 1);
                 default -> null;
             };
-
             return new RedisKeyDetail(key, type, ttl, value);
         });
     }
 
-    private Optional<RedisKeyDetail> withConnectionForKeyDetail(Long connectionId, int dbIndex, ConnectionCallback<RedisKeyDetail> callback) {
-        return withConnection(connectionId, dbIndex, callback);
+    public Optional<String> setKey(Long connectionId, int dbIndex, String key, String value) {
+        if (key == null || key.isBlank()) {
+            return Optional.of("Key is required.");
+        }
+        Optional<Object> ok = redisMetadataRepository.withConnection(connectionId, dbIndex, (cmd, dbCmd) -> {
+            cmd.set(key, value != null ? value : "");
+            return null;
+        });
+        return ok.isEmpty() ? Optional.of("error.connectionNotAvailable") : Optional.empty();
     }
 
-    private <T> Optional<T> withConnection(Long connectionId, int dbIndex, ConnectionCallback<T> callback) {
-        Optional<DbConnection> connOpt = dbConnectionService.findById(connectionId)
-                .filter(c -> "redis".equalsIgnoreCase(c.getType()));
-        if (connOpt.isEmpty()) {
-            return Optional.empty();
+    public Optional<String> setHash(Long connectionId, int dbIndex, String key, Map<String, String> fields) {
+        if (key == null || key.isBlank()) {
+            return Optional.of("Key is required.");
         }
-
-        DbConnection conn = connOpt.get();
-        RedisURI uri = buildUri(conn.getHost(), conn.getPort(), conn.getUsername(), conn.getPassword(), dbIndex);
-
-        try (var client = io.lettuce.core.RedisClient.create(uri);
-             StatefulRedisConnection<String, String> connection = client.connect()) {
-            RedisCommands<String, String> cmd = connection.sync();
-            RedisServerCommands<String, String> dbCmd = connection.sync();
-
-            return Optional.of(callback.apply(cmd, dbCmd));
-        } catch (Exception e) {
-            log.warn("Redis operation failed for {}: {}", conn.getName(), e.getMessage());
-            return Optional.empty();
-        }
-    }
-
-    private RedisURI buildUri(String host, int port, String username, String password, int database) {
-        RedisURI.Builder builder = RedisURI.builder()
-                .withHost(host)
-                .withPort(port > 0 ? port : DEFAULT_PORT)
-                .withDatabase(database >= 0 ? database : 0);
-
-        if (password != null && !password.isBlank()) {
-            builder.withPassword(password.toCharArray());
-        }
-
-        return builder.build();
-    }
-
-    private interface ConnectionCallback<T> {
-        T apply(RedisCommands<String, String> cmd, RedisServerCommands<String, String> dbCmd);
+        Optional<Object> ok = redisMetadataRepository.withConnection(connectionId, dbIndex, (cmd, dbCmd) -> {
+            cmd.del(key);
+            if (fields != null && !fields.isEmpty()) {
+                cmd.hset(key, fields);
+            }
+            return null;
+        });
+        return ok.isEmpty() ? Optional.of("error.connectionNotAvailable") : Optional.empty();
     }
 }
