@@ -8,7 +8,19 @@
 <body>
 <header th:fragment="header" class="app-header">
     <a th:href="@{/}" class="app-name">Panopticum</a>
-    <details class="lang-dropdown">
+    <div class="header-actions">
+        <nav class="theme-toggle" aria-label="Theme">
+            <a th:href="@{/theme(mode='light', redirect=${requestUri})}"
+               th:classappend="${theme == 'light'} ? 'active' : ''"
+               th:text="${msg['theme.light']}"
+               class="theme-link">Light</a>
+            <span class="theme-sep">/</span>
+            <a th:href="@{/theme(mode='dark', redirect=${requestUri})}"
+               th:classappend="${theme == 'dark'} ? 'active' : ''"
+               th:text="${msg['theme.dark']}"
+               class="theme-link">Dark</a>
+        </nav>
+        <details class="lang-dropdown">
         <summary class="lang-trigger"
                  th:text="${locale == 'ru' ? msg['lang.ru'] : msg['lang.en']}">en</summary>
         <ul class="lang-menu" role="listbox">
@@ -18,6 +30,7 @@
                    th:text="${msg['lang.ru']}">Russian</a></li>
         </ul>
     </details>
+    </div>
 </header>
 </body>
 </html>

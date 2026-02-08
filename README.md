@@ -57,9 +57,25 @@ JAR: `build/libs/panopticum-0.1-all.jar`
 
 ## Docker
 
-Image on [Docker Hub](https://hub.docker.com/r/sharque/panopticum): `sharque/panopticum`
+### From GitHub Container Registry (GHCR)
 
-Pull and run (persist H2 data and set auth via env):
+Images are published automatically on tag push (see [CI/CD](#cicd)). Pull and run:
+
+```bash
+docker pull ghcr.io/thesharque/panopticum:latest
+docker run -d --name panopticum \
+  -p 8080:8080 \
+  -v panopticum-data:/data \
+  -e PANOPTICUM_USER=admin \
+  -e PANOPTICUM_PASSWORD=changeme \
+  ghcr.io/thesharque/panopticum:latest
+```
+
+Use a version tag for a fixed release, e.g. `ghcr.io/thesharque/panopticum:v0.1`. If the package is private, log in first: `echo $GITHUB_TOKEN | docker login ghcr.io -u YOUR_GITHUB_USER --password-stdin`.
+
+### From Docker Hub
+
+Image on [Docker Hub](https://hub.docker.com/r/sharque/panopticum): `sharque/panopticum`
 
 ```bash
 docker pull sharque/panopticum:latest
@@ -71,7 +87,7 @@ docker run -d --name panopticum \
   sharque/panopticum:latest
 ```
 
-Or build locally:
+### Build locally
 
 ```bash
 docker build -t panopticum:latest .
@@ -87,11 +103,16 @@ Open **http://localhost:8080**. For Kubernetes, use the same env vars and mount 
 
 ## CI/CD
 
-Push a version tag (e.g. `v0.1`, `v1.0.0`) to trigger a GitHub Actions workflow that builds the Docker image and pushes it to [GitHub Container Registry](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry) as `ghcr.io/<owner>/<repo>:<tag>`. Pre-built images are also published on [Docker Hub](https://hub.docker.com/r/sharque/panopticum).
+Push a version tag (e.g. `v0.1`, `v1.0.0`) to trigger a GitHub Actions workflow that builds the Docker image once and pushes it to:
+
+- [GitHub Container Registry](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry): `ghcr.io/<owner>/panopticum:<tag>`
+- [Docker Hub](https://hub.docker.com/r/sharque/panopticum): `<DOCKERHUB_USERNAME>/panopticum:<tag>` (if Docker Hub is enabled via variable and secrets)
 
 ```bash
 git tag v0.1
 git push origin v0.1
 ```
 
-Image will be available as `ghcr.io/<your-org>/panopticum:v0.1` and `ghcr.io/<your-org>/panopticum:latest`. To deploy the image (e.g. update a Kubernetes deployment or pull on a server), add a deploy job to `.github/workflows/docker-build-push.yml` or a separate workflow that runs after this one, using the built image digest or tag.
+**Docker Hub:** to also push to Docker Hub, set a repository variable `ENABLE_DOCKERHUB` = `true` (Settings → Secrets and variables → Actions → Variables) and add secrets `DOCKERHUB_USERNAME` (your Docker Hub login) and `DOCKERHUB_TOKEN` ([access token](https://hub.docker.com/settings/security)). If you don’t set these, the workflow still runs and pushes only to GHCR.
+
+Images will be available as `ghcr.io/<your-org>/panopticum:v0.1` and `ghcr.io/<your-org>/panopticum:latest` (and on Docker Hub as `<DOCKERHUB_USERNAME>/panopticum:v0.1` / `:latest` when configured). To deploy the image (e.g. update a Kubernetes deployment or pull on a server), add a deploy job or a separate workflow using the built image tag.

@@ -6,9 +6,10 @@
     <title th:text="${pageTitle} ?: 'Panopticum'">Panopticum</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link rel="stylesheet" th:if="${theme == 'light'}" th:href="@{/css/style-light.css}">
 </head>
 
 <body>

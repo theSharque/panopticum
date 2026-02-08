@@ -6,11 +6,23 @@
     <title th:text="${msg != null ? msg['login.title'] : 'Sign in — Panopticum'}">Sign in — Panopticum</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link rel="stylesheet" th:if="${theme == 'light'}" th:href="@{/css/style-light.css}">
 </head>
 <body>
 <div class="login-page">
+    <nav class="login-theme-toggle" aria-label="Theme" th:if="${theme != null}">
+        <a th:href="@{/theme(mode='light', redirect=${requestUri != null ? requestUri : '/login'})}"
+           th:classappend="${theme == 'light'} ? 'active' : ''"
+           th:text="${msg != null ? msg['theme.light'] : 'Light'}"
+           class="theme-link">Light</a>
+        <span class="theme-sep">/</span>
+        <a th:href="@{/theme(mode='dark', redirect=${requestUri != null ? requestUri : '/login'})}"
+           th:classappend="${theme == 'dark'} ? 'active' : ''"
+           th:text="${msg != null ? msg['theme.dark'] : 'Dark'}"
+           class="theme-link">Dark</a>
+    </nav>
     <h1>Panopticum</h1>
 
     <p th:text="${msg != null ? msg['login.prompt'] : 'Enter credentials in the browser dialog.'}">Enter credentials in the browser dialog.</p>

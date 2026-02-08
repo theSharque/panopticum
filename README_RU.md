@@ -57,9 +57,25 @@ JAR: `build/libs/panopticum-0.1-all.jar`
 
 ## Docker
 
-Образ на [Docker Hub](https://hub.docker.com/r/sharque/panopticum): `sharque/panopticum`
+### Из GitHub Container Registry (GHCR)
 
-Запуск из Docker Hub (данные H2 и учётные данные через env):
+Образы публикуются автоматически при пуше тега (см. [CI/CD](#cicd)). Запуск:
+
+```bash
+docker pull ghcr.io/thesharque/panopticum:latest
+docker run -d --name panopticum \
+  -p 8080:8080 \
+  -v panopticum-data:/data \
+  -e PANOPTICUM_USER=admin \
+  -e PANOPTICUM_PASSWORD=changeme \
+  ghcr.io/thesharque/panopticum:latest
+```
+
+Для фиксированной версии используйте тег, например `ghcr.io/thesharque/panopticum:v0.1`. Если пакет приватный, сначала выполните вход: `echo $GITHUB_TOKEN | docker login ghcr.io -u ВАШ_ЛОГИН_GITHUB --password-stdin`.
+
+### Из Docker Hub
+
+Образ на [Docker Hub](https://hub.docker.com/r/sharque/panopticum): `sharque/panopticum`
 
 ```bash
 docker pull sharque/panopticum:latest
@@ -71,7 +87,7 @@ docker run -d --name panopticum \
   sharque/panopticum:latest
 ```
 
-Или сборка образа локально:
+### Сборка образа локально
 
 ```bash
 docker build -t panopticum:latest .
@@ -87,11 +103,16 @@ docker run -d --name panopticum \
 
 ## CI/CD
 
-Пуш тега версии (например `v0.1`, `v1.0.0`) запускает GitHub Actions: сборка Docker-образа и публикация в [GitHub Container Registry](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry) как `ghcr.io/<owner>/<repo>:<tag>`. Готовые образы также публикуются на [Docker Hub](https://hub.docker.com/r/sharque/panopticum).
+Пуш тега версии (например `v0.1`, `v1.0.0`) запускает GitHub Actions: один билд Docker-образа и пуш в оба registry:
+
+- [GitHub Container Registry](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry): `ghcr.io/<owner>/panopticum:<tag>`
+- [Docker Hub](https://hub.docker.com/r/sharque/panopticum): `<DOCKERHUB_USERNAME>/panopticum:<tag>` (если включено переменной и секретами)
 
 ```bash
 git tag v0.1
 git push origin v0.1
 ```
 
-Образ будет доступен как `ghcr.io/<your-org>/panopticum:v0.1` и `ghcr.io/<your-org>/panopticum:latest`. Для деплоя (обновление Kubernetes deployment или pull на сервере) добавьте job в `.github/workflows/docker-build-push.yml` или отдельный workflow после этого, используя digest или тег собранного образа.
+**Docker Hub:** чтобы также пушить в Docker Hub, задайте переменную репозитория `ENABLE_DOCKERHUB` = `true` (Settings → Secrets and variables → Actions → Variables) и добавьте секреты `DOCKERHUB_USERNAME` (логин Docker Hub) и `DOCKERHUB_TOKEN` ([токен](https://hub.docker.com/settings/security)). Без этого workflow выполнится и будет пушить только в GHCR.
+
+Образы будут доступны как `ghcr.io/<your-org>/panopticum:v0.1` и `:latest` (и на Docker Hub как `<DOCKERHUB_USERNAME>/panopticum:v0.1` / `:latest` при настройке). Для деплоя (Kubernetes или pull на сервере) добавьте job или отдельный workflow с нужным тегом образа.
