@@ -57,15 +57,24 @@ JAR: `build/libs/panopticum-0.1-all.jar`
 
 ## Docker
 
-Build image:
+Image on [Docker Hub](https://hub.docker.com/r/sharque/panopticum): `sharque/panopticum`
+
+Pull and run (persist H2 data and set auth via env):
+
+```bash
+docker pull sharque/panopticum:latest
+docker run -d --name panopticum \
+  -p 8080:8080 \
+  -v panopticum-data:/data \
+  -e PANOPTICUM_USER=admin \
+  -e PANOPTICUM_PASSWORD=changeme \
+  sharque/panopticum:latest
+```
+
+Or build locally:
 
 ```bash
 docker build -t panopticum:latest .
-```
-
-Run (persist H2 data and set auth via env):
-
-```bash
 docker run -d --name panopticum \
   -p 8080:8080 \
   -v panopticum-data:/data \
@@ -78,10 +87,7 @@ Open **http://localhost:8080**. For Kubernetes, use the same env vars and mount 
 
 ## CI/CD
 
-Push a version tag (e.g. `v0.1`, `v1.0.0`) to trigger a GitHub Actions workflow that:
-
-- Builds the Docker image
-- Pushes it to [GitHub Container Registry](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry) as `ghcr.io/<owner>/<repo>:<tag>`
+Push a version tag (e.g. `v0.1`, `v1.0.0`) to trigger a GitHub Actions workflow that builds the Docker image and pushes it to [GitHub Container Registry](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry) as `ghcr.io/<owner>/<repo>:<tag>`. Pre-built images are also published on [Docker Hub](https://hub.docker.com/r/sharque/panopticum).
 
 ```bash
 git tag v0.1
