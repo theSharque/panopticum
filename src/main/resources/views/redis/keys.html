@@ -8,8 +8,8 @@
     <div th:if="${items != null and !items.isEmpty()}" class="query-result-data">
         <div class="query-pagination-info">
             <span class="query-pagination-nav">
-                <a th:if="${cursor != '0'}" th:href="@{/redis/{id}/{dbIndex}(id=${connectionId}, dbIndex=${dbIndex}, cursor='0', pattern=${pattern}, size=${size})}" class="query-pagination-btn" th:text="${'← ' + msg['redis.toStart']}">← To start</a>
-                <a th:if="${hasMore}" th:href="@{/redis/{id}/{dbIndex}(id=${connectionId}, dbIndex=${dbIndex}, cursor=${nextCursor}, pattern=${pattern}, size=${size})}" class="query-pagination-btn" th:text="${msg['common.next'] + ' →'}">Next →</a>
+                <a th:if="${cursor != '0'}" th:href="@{/redis/{id}/{dbIndex}(id=${connectionId}, dbIndex=${dbIndex}, cursor='0', pattern=${pattern}, size=${size}, sort=${sort}, order=${order})}" class="query-pagination-btn" th:text="${'← ' + msg['redis.toStart']}">← To start</a>
+                <a th:if="${hasMore}" th:href="@{/redis/{id}/{dbIndex}(id=${connectionId}, dbIndex=${dbIndex}, cursor=${nextCursor}, pattern=${pattern}, size=${size}, sort=${sort}, order=${order})}" class="query-pagination-btn" th:text="${msg['common.next'] + ' →'}">Next →</a>
             </span>
         </div>
         <div class="query-table-wrapper">
@@ -17,9 +17,15 @@
                 <thead>
                     <tr>
                         <th class="query-th query-th-detail"></th>
-                        <th class="query-th" th:text="${msg['redis.key']}">Key</th>
-                        <th class="query-th" th:text="${msg['common.type']}">Type</th>
-                        <th class="query-th" th:text="${msg['redis.ttl']}">TTL</th>
+                        <th class="query-th query-th-sortable">
+                            <a th:href="@{/redis/{id}/{dbIndex}(id=${connectionId}, dbIndex=${dbIndex}, cursor='0', pattern=${pattern}, size=${size}, sort='key', order=${orderKey})}" class="query-th-link"><span th:text="${msg['redis.key']}">Key</span> <span th:if="${sort == 'key' and order == 'asc'}" class="query-sort-ind">▲</span><span th:if="${sort == 'key' and order == 'desc'}" class="query-sort-ind">▼</span></a>
+                        </th>
+                        <th class="query-th query-th-sortable">
+                            <a th:href="@{/redis/{id}/{dbIndex}(id=${connectionId}, dbIndex=${dbIndex}, cursor='0', pattern=${pattern}, size=${size}, sort='type', order=${orderType})}" class="query-th-link"><span th:text="${msg['common.type']}">Type</span> <span th:if="${sort == 'type' and order == 'asc'}" class="query-sort-ind">▲</span><span th:if="${sort == 'type' and order == 'desc'}" class="query-sort-ind">▼</span></a>
+                        </th>
+                        <th class="query-th query-th-sortable">
+                            <a th:href="@{/redis/{id}/{dbIndex}(id=${connectionId}, dbIndex=${dbIndex}, cursor='0', pattern=${pattern}, size=${size}, sort='ttl', order=${orderTtl})}" class="query-th-link"><span th:text="${msg['redis.ttl']}">TTL</span> <span th:if="${sort == 'ttl' and order == 'asc'}" class="query-sort-ind">▲</span><span th:if="${sort == 'ttl' and order == 'desc'}" class="query-sort-ind">▼</span></a>
+                        </th>
                     </tr>
                 </thead>
                 <tbody>

@@ -97,7 +97,7 @@ public class MongoMetadataService {
     }
 
     public Optional<QueryResult> executeQuery(Long connectionId, String dbName, String collectionName, String queryText,
-                                              int offset, int limit) {
+                                              int offset, int limit, String sort, String order) {
         if (collectionName == null || collectionName.isBlank()) {
             return Optional.of(QueryResult.error("error.specifyCollection"));
         }
@@ -110,9 +110,11 @@ public class MongoMetadataService {
         String trimmed = queryText != null ? queryText.trim() : "";
         int lim = limit > 0 ? Math.min(limit, queryRowsLimit) : Math.min(100, queryRowsLimit);
         int off = Math.max(0, offset);
+        String sortField = sort != null && !sort.isBlank() ? sort : "_id";
+        int sortDirection = "desc".equalsIgnoreCase(order) ? -1 : 1;
 
         if (trimmed.isEmpty() || "{}".equals(trimmed)) {
-            List<Document> docs = mongoMetadataRepository.findAllDocuments(connectionId, dbName, collectionName, off, lim);
+            List<Document> docs = mongoMetadataRepository.findAllDocuments(connectionId, dbName, collectionName, off, lim, sortField, sortDirection);
             return Optional.of(documentsToQueryResult(docs, lim, off));
         }
         if (trimmed.startsWith("[")) {
@@ -125,7 +127,7 @@ public class MongoMetadataService {
         }
         try {
             Bson filter = Document.parse(trimmed);
-            List<Document> docs = mongoMetadataRepository.findDocuments(connectionId, dbName, collectionName, filter, off, lim);
+            List<Document> docs = mongoMetadataRepository.findDocuments(connectionId, dbName, collectionName, filter, off, lim, sortField, sortDirection);
             return Optional.of(documentsToQueryResult(docs, lim, off));
         } catch (Exception e) {
             return Optional.of(QueryResult.error(e.getMessage()));

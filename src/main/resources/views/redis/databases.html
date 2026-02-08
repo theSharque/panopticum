@@ -11,8 +11,12 @@
                 <thead>
                     <tr>
                         <th class="query-th query-th-detail"></th>
-                        <th class="query-th" th:text="${msg['redis.dbNumber']}">DB number</th>
-                        <th class="query-th" th:text="${msg['redis.keyCount']}">Keys</th>
+                        <th class="query-th query-th-sortable">
+                            <a th:href="@{/redis/{id}(id=${connectionId}, sort='dbIndex', order=${orderDbIndex})}" class="query-th-link"><span th:text="${msg['redis.dbNumber']}">DB number</span> <span th:if="${sort == 'dbIndex' and order == 'asc'}" class="query-sort-ind">▲</span><span th:if="${sort == 'dbIndex' and order == 'desc'}" class="query-sort-ind">▼</span></a>
+                        </th>
+                        <th class="query-th query-th-sortable">
+                            <a th:href="@{/redis/{id}(id=${connectionId}, sort='keyCount', order=${orderKeys})}" class="query-th-link"><span th:text="${msg['redis.keyCount']}">Keys</span> <span th:if="${sort == 'keyCount' and order == 'asc'}" class="query-sort-ind">▲</span><span th:if="${sort == 'keyCount' and order == 'desc'}" class="query-sort-ind">▼</span></a>
+                        </th>
                     </tr>
                 </thead>
                 <tbody>

@@ -69,11 +69,15 @@ public class ClickHouseController {
         model.put("itemUrlPrefix", "/ch/" + id + "/");
 
         Page<ChDatabaseInfo> paged = clickHouseMetadataService.listDatabasesPaged(id, page, size, sort, order);
+        String orderVal = paged.getOrder();
+        String sortBy = paged.getSort();
         model.put("items", paged.getItems());
         model.put("page", paged.getPage());
         model.put("size", paged.getSize());
-        model.put("sort", paged.getSort());
-        model.put("order", paged.getOrder());
+        model.put("sort", sortBy);
+        model.put("order", orderVal);
+        model.put("orderName", "name".equals(sortBy) && "asc".equals(orderVal) ? "desc" : "asc");
+        model.put("orderSize", "size".equals(sortBy) && "asc".equals(orderVal) ? "desc" : "asc");
         model.put("fromRow", paged.getFromRow());
         model.put("toRow", paged.getToRow());
         model.put("hasPrev", paged.isHasPrev());
@@ -111,11 +115,17 @@ public class ClickHouseController {
         model.put("dbName", dbName);
 
         Page<ChTableInfo> paged = clickHouseMetadataService.listTablesPaged(id, dbName, page, size, sort, order);
+        String orderVal = paged.getOrder();
+        String sortBy = paged.getSort();
         model.put("tables", paged.getItems());
         model.put("page", paged.getPage());
         model.put("size", paged.getSize());
-        model.put("sort", paged.getSort());
-        model.put("order", paged.getOrder());
+        model.put("sort", sortBy);
+        model.put("order", orderVal);
+        model.put("orderName", "name".equals(sortBy) && "asc".equals(orderVal) ? "desc" : "asc");
+        model.put("orderType", "type".equals(sortBy) && "asc".equals(orderVal) ? "desc" : "asc");
+        model.put("orderRows", "rows".equals(sortBy) && "asc".equals(orderVal) ? "desc" : "asc");
+        model.put("orderSize", "size".equals(sortBy) && "asc".equals(orderVal) ? "desc" : "asc");
         model.put("fromRow", paged.getFromRow());
         model.put("toRow", paged.getToRow());
         model.put("hasPrev", paged.isHasPrev());

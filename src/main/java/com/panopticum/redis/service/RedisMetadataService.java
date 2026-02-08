@@ -1,8 +1,6 @@
 package com.panopticum.redis.service;
 
-import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.core.util.StringUtils;
-import com.panopticum.redis.model.RedisConnectionCallback;
 import com.panopticum.redis.model.RedisDbInfo;
 import com.panopticum.redis.model.RedisKeyDetail;
 import com.panopticum.redis.model.RedisKeyInfo;
@@ -14,6 +12,7 @@ import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -52,6 +51,10 @@ public class RedisMetadataService {
     }
 
     public List<RedisDbInfo> listDatabases(Long connectionId) {
+        return listDatabasesSorted(connectionId, "dbIndex", "asc");
+    }
+
+    public List<RedisDbInfo> listDatabasesSorted(Long connectionId, String sort, String order) {
         List<RedisDbInfo> result = new ArrayList<>();
         for (int i = 0; i < DEFAULT_DATABASES; i++) {
             int dbIndex = i;
@@ -60,7 +63,32 @@ public class RedisMetadataService {
                 return new RedisDbInfo(dbIndex, size);
             }).ifPresent(result::add);
         }
-        return result;
+        boolean desc = "desc".equalsIgnoreCase(order);
+        String sortBy = sort != null ? sort : "dbIndex";
+        Comparator<RedisDbInfo> comparator = "keyCount".equals(sortBy)
+                ? (desc ? Comparator.comparingLong(RedisDbInfo::getKeyCount).reversed() : Comparator.comparingLong(RedisDbInfo::getKeyCount))
+                : (desc ? Comparator.comparingInt(RedisDbInfo::getDbIndex).reversed() : Comparator.comparingInt(RedisDbInfo::getDbIndex));
+        return result.stream().sorted(comparator).toList();
+    }
+
+    public List<RedisKeyInfo> sortKeys(List<RedisKeyInfo> keys, String sort, String order) {
+        if (keys == null || keys.isEmpty()) {
+            return keys != null ? keys : List.of();
+        }
+        boolean desc = "desc".equalsIgnoreCase(order);
+        String sortBy = sort != null ? sort : "key";
+        java.util.Comparator<RedisKeyInfo> comparator = switch (sortBy) {
+            case "type" -> desc
+                    ? Comparator.comparing(RedisKeyInfo::getType, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)).reversed()
+                    : Comparator.comparing(RedisKeyInfo::getType, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
+            case "ttl" -> desc
+                    ? Comparator.comparing(RedisKeyInfo::getTtl, Comparator.nullsFirst(Long::compareTo)).reversed()
+                    : Comparator.comparing(RedisKeyInfo::getTtl, Comparator.nullsLast(Long::compareTo));
+            default -> desc
+                    ? Comparator.comparing(RedisKeyInfo::getKey, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)).reversed()
+                    : Comparator.comparing(RedisKeyInfo::getKey, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
+        };
+        return keys.stream().sorted(comparator).toList();
     }
 
     public RedisKeysPage listKeys(Long connectionId, int dbIndex, String pattern, String cursor, int limit) {

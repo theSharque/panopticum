@@ -14,6 +14,8 @@
                     <input type="hidden" name="dbName" th:value="${dbName}"/>
                     <input type="hidden" name="collection" th:value="${collection}"/>
                     <input type="hidden" name="limit" th:value="${limit}"/>
+                    <input type="hidden" name="sort" th:value="${sort}"/>
+                    <input type="hidden" name="order" th:value="${order}"/>
                     <input type="hidden" name="target" value="table"/>
                     <input type="hidden" name="offset" th:value="${prevOffset}"/>
                     <button type="submit" class="query-pagination-btn" th:classappend="${!hasPrev} ? 'query-pagination-btn-disabled' : ''" th:disabled="${!hasPrev}" th:text="${'← ' + msg['common.prev']}">← Back</button>
@@ -28,6 +30,8 @@
                     <input type="hidden" name="dbName" th:value="${dbName}"/>
                     <input type="hidden" name="collection" th:value="${collection}"/>
                     <input type="hidden" name="limit" th:value="${limit}"/>
+                    <input type="hidden" name="sort" th:value="${sort}"/>
+                    <input type="hidden" name="order" th:value="${order}"/>
                     <input type="hidden" name="target" value="table"/>
                     <input type="hidden" name="offset" th:value="${nextOffset}"/>
                     <button type="submit" class="query-pagination-btn" th:classappend="${!hasMore} ? 'query-pagination-btn-disabled' : ''" th:disabled="${!hasMore}" th:text="${msg['common.next'] + ' →'}">Next →</button>
@@ -39,7 +43,61 @@
                 <thead>
                     <tr>
                         <th class="query-th query-th-detail"></th>
-                        <th th:each="col : ${columns}" class="query-th" th:text="${col}"></th>
+                        <th th:each="col : ${columns}" class="query-th query-th-sortable">
+                            <form th:if="${sort != col or sort == null}"
+                                  th:action="@{/mongo/{id}/query(id=${connectionId})}"
+                                  method="post"
+                                  th:attr="hx-post=@{/mongo/{id}/query(id=${connectionId})}"
+                                  hx-target="#table-data"
+                                  hx-swap="outerHTML"
+                                  class="query-th-form">
+                                <input type="hidden" name="query" th:value="${query}"/>
+                                <input type="hidden" name="dbName" th:value="${dbName}"/>
+                                <input type="hidden" name="collection" th:value="${collection}"/>
+                                <input type="hidden" name="offset" value="0"/>
+                                <input type="hidden" name="limit" th:value="${limit}"/>
+                                <input type="hidden" name="sort" th:value="${col}"/>
+                                <input type="hidden" name="order" value="asc"/>
+                                <input type="hidden" name="target" value="table"/>
+                                <button type="submit" class="query-th-link" th:text="${col}"></button>
+                            </form>
+                            <form th:if="${sort == col and order == 'asc'}"
+                                  th:action="@{/mongo/{id}/query(id=${connectionId})}"
+                                  method="post"
+                                  th:attr="hx-post=@{/mongo/{id}/query(id=${connectionId})}"
+                                  hx-target="#table-data"
+                                  hx-swap="outerHTML"
+                                  class="query-th-form">
+                                <input type="hidden" name="query" th:value="${query}"/>
+                                <input type="hidden" name="dbName" th:value="${dbName}"/>
+                                <input type="hidden" name="collection" th:value="${collection}"/>
+                                <input type="hidden" name="offset" value="0"/>
+                                <input type="hidden" name="limit" th:value="${limit}"/>
+                                <input type="hidden" name="sort" th:value="${col}"/>
+                                <input type="hidden" name="order" value="desc"/>
+                                <input type="hidden" name="target" value="table"/>
+                                <button type="submit" class="query-th-link" th:text="${col}"></button>
+                            </form>
+                            <form th:if="${sort == col and order == 'desc'}"
+                                  th:action="@{/mongo/{id}/query(id=${connectionId})}"
+                                  method="post"
+                                  th:attr="hx-post=@{/mongo/{id}/query(id=${connectionId})}"
+                                  hx-target="#table-data"
+                                  hx-swap="outerHTML"
+                                  class="query-th-form">
+                                <input type="hidden" name="query" th:value="${query}"/>
+                                <input type="hidden" name="dbName" th:value="${dbName}"/>
+                                <input type="hidden" name="collection" th:value="${collection}"/>
+                                <input type="hidden" name="offset" value="0"/>
+                                <input type="hidden" name="limit" th:value="${limit}"/>
+                                <input type="hidden" name="sort" th:value="${col}"/>
+                                <input type="hidden" name="order" value="asc"/>
+                                <input type="hidden" name="target" value="table"/>
+                                <button type="submit" class="query-th-link" th:text="${col}"></button>
+                            </form>
+                            <span th:if="${sort == col and order == 'asc'}" class="query-sort-ind" title="ASC"> ▲</span>
+                            <span th:if="${sort == col and order == 'desc'}" class="query-sort-ind" title="DESC"> ▼</span>
+                        </th>
                     </tr>
                 </thead>
                 <tbody>

@@ -144,28 +144,33 @@ public class MongoMetadataRepository {
     }
 
     public List<Document> findDocuments(Long connectionId, String dbName, String collectionName,
-                                        Bson filter, int offset, int limit) {
+                                        Bson filter, int offset, int limit, String sortField, int sortDirection) {
         try (MongoClient client = createClient(connectionId).orElse(null)) {
             if (client == null || dbName == null || dbName.isBlank() || collectionName == null || collectionName.isBlank()) {
                 return List.of();
             }
             MongoCollection<Document> collection = client.getDatabase(dbName).getCollection(collectionName);
             int lim = Math.min(limit, queryRowsLimit);
-            return collection.find(filter).skip(offset).limit(lim + 1).into(new ArrayList<>());
+            String sortKey = sortField != null && !sortField.isBlank() ? sortField : "_id";
+            int dir = (sortDirection == -1) ? -1 : 1;
+            return collection.find(filter).sort(new Document(sortKey, dir)).skip(offset).limit(lim + 1).into(new ArrayList<>());
         } catch (Exception e) {
             log.warn("findDocuments failed: {}", e.getMessage());
             return List.of();
         }
     }
 
-    public List<Document> findAllDocuments(Long connectionId, String dbName, String collectionName, int offset, int limit) {
+    public List<Document> findAllDocuments(Long connectionId, String dbName, String collectionName,
+                                           int offset, int limit, String sortField, int sortDirection) {
         try (MongoClient client = createClient(connectionId).orElse(null)) {
             if (client == null || dbName == null || dbName.isBlank() || collectionName == null || collectionName.isBlank()) {
                 return List.of();
             }
             MongoCollection<Document> collection = client.getDatabase(dbName).getCollection(collectionName);
             int lim = Math.min(limit, queryRowsLimit);
-            return collection.find().skip(offset).limit(lim + 1).into(new ArrayList<>());
+            String sortKey = sortField != null && !sortField.isBlank() ? sortField : "_id";
+            int dir = (sortDirection == -1) ? -1 : 1;
+            return collection.find().sort(new Document(sortKey, dir)).skip(offset).limit(lim + 1).into(new ArrayList<>());
         } catch (Exception e) {
             log.warn("findAllDocuments failed: {}", e.getMessage());
             return List.of();

@@ -5,6 +5,7 @@ import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.redis.model.RedisDbInfo;
 import com.panopticum.redis.model.RedisKeyDetail;
+import com.panopticum.redis.model.RedisKeyInfo;
 import com.panopticum.redis.model.RedisKeysPage;
 import com.panopticum.redis.service.RedisMetadataService;
 import io.micronaut.http.HttpResponse;
@@ -50,7 +51,9 @@ public class RedisController {
     @Produces(MediaType.TEXT_HTML)
     @Get("/{id}")
     @View("redis/databases")
-    public Map<String, Object> databases(@PathVariable Long id) {
+    public Map<String, Object> databases(@PathVariable Long id,
+                                         @QueryValue(value = "sort", defaultValue = "dbIndex") String sort,
+                                         @QueryValue(value = "order", defaultValue = "asc") String order) {
         Map<String, Object> model = baseModel(id);
         Optional<DbConnection> conn = dbConnectionService.findById(id);
         if (conn.isEmpty()) {
@@ -62,8 +65,14 @@ public class RedisController {
         model.put("breadcrumbs", breadcrumbs);
         model.put("connectionId", id);
 
-        List<RedisDbInfo> items = redisMetadataService.listDatabases(id);
+        List<RedisDbInfo> items = redisMetadataService.listDatabasesSorted(id, sort, order);
+        String orderVal = order != null ? order : "asc";
+        String sortBy = sort != null ? sort : "dbIndex";
         model.put("items", items);
+        model.put("sort", sortBy);
+        model.put("order", orderVal);
+        model.put("orderDbIndex", "dbIndex".equals(sortBy) && "asc".equals(orderVal) ? "desc" : "asc");
+        model.put("orderKeys", "keyCount".equals(sortBy) && "asc".equals(orderVal) ? "desc" : "asc");
         model.put("itemUrlPrefix", "/redis/" + id + "/");
 
         return model;
@@ -75,7 +84,9 @@ public class RedisController {
     public Map<String, Object> keys(@PathVariable Long id, @PathVariable int dbIndex,
                                     @QueryValue(value = "cursor", defaultValue = "0") String cursor,
                                     @QueryValue(value = "pattern", defaultValue = "*") String pattern,
-                                    @QueryValue(value = "size", defaultValue = "100") int size) {
+                                    @QueryValue(value = "size", defaultValue = "100") int size,
+                                    @QueryValue(value = "sort", defaultValue = "key") String sort,
+                                    @QueryValue(value = "order", defaultValue = "asc") String order) {
         Map<String, Object> model = baseModel(id);
         Optional<DbConnection> conn = dbConnectionService.findById(id);
         if (conn.isEmpty()) {
@@ -91,7 +102,15 @@ public class RedisController {
         model.put("pattern", pattern != null ? pattern : "*");
 
         RedisKeysPage page = redisMetadataService.listKeys(id, dbIndex, pattern, cursor, size);
-        model.put("items", page.getKeys());
+        java.util.List<RedisKeyInfo> items = redisMetadataService.sortKeys(page.getKeys(), sort, order);
+        String orderVal = order != null ? order : "asc";
+        String sortBy = sort != null ? sort : "key";
+        model.put("items", items);
+        model.put("sort", sortBy);
+        model.put("order", orderVal);
+        model.put("orderKey", "key".equals(sortBy) && "asc".equals(orderVal) ? "desc" : "asc");
+        model.put("orderType", "type".equals(sortBy) && "asc".equals(orderVal) ? "desc" : "asc");
+        model.put("orderTtl", "ttl".equals(sortBy) && "asc".equals(orderVal) ? "desc" : "asc");
         model.put("nextCursor", page.getNextCursor());
         model.put("hasMore", page.isHasMore());
         model.put("cursor", cursor != null ? cursor : "0");

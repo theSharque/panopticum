@@ -70,11 +70,15 @@ public class MongoController {
         model.put("itemUrlPrefix", "/mongo/" + id + "/");
 
         Page<MongoDatabaseInfo> paged = mongoMetadataService.listDatabasesPaged(id, page, size, sort, order);
+        String orderVal = paged.getOrder();
+        String sortBy = paged.getSort();
         model.put("items", paged.getItems());
         model.put("page", paged.getPage());
         model.put("size", paged.getSize());
-        model.put("sort", paged.getSort());
-        model.put("order", paged.getOrder());
+        model.put("sort", sortBy);
+        model.put("order", orderVal);
+        model.put("orderName", "name".equals(sortBy) && "asc".equals(orderVal) ? "desc" : "asc");
+        model.put("orderSize", "size".equals(sortBy) && "asc".equals(orderVal) ? "desc" : "asc");
         model.put("fromRow", paged.getFromRow());
         model.put("toRow", paged.getToRow());
         model.put("hasPrev", paged.isHasPrev());
@@ -109,11 +113,16 @@ public class MongoController {
         model.put("itemUrlPrefix", "/mongo/" + id + "/" + dbName + "/query?collection=");
 
         Page<MongoCollectionInfo> paged = mongoMetadataService.listCollectionsPaged(id, dbName, page, size, sort, order);
+        String orderVal = paged.getOrder();
+        String sortBy = paged.getSort();
         model.put("items", paged.getItems());
         model.put("page", paged.getPage());
         model.put("size", paged.getSize());
-        model.put("sort", paged.getSort());
-        model.put("order", paged.getOrder());
+        model.put("sort", sortBy);
+        model.put("order", orderVal);
+        model.put("orderName", "name".equals(sortBy) && "asc".equals(orderVal) ? "desc" : "asc");
+        model.put("orderCount", "count".equals(sortBy) && "asc".equals(orderVal) ? "desc" : "asc");
+        model.put("orderSize", "size".equals(sortBy) && "asc".equals(orderVal) ? "desc" : "asc");
         model.put("fromRow", paged.getFromRow());
         model.put("toRow", paged.getToRow());
         model.put("hasPrev", paged.isHasPrev());
@@ -136,8 +145,10 @@ public class MongoController {
     public Map<String, Object> queryPageGet(@PathVariable Long id, @PathVariable String dbName, @PathVariable String collection,
                                             @QueryValue(value = "query", defaultValue = "") String query,
                                             @QueryValue(value = "offset", defaultValue = "0") Integer offset,
-                                            @QueryValue(value = "limit", defaultValue = "100") Integer limit) {
-        return buildQueryPageModel(id, dbName, collection, query, offset, limit);
+                                            @QueryValue(value = "limit", defaultValue = "100") Integer limit,
+                                            @QueryValue(value = "sort", defaultValue = "_id") String sort,
+                                            @QueryValue(value = "order", defaultValue = "asc") String order) {
+        return buildQueryPageModel(id, dbName, collection, query, offset, limit, sort, order);
     }
 
     @Produces(MediaType.TEXT_HTML)
@@ -145,12 +156,13 @@ public class MongoController {
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @View("mongo/query")
     public Map<String, Object> queryPagePost(@PathVariable Long id, @PathVariable String dbName, @PathVariable String collection,
-                                             @Nullable String query, @Nullable Integer offset, @Nullable Integer limit) {
-        return buildQueryPageModel(id, dbName, collection, query, offset, limit);
+                                             @Nullable String query, @Nullable Integer offset, @Nullable Integer limit,
+                                             @Nullable String sort, @Nullable String order) {
+        return buildQueryPageModel(id, dbName, collection, query, offset, limit, sort, order);
     }
 
     private Map<String, Object> buildQueryPageModel(Long id, String dbName, String collection, String query,
-                                                    Integer offset, Integer limit) {
+                                                    Integer offset, Integer limit, String sort, String order) {
         Map<String, Object> model = baseModel(id);
         Optional<DbConnection> conn = dbConnectionService.findById(id);
         if (conn.isEmpty()) {
@@ -173,6 +185,10 @@ public class MongoController {
         int off = offset != null ? Math.max(0, offset) : 0;
         int lim = limit != null && limit > 0 ? Math.min(limit, 1000) : 100;
         model.put("size", lim);
+        String sortVal = sort != null && !sort.isBlank() ? sort : "_id";
+        String orderVal = order != null && !order.isBlank() ? order : "asc";
+        model.put("sort", sortVal);
+        model.put("order", orderVal);
 
         if (collection == null || collection.isBlank()) {
             model.put("error", null);
@@ -189,7 +205,7 @@ public class MongoController {
             model.put("toRow", 0);
         } else {
             String queryText = query != null && !query.isBlank() ? query : "{}";
-            var result = mongoMetadataService.executeQuery(id, dbName, collection, queryText, off, lim)
+            var result = mongoMetadataService.executeQuery(id, dbName, collection, queryText, off, lim, sortVal, orderVal)
                     .orElse(QueryResult.error("error.queryExecutionFailed"));
             model.put("error", result.hasError() ? result.getError() : null);
             model.put("columns", result.getColumns());
@@ -289,11 +305,15 @@ public class MongoController {
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces(MediaType.TEXT_HTML)
     public Object executeQuery(@PathVariable Long id, String dbName, String collection, String query,
-                               @Nullable Integer offset, @Nullable Integer limit, String target) {
+                               @Nullable Integer offset, @Nullable Integer limit, @Nullable String sort, @Nullable String order, String target) {
         Map<String, Object> model = new HashMap<>();
         model.put("connectionId", id);
         model.put("dbName", dbName);
         model.put("collection", collection);
+        String sortVal = sort != null && !sort.isBlank() ? sort : "_id";
+        String orderVal = order != null && !order.isBlank() ? order : "asc";
+        model.put("sort", sortVal);
+        model.put("order", orderVal);
         if (collection == null || collection.isBlank()) {
             model.put("error", "error.specifyCollection");
             model.put("docIds", List.<String>of());
@@ -306,7 +326,7 @@ public class MongoController {
         String queryText = query != null && !query.isBlank() ? query : "{}";
         int off = offset != null ? Math.max(0, offset) : 0;
         int lim = limit != null && limit > 0 ? limit : 100;
-        var result = mongoMetadataService.executeQuery(id, dbName, collection, queryText, off, lim)
+        var result = mongoMetadataService.executeQuery(id, dbName, collection, queryText, off, lim, sortVal, orderVal)
                 .orElse(QueryResult.error("error.queryExecutionFailed"));
 
         model.put("error", result.hasError() ? result.getError() : null);

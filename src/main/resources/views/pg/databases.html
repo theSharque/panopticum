@@ -19,10 +19,10 @@
                     <tr>
                         <th class="query-th query-th-detail"></th>
                         <th class="query-th query-th-sortable">
-                            <a th:href="@{/pg/{id}(id=${connectionId}, page=1, size=${size}, sort='name', order=(order == 'asc' ? 'desc' : 'asc'))}" class="query-th-link"><span th:text="${msg['common.name']}">Name</span> <span th:if="${sort == 'name' and order == 'asc'}" class="query-sort-ind">▲</span><span th:if="${sort == 'name' and order == 'desc'}" class="query-sort-ind">▼</span></a>
+                            <a th:href="@{/pg/{id}(id=${connectionId}, page=1, size=${size}, sort='name', order=${orderName})}" class="query-th-link"><span th:text="${msg['common.name']}">Name</span> <span th:if="${sort == 'name' and order == 'asc'}" class="query-sort-ind">▲</span><span th:if="${sort == 'name' and order == 'desc'}" class="query-sort-ind">▼</span></a>
                         </th>
                         <th class="query-th query-th-sortable">
-                            <a th:href="@{/pg/{id}(id=${connectionId}, page=1, size=${size}, sort='size', order=(order == 'asc' ? 'desc' : 'asc'))}" class="query-th-link"><span th:text="${msg['common.size']}">Size</span> <span th:if="${sort == 'size' and order == 'asc'}" class="query-sort-ind">▲</span><span th:if="${sort == 'size' and order == 'desc'}" class="query-sort-ind">▼</span></a>
+                            <a th:href="@{/pg/{id}(id=${connectionId}, page=1, size=${size}, sort='size', order=${orderSize})}" class="query-th-link"><span th:text="${msg['common.size']}">Size</span> <span th:if="${sort == 'size' and order == 'asc'}" class="query-sort-ind">▲</span><span th:if="${sort == 'size' and order == 'desc'}" class="query-sort-ind">▼</span></a>
                         </th>
                     </tr>
                 </thead>

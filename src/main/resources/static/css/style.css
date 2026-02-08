@@ -852,6 +852,9 @@ button[type="submit"]:not(.sidebar-delete):not(.query-th-link):hover {
     cursor: pointer;
     padding: 0;
     text-align: left;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
 }
 
 .query-th-link:hover {
@@ -867,6 +870,7 @@ button[type="submit"]:not(.sidebar-delete):not(.query-th-link):hover {
     color: var(--accent);
     font-size: 10px;
     margin-left: 4px;
+    flex-shrink: 0;
 }
 
 .query-table tbody tr {
