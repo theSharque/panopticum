@@ -9,6 +9,7 @@ public final class Messages {
             Map.entry("home.description", "The name derives from Greek pan (all) and optikon (vision) — \"all-seeing\". The idea of the panopticum is a single vantage point from which the entire controlled space is visible. Here it is a tool for viewing and managing database connections — MongoDB, PostgreSQL, Redis, ClickHouse — from one place."),
             Map.entry("home.pickDb", "Select a database from the menu or go to settings to add a connection."),
             Map.entry("nav.settings", "Settings"),
+            Map.entry("sidebar.connections", "Connections"),
             Map.entry("sidebar.addConnection", "add connection"),
             Map.entry("sidebar.deleteConfirmPrefix", "Delete connection \u00AB"),
             Map.entry("sidebar.deleteConfirmSuffix", "\u00BB?"),
@@ -86,7 +87,9 @@ public final class Messages {
             Map.entry("error.queryExecutionFailed", "Query execution failed."),
             Map.entry("error.connectionNotAvailable", "Connection not available."),
             Map.entry("lang.en", "English"),
-            Map.entry("lang.ru", "Русский")
+            Map.entry("lang.ru", "Русский"),
+            Map.entry("theme.light", "Light"),
+            Map.entry("theme.dark", "Dark")
     );
 
     public static final Map<String, String> RU = Map.ofEntries(
@@ -94,6 +97,7 @@ public final class Messages {
             Map.entry("home.description", "Название восходит к греческому pan (всё) и optikon (видение) — «всевидящий». Идея паноптикума — единая точка обзора, с которой всё подконтрольное пространство видно целиком. Здесь это инструмент для просмотра и управления подключениями к базам данных — MongoDB, PostgreSQL, Redis, ClickHouse — из одного места."),
             Map.entry("home.pickDb", "Выберите базу данных в меню или перейдите в настройки для добавления подключения."),
             Map.entry("nav.settings", "Настройки"),
+            Map.entry("sidebar.connections", "Подключения"),
             Map.entry("sidebar.addConnection", "добавить подключение"),
             Map.entry("sidebar.deleteConfirmPrefix", "Удалить подключение «"),
             Map.entry("sidebar.deleteConfirmSuffix", "»?"),
@@ -171,7 +175,9 @@ public final class Messages {
             Map.entry("error.queryExecutionFailed", "Ошибка выполнения запроса."),
             Map.entry("error.connectionNotAvailable", "Подключение недоступно."),
             Map.entry("lang.en", "English"),
-            Map.entry("lang.ru", "Русский")
+            Map.entry("lang.ru", "Русский"),
+            Map.entry("theme.light", "Светлая"),
+            Map.entry("theme.dark", "Тёмная")
     );
 
     private Messages() {

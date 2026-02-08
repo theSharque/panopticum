@@ -32,6 +32,9 @@ micronaut:
       - pattern: /login
         access:
           - isAnonymous()
+      - pattern: /theme
+        access:
+          - isAnonymous()
       - pattern: /settings/add-postgres
         httpMethod: POST
         access:

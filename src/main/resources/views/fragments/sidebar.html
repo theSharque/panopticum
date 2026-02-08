@@ -7,7 +7,8 @@
 <body>
 <aside th:fragment="sidebar(connections)" id="sidebar" class="sidebar">
     <nav class="sidebar-nav">
-        <a th:href="@{/settings}" class="sidebar-link" th:text="${msg['sidebar.addConnection']}">add connection</a>
+        <span class="sidebar-section-title" th:text="${msg['sidebar.connections']}">Connections</span>
+        <a th:href="@{/settings}" class="sidebar-link" th:classappend="${requestUri != null and requestUri.endsWith('settings') ? 'active' : ''}" th:text="${msg['sidebar.addConnection']}">add connection</a>
 
         <th:block th:if="${connections != null and !connections.isEmpty()}">
             <div th:each="conn : ${connections}" class="sidebar-pg">

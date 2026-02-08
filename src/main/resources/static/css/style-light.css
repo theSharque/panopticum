@@ -1,0 +1,21 @@
+:root {
+    --bg-main: #f1f5f9;
+    --bg-content: #ffffff;
+    --bg-sidebar: #e2e8f0;
+    --bg-elevated: #f8fafc;
+    --bg-hover: #e2e8f0;
+    --bg-input: #f1f5f9;
+
+    --text-primary: #0f172a;
+    --text-secondary: #334155;
+    --text-muted: #64748b;
+    --text-dim: #94a3b8;
+
+    --accent: #2563eb;
+    --accent-hover: #1d4ed8;
+    --border: rgba(15, 23, 42, 0.08);
+    --border-strong: rgba(15, 23, 42, 0.15);
+
+    --green-500: #059669;
+    --red-500: #dc2626;
+}
