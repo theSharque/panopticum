@@ -75,3 +75,17 @@ docker run -d --name panopticum \
 ```
 
 Open **http://localhost:8080**. For Kubernetes, use the same env vars and mount a volume at `/data` for H2 persistence.
+
+## CI/CD
+
+Push a version tag (e.g. `v0.1`, `v1.0.0`) to trigger a GitHub Actions workflow that:
+
+- Builds the Docker image
+- Pushes it to [GitHub Container Registry](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry) as `ghcr.io/<owner>/<repo>:<tag>`
+
+```bash
+git tag v0.1
+git push origin v0.1
+```
+
+Image will be available as `ghcr.io/<your-org>/panopticum:v0.1` and `ghcr.io/<your-org>/panopticum:latest`. To deploy the image (e.g. update a Kubernetes deployment or pull on a server), add a deploy job to `.github/workflows/docker-build-push.yml` or a separate workflow that runs after this one, using the built image digest or tag.
