@@ -2,7 +2,7 @@ FROM eclipse-temurin:17-jdk-alpine AS builder
 
 WORKDIR /app
 
-RUN apk add --no-cache bash
+RUN apk update && apk upgrade -a && apk add --no-cache bash
 
 COPY gradle gradle
 COPY gradlew build.gradle settings.gradle gradle.properties ./
@@ -12,7 +12,7 @@ RUN ./gradlew shadowJar --no-daemon
 
 FROM eclipse-temurin:17-jre-alpine
 
-RUN apk add --no-cache wget \
+RUN apk update && apk upgrade -a && apk add --no-cache wget \
     && addgroup -g 1000 app && adduser -u 1000 -G app -D app
 
 WORKDIR /app
