@@ -5,23 +5,23 @@
             <span class="query-pagination-range" th:text="${msg['common.rowsRange'] + fromRow + '–' + toRow}"></span>
             <span class="query-pagination-nav">
                 <form class="query-pagination-form"
-                      th:attr="hx-post=@{/pg/{id}/query(id=${connectionId})}"
+                      th:attr="hx-post=${queryActionUrl}"
                       hx-target="#query-result"
                       hx-swap="innerHTML">
                     <input type="hidden" name="sql" th:value="${sql}"/>
                     <input type="hidden" name="dbName" th:value="${dbName}"/>
-                    <input type="hidden" name="schema" th:value="${schema}"/>
+                    <input th:if="${schema != null}" type="hidden" name="schema" th:value="${schema}"/>
                     <input type="hidden" name="limit" th:value="${limit}"/>
                     <input type="hidden" name="offset" th:value="${prevOffset}"/>
                     <button type="submit" class="query-pagination-btn" th:classappend="${!hasPrev} ? 'query-pagination-btn-disabled' : ''" th:disabled="${!hasPrev}" th:text="${'← ' + msg['common.prev']}">← Back</button>
                 </form>
                 <form class="query-pagination-form"
-                      th:attr="hx-post=@{/pg/{id}/query(id=${connectionId})}"
+                      th:attr="hx-post=${queryActionUrl}"
                       hx-target="#query-result"
                       hx-swap="innerHTML">
                     <input type="hidden" name="sql" th:value="${sql}"/>
                     <input type="hidden" name="dbName" th:value="${dbName}"/>
-                    <input type="hidden" name="schema" th:value="${schema}"/>
+                    <input th:if="${schema != null}" type="hidden" name="schema" th:value="${schema}"/>
                     <input type="hidden" name="limit" th:value="${limit}"/>
                     <input type="hidden" name="offset" th:value="${nextOffset}"/>
                     <button type="submit" class="query-pagination-btn" th:classappend="${!hasMore} ? 'query-pagination-btn-disabled' : ''" th:disabled="${!hasMore}" th:text="${msg['common.next'] + ' →'}">Next →</button>
@@ -33,30 +33,30 @@
                 <thead>
                     <tr>
                         <th th:each="col : ${columns}" class="query-th query-th-sortable">
-                            <form th:if="${sort != col or sort == null}" th:attr="hx-post=@{/pg/{id}/query(id=${connectionId})}, hx-target=#query-result, hx-swap=innerHTML" class="query-th-form">
+                            <form th:if="${sort != col or sort == null}" th:attr="hx-post=${queryActionUrl}, hx-target=#query-result, hx-swap=innerHTML" class="query-th-form">
                                 <input type="hidden" name="sql" th:value="${sql}"/>
                                 <input type="hidden" name="dbName" th:value="${dbName}"/>
-                                <input type="hidden" name="schema" th:value="${schema}"/>
+                                <input th:if="${schema != null}" type="hidden" name="schema" th:value="${schema}"/>
                                 <input type="hidden" name="offset" value="0"/>
                                 <input type="hidden" name="limit" th:value="${limit}"/>
                                 <input type="hidden" name="sort" th:value="${col}"/>
                                 <input type="hidden" name="order" value="asc"/>
                                 <button type="submit" class="query-th-link" th:text="${col}"></button>
                             </form>
-                            <form th:if="${sort == col and order == 'asc'}" th:attr="hx-post=@{/pg/{id}/query(id=${connectionId})}, hx-target=#query-result, hx-swap=innerHTML" class="query-th-form">
+                            <form th:if="${sort == col and order == 'asc'}" th:attr="hx-post=${queryActionUrl}, hx-target=#query-result, hx-swap=innerHTML" class="query-th-form">
                                 <input type="hidden" name="sql" th:value="${sql}"/>
                                 <input type="hidden" name="dbName" th:value="${dbName}"/>
-                                <input type="hidden" name="schema" th:value="${schema}"/>
+                                <input th:if="${schema != null}" type="hidden" name="schema" th:value="${schema}"/>
                                 <input type="hidden" name="offset" value="0"/>
                                 <input type="hidden" name="limit" th:value="${limit}"/>
                                 <input type="hidden" name="sort" th:value="${col}"/>
                                 <input type="hidden" name="order" value="desc"/>
                                 <button type="submit" class="query-th-link" th:text="${col}"></button>
                             </form>
-                            <form th:if="${sort == col and order == 'desc'}" th:attr="hx-post=@{/pg/{id}/query(id=${connectionId})}, hx-target=#query-result, hx-swap=innerHTML" class="query-th-form">
+                            <form th:if="${sort == col and order == 'desc'}" th:attr="hx-post=${queryActionUrl}, hx-target=#query-result, hx-swap=innerHTML" class="query-th-form">
                                 <input type="hidden" name="sql" th:value="${sql}"/>
                                 <input type="hidden" name="dbName" th:value="${dbName}"/>
-                                <input type="hidden" name="schema" th:value="${schema}"/>
+                                <input th:if="${schema != null}" type="hidden" name="schema" th:value="${schema}"/>
                                 <input type="hidden" name="offset" value="0"/>
                                 <input type="hidden" name="limit" th:value="${limit}"/>
                                 <button type="submit" class="query-th-link" th:text="${col}"></button>

@@ -1,16 +1,12 @@
 package com.panopticum.core.controller;
 
-import com.panopticum.cassandra.service.CassandraMetadataService;
-import com.panopticum.clickhouse.service.ClickHouseMetadataService;
+import com.panopticum.config.HxRedirectFilter;
 import com.panopticum.core.model.DbConnection;
+import com.panopticum.core.service.ConnectionTestService;
+import com.panopticum.core.service.DbConnectionFactory;
 import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.i18n.LocaleFilter;
 import com.panopticum.i18n.Messages;
-import com.panopticum.mongo.service.MongoMetadataService;
-import com.panopticum.mysql.service.MySqlMetadataService;
-import com.panopticum.postgres.service.PgMetadataService;
-import com.panopticum.redis.service.RedisMetadataService;
-import com.panopticum.config.HxRedirectFilter;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.MediaType;
@@ -42,12 +38,8 @@ public class SettingsController {
     private static final String HX_REQUEST = "HX-Request";
 
     private final DbConnectionService dbConnectionService;
-    private final PgMetadataService pgMetadataService;
-    private final MongoMetadataService mongoMetadataService;
-    private final RedisMetadataService redisMetadataService;
-    private final ClickHouseMetadataService clickHouseMetadataService;
-    private final MySqlMetadataService mySqlMetadataService;
-    private final CassandraMetadataService cassandraMetadataService;
+    private final DbConnectionFactory dbConnectionFactory;
+    private final ConnectionTestService connectionTestService;
 
     @Produces(MediaType.TEXT_HTML)
     @Get
@@ -64,30 +56,12 @@ public class SettingsController {
     @Produces(MediaType.TEXT_HTML)
     public Object addPostgres(HttpRequest<?> request,
                              String name, String host, Integer port, String database, String username, String password) {
-        DbConnection conn = DbConnection.builder()
-                .name(name != null ? name : "")
-                .type("postgresql")
-                .host(host != null ? host : "localhost")
-                .port(port != null ? port : 5432)
-                .dbName(database != null ? database : "")
-                .username(username != null ? username : "")
-                .password(password != null ? password : "")
-                .build();
+        DbConnection conn = dbConnectionFactory.build("postgresql", name, host, port, database, username, password);
         DbConnection saved = dbConnectionService.save(conn);
-
         Map<String, Object> model = new HashMap<>();
         model.put("connections", dbConnectionService.findAll());
 
-        boolean hxRequest = "true".equalsIgnoreCase(request.getHeaders().get(HX_REQUEST));
-
-        if (hxRequest) {
-            if (saved.getId() != null) {
-                request.setAttribute(HxRedirectFilter.HX_REDIRECT_ATTR, "/pg/" + saved.getId());
-            }
-            return new ModelAndView<>("partials/sidebar", model);
-        }
-
-        return new ModelAndView<>("settings/index", model);
+        return responseAfterAdd(request, model, saved.getId(), "/pg/" + saved.getId());
     }
 
     @Post("/test-postgres")
@@ -95,27 +69,7 @@ public class SettingsController {
     @Produces(MediaType.TEXT_HTML)
     public ModelAndView<Map<String, Object>> testPostgres(HttpRequest<?> request,
             String host, Integer port, String database, String username, String password) {
-        Map<String, Object> model = new HashMap<>();
-        try {
-            int p = port != null ? port : 5432;
-            var error = pgMetadataService.testConnection(
-                    host != null ? host : "",
-                    p,
-                    database != null ? database : "",
-                    username != null ? username : "",
-                    password != null ? password : "");
-            model.put("success", error.isEmpty());
-            String messageKey = error.orElse("connectionTest.success");
-            model.put("message", messageKey);
-            putDisplayText(model, request, messageKey);
-        } catch (Exception e) {
-            model.put("success", false);
-            String messageKey = e.getMessage() != null ? e.getMessage() : "error.queryExecutionFailed";
-            model.put("message", messageKey);
-            putDisplayText(model, request, messageKey);
-        }
-
-        return new ModelAndView<>("partials/connection-test-result", model);
+        return testConnectionResult(request, "postgresql", host, port, database, username, password);
     }
 
     @Post("/add-mongo")
@@ -123,30 +77,12 @@ public class SettingsController {
     @Produces(MediaType.TEXT_HTML)
     public Object addMongo(HttpRequest<?> request,
                           String name, String host, Integer port, String database, String username, String password) {
-        DbConnection conn = DbConnection.builder()
-                .name(name != null ? name : "")
-                .type("mongodb")
-                .host(host != null ? host : "localhost")
-                .port(port != null ? port : 27017)
-                .dbName(database != null ? database : "")
-                .username(username != null ? username : "")
-                .password(password != null ? password : "")
-                .build();
+        DbConnection conn = dbConnectionFactory.build("mongodb", name, host, port, database, username, password);
         DbConnection saved = dbConnectionService.save(conn);
-
         Map<String, Object> model = new HashMap<>();
         model.put("connections", dbConnectionService.findAll());
 
-        boolean hxRequest = "true".equalsIgnoreCase(request.getHeaders().get(HX_REQUEST));
-
-        if (hxRequest) {
-            if (saved.getId() != null) {
-                request.setAttribute(HxRedirectFilter.HX_REDIRECT_ATTR, "/mongo/" + saved.getId());
-            }
-            return new ModelAndView<>("partials/sidebar", model);
-        }
-
-        return new ModelAndView<>("settings/index", model);
+        return responseAfterAdd(request, model, saved.getId(), "/mongo/" + saved.getId());
     }
 
     @Post("/test-mongo")
@@ -154,20 +90,7 @@ public class SettingsController {
     @Produces(MediaType.TEXT_HTML)
     public ModelAndView<Map<String, Object>> testMongo(HttpRequest<?> request,
             String host, Integer port, String database, String username, String password) {
-        Map<String, Object> model = new HashMap<>();
-        int p = port != null ? port : 27017;
-        var error = mongoMetadataService.testConnection(
-                host != null ? host : "",
-                p,
-                database != null ? database : "",
-                username != null ? username : "",
-                password != null ? password : "");
-        model.put("success", error.isEmpty());
-        String messageKey = error.orElse("connectionTest.success");
-        model.put("message", messageKey);
-        putDisplayText(model, request, messageKey);
-
-        return new ModelAndView<>("partials/connection-test-result", model);
+        return testConnectionResult(request, "mongodb", host, port, database, username, password);
     }
 
     @Post("/add-redis")
@@ -175,30 +98,12 @@ public class SettingsController {
     @Produces(MediaType.TEXT_HTML)
     public Object addRedis(HttpRequest<?> request,
                           String name, String host, Integer port, String database, String password) {
-        DbConnection conn = DbConnection.builder()
-                .name(name != null ? name : "")
-                .type("redis")
-                .host(host != null ? host : "localhost")
-                .port(port != null ? port : 6379)
-                .dbName(database != null && !database.isBlank() ? database : "0")
-                .username("")
-                .password(password != null ? password : "")
-                .build();
+        DbConnection conn = dbConnectionFactory.build("redis", name, host, port, database, null, password);
         DbConnection saved = dbConnectionService.save(conn);
-
         Map<String, Object> model = new HashMap<>();
         model.put("connections", dbConnectionService.findAll());
 
-        boolean hxRequest = "true".equalsIgnoreCase(request.getHeaders().get(HX_REQUEST));
-
-        if (hxRequest) {
-            if (saved.getId() != null) {
-                request.setAttribute(HxRedirectFilter.HX_REDIRECT_ATTR, "/redis/" + saved.getId());
-            }
-            return new ModelAndView<>("partials/sidebar", model);
-        }
-
-        return new ModelAndView<>("settings/index", model);
+        return responseAfterAdd(request, model, saved.getId(), "/redis/" + saved.getId());
     }
 
     @Post("/test-redis")
@@ -206,26 +111,7 @@ public class SettingsController {
     @Produces(MediaType.TEXT_HTML)
     public ModelAndView<Map<String, Object>> testRedis(HttpRequest<?> request,
             String host, Integer port, String database, String password) {
-        Map<String, Object> model = new HashMap<>();
-        int p = port != null ? port : 6379;
-        int dbIndex = 0;
-        if (database != null && !database.isBlank()) {
-            try {
-                dbIndex = Integer.parseInt(database.trim());
-            } catch (NumberFormatException ignored) {
-            }
-        }
-        var error = redisMetadataService.testConnection(
-                host != null ? host : "",
-                p,
-                password != null ? password : "",
-                dbIndex);
-        model.put("success", error.isEmpty());
-        String messageKey = error.orElse("connectionTest.success");
-        model.put("message", messageKey);
-        putDisplayText(model, request, messageKey);
-
-        return new ModelAndView<>("partials/connection-test-result", model);
+        return testConnectionResult(request, "redis", host, port, database, null, password);
     }
 
     @Post("/add-clickhouse")
@@ -233,30 +119,12 @@ public class SettingsController {
     @Produces(MediaType.TEXT_HTML)
     public Object addClickhouse(HttpRequest<?> request,
                                String name, String host, Integer port, String database, String username, String password) {
-        DbConnection conn = DbConnection.builder()
-                .name(name != null ? name : "")
-                .type("clickhouse")
-                .host(host != null ? host : "localhost")
-                .port(port != null ? port : 8123)
-                .dbName(database != null && !database.isBlank() ? database : "default")
-                .username(username != null ? username : "")
-                .password(password != null ? password : "")
-                .build();
+        DbConnection conn = dbConnectionFactory.build("clickhouse", name, host, port, database, username, password);
         DbConnection saved = dbConnectionService.save(conn);
-
         Map<String, Object> model = new HashMap<>();
         model.put("connections", dbConnectionService.findAll());
 
-        boolean hxRequest = "true".equalsIgnoreCase(request.getHeaders().get(HX_REQUEST));
-
-        if (hxRequest) {
-            if (saved.getId() != null) {
-                request.setAttribute(HxRedirectFilter.HX_REDIRECT_ATTR, "/ch/" + saved.getId());
-            }
-            return new ModelAndView<>("partials/sidebar", model);
-        }
-
-        return new ModelAndView<>("settings/index", model);
+        return responseAfterAdd(request, model, saved.getId(), "/ch/" + saved.getId());
     }
 
     @Post("/test-clickhouse")
@@ -264,20 +132,7 @@ public class SettingsController {
     @Produces(MediaType.TEXT_HTML)
     public ModelAndView<Map<String, Object>> testClickhouse(HttpRequest<?> request,
             String host, Integer port, String database, String username, String password) {
-        Map<String, Object> model = new HashMap<>();
-        int p = port != null ? port : 8123;
-        var error = clickHouseMetadataService.testConnection(
-                host != null ? host : "",
-                p,
-                database != null ? database : "default",
-                username != null ? username : "",
-                password != null ? password : "");
-        model.put("success", error.isEmpty());
-        String messageKey = error.orElse("connectionTest.success");
-        model.put("message", messageKey);
-        putDisplayText(model, request, messageKey);
-
-        return new ModelAndView<>("partials/connection-test-result", model);
+        return testConnectionResult(request, "clickhouse", host, port, database, username, password);
     }
 
     @Post("/add-mysql")
@@ -285,30 +140,12 @@ public class SettingsController {
     @Produces(MediaType.TEXT_HTML)
     public Object addMysql(HttpRequest<?> request,
                           String name, String host, Integer port, String database, String username, String password) {
-        DbConnection conn = DbConnection.builder()
-                .name(name != null ? name : "")
-                .type("mysql")
-                .host(host != null ? host : "localhost")
-                .port(port != null ? port : 3306)
-                .dbName(database != null ? database : "")
-                .username(username != null ? username : "")
-                .password(password != null ? password : "")
-                .build();
+        DbConnection conn = dbConnectionFactory.build("mysql", name, host, port, database, username, password);
         DbConnection saved = dbConnectionService.save(conn);
-
         Map<String, Object> model = new HashMap<>();
         model.put("connections", dbConnectionService.findAll());
 
-        boolean hxRequest = "true".equalsIgnoreCase(request.getHeaders().get(HX_REQUEST));
-
-        if (hxRequest) {
-            if (saved.getId() != null) {
-                request.setAttribute(HxRedirectFilter.HX_REDIRECT_ATTR, "/mysql/" + saved.getId());
-            }
-            return new ModelAndView<>("partials/sidebar", model);
-        }
-
-        return new ModelAndView<>("settings/index", model);
+        return responseAfterAdd(request, model, saved.getId(), "/mysql/" + saved.getId());
     }
 
     @Post("/test-mysql")
@@ -316,27 +153,7 @@ public class SettingsController {
     @Produces(MediaType.TEXT_HTML)
     public ModelAndView<Map<String, Object>> testMysql(HttpRequest<?> request,
             String host, Integer port, String database, String username, String password) {
-        Map<String, Object> model = new HashMap<>();
-        try {
-            int p = port != null ? port : 3306;
-            var error = mySqlMetadataService.testConnection(
-                    host != null ? host : "",
-                    p,
-                    database != null ? database : "",
-                    username != null ? username : "",
-                    password != null ? password : "");
-            model.put("success", error.isEmpty());
-            String messageKey = error.orElse("connectionTest.success");
-            model.put("message", messageKey);
-            putDisplayText(model, request, messageKey);
-        } catch (Exception e) {
-            model.put("success", false);
-            String messageKey = e.getMessage() != null ? e.getMessage() : "error.queryExecutionFailed";
-            model.put("message", messageKey);
-            putDisplayText(model, request, messageKey);
-        }
-
-        return new ModelAndView<>("partials/connection-test-result", model);
+        return testConnectionResult(request, "mysql", host, port, database, username, password);
     }
 
     @Post("/add-cassandra")
@@ -344,30 +161,12 @@ public class SettingsController {
     @Produces(MediaType.TEXT_HTML)
     public Object addCassandra(HttpRequest<?> request,
                               String name, String host, Integer port, String database, String username, String password) {
-        DbConnection conn = DbConnection.builder()
-                .name(name != null ? name : "")
-                .type("cassandra")
-                .host(host != null ? host : "localhost")
-                .port(port != null ? port : 9042)
-                .dbName(database != null ? database : "")
-                .username(username != null ? username : "")
-                .password(password != null ? password : "")
-                .build();
+        DbConnection conn = dbConnectionFactory.build("cassandra", name, host, port, database, username, password);
         DbConnection saved = dbConnectionService.save(conn);
-
         Map<String, Object> model = new HashMap<>();
         model.put("connections", dbConnectionService.findAll());
 
-        boolean hxRequest = "true".equalsIgnoreCase(request.getHeaders().get(HX_REQUEST));
-
-        if (hxRequest) {
-            if (saved.getId() != null) {
-                request.setAttribute(HxRedirectFilter.HX_REDIRECT_ATTR, "/cassandra/" + saved.getId());
-            }
-            return new ModelAndView<>("partials/sidebar", model);
-        }
-
-        return new ModelAndView<>("settings/index", model);
+        return responseAfterAdd(request, model, saved.getId(), "/cassandra/" + saved.getId());
     }
 
     @Post("/test-cassandra")
@@ -375,27 +174,7 @@ public class SettingsController {
     @Produces(MediaType.TEXT_HTML)
     public ModelAndView<Map<String, Object>> testCassandra(HttpRequest<?> request,
             String host, Integer port, String database, String username, String password) {
-        Map<String, Object> model = new HashMap<>();
-        try {
-            int p = port != null ? port : 9042;
-            var error = cassandraMetadataService.testConnection(
-                    host != null ? host : "",
-                    p,
-                    database != null ? database : "",
-                    username != null ? username : "",
-                    password != null ? password : "");
-            model.put("success", error.isEmpty());
-            String messageKey = error.orElse("connectionTest.success");
-            model.put("message", messageKey);
-            putDisplayText(model, request, messageKey);
-        } catch (Exception e) {
-            model.put("success", false);
-            String messageKey = e.getMessage() != null ? e.getMessage() : "error.queryExecutionFailed";
-            model.put("message", messageKey);
-            putDisplayText(model, request, messageKey);
-        }
-
-        return new ModelAndView<>("partials/connection-test-result", model);
+        return testConnectionResult(request, "cassandra", host, port, database, username, password);
     }
 
     @Delete("/delete-connection/{id}")
@@ -413,6 +192,37 @@ public class SettingsController {
         }
 
         return HttpResponse.redirect(URI.create("/settings"));
+    }
+
+    private Object responseAfterAdd(HttpRequest<?> request, Map<String, Object> model,
+                                    Long savedId, String redirectPath) {
+        boolean hxRequest = "true".equalsIgnoreCase(request.getHeaders().get(HX_REQUEST));
+        if (hxRequest) {
+            if (savedId != null) {
+                request.setAttribute(HxRedirectFilter.HX_REDIRECT_ATTR, redirectPath);
+            }
+            return new ModelAndView<>("partials/sidebar", model);
+        }
+        return new ModelAndView<>("settings/index", model);
+    }
+
+    private ModelAndView<Map<String, Object>> testConnectionResult(HttpRequest<?> request, String type,
+                                                                   String host, Integer port, String database,
+                                                                   String username, String password) {
+        Map<String, Object> model = new HashMap<>();
+        try {
+            var error = connectionTestService.test(type, host, port, database, username, password);
+            model.put("success", error.isEmpty());
+            String messageKey = error.orElse("connectionTest.success");
+            model.put("message", messageKey);
+            putDisplayText(model, request, messageKey);
+        } catch (Exception e) {
+            model.put("success", false);
+            String messageKey = e.getMessage() != null ? e.getMessage() : "error.queryExecutionFailed";
+            model.put("message", messageKey);
+            putDisplayText(model, request, messageKey);
+        }
+        return new ModelAndView<>("partials/connection-test-result", model);
     }
 
     private void putDisplayText(Map<String, Object> model, HttpRequest<?> request, String messageKey) {

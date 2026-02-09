@@ -33,12 +33,11 @@ public class CassandraMetadataRepository {
 
     private static final int DEFAULT_PORT = 9042;
     private static final String LOCAL_DC = "datacenter1";
-
-    private static final String LIST_KEYSPACES_CQL =
+    private static final String LIST_KEYSPACES =
             "SELECT keyspace_name, durable_writes, replication FROM system_schema.keyspaces";
-    private static final String LIST_TABLES_CQL =
+    private static final String LIST_TABLES =
             "SELECT table_name, comment, default_time_to_live, gc_grace_seconds FROM system_schema.tables WHERE keyspace_name = ?";
-    private static final String LIST_COLUMNS_CQL =
+    private static final String LIST_COLUMNS =
             "SELECT column_name, kind, position, type FROM system_schema.columns WHERE keyspace_name = ? AND table_name = ?";
 
     private final DbConnectionService dbConnectionService;
@@ -49,7 +48,7 @@ public class CassandraMetadataRepository {
             return List.of();
         }
         try (CqlSession session = sessionOpt.get()) {
-            ResultSet rs = session.execute(SimpleStatement.newInstance(LIST_KEYSPACES_CQL));
+            ResultSet rs = session.execute(SimpleStatement.newInstance(LIST_KEYSPACES));
             List<CassandraKeyspaceInfo> list = new ArrayList<>();
             for (Row row : rs) {
                 String name = row.getString("keyspace_name");
@@ -75,7 +74,7 @@ public class CassandraMetadataRepository {
             return List.of();
         }
         try (CqlSession session = sessionOpt.get()) {
-            ResultSet rs = session.execute(SimpleStatement.newInstance(LIST_TABLES_CQL, keyspaceName));
+            ResultSet rs = session.execute(SimpleStatement.newInstance(LIST_TABLES, keyspaceName));
             List<CassandraTableInfo> list = new ArrayList<>();
             for (Row row : rs) {
                 String name = row.getString("table_name");
@@ -140,7 +139,7 @@ public class CassandraMetadataRepository {
             return List.of();
         }
         try (CqlSession session = sessionOpt.get()) {
-            ResultSet rs = session.execute(SimpleStatement.newInstance(LIST_COLUMNS_CQL, keyspaceName, tableName));
+            ResultSet rs = session.execute(SimpleStatement.newInstance(LIST_COLUMNS, keyspaceName, tableName));
             List<Row> rows = new ArrayList<>();
             rs.forEach(rows::add);
             return rows.stream()
@@ -167,7 +166,7 @@ public class CassandraMetadataRepository {
             return Map.of();
         }
         try (CqlSession session = sessionOpt.get()) {
-            ResultSet rs = session.execute(SimpleStatement.newInstance(LIST_COLUMNS_CQL, keyspaceName, tableName));
+            ResultSet rs = session.execute(SimpleStatement.newInstance(LIST_COLUMNS, keyspaceName, tableName));
             Map<String, String> out = new LinkedHashMap<>();
             for (Row row : rs) {
                 String col = row.getString("column_name");

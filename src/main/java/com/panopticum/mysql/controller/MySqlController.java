@@ -5,6 +5,7 @@ import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.model.Page;
 import com.panopticum.core.model.QueryResult;
 import com.panopticum.core.service.DbConnectionService;
+import com.panopticum.core.util.ControllerModelHelper;
 import com.panopticum.mysql.model.MySqlDatabaseInfo;
 import com.panopticum.mysql.model.MySqlTableInfo;
 import com.panopticum.mysql.service.MySqlMetadataService;
@@ -52,7 +53,7 @@ public class MySqlController {
                                          @QueryValue(value = "size", defaultValue = "50") int size,
                                          @QueryValue(value = "sort", defaultValue = "name") String sort,
                                          @QueryValue(value = "order", defaultValue = "asc") String order) {
-        Map<String, Object> model = baseModel(id);
+        Map<String, Object> model = ControllerModelHelper.baseModel(id, dbConnectionService);
         Optional<DbConnection> conn = dbConnectionService.findById(id);
         if (conn.isEmpty()) {
             return model;
@@ -60,28 +61,16 @@ public class MySqlController {
 
         List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
         breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), null));
-        model.put("breadcrumbs", breadcrumbs);
+        ControllerModelHelper.addBreadcrumbs(model, breadcrumbs);
         model.put("connectionId", id);
         model.put("dbName", null);
         model.put("itemType", "database");
         model.put("itemUrlPrefix", "/mysql/" + id + "/");
 
         Page<MySqlDatabaseInfo> paged = mySqlMetadataService.listDatabasesPaged(id, page, size, sort, order);
-        String orderVal = paged.getOrder();
-        String sortBy = paged.getSort();
-        model.put("items", paged.getItems());
-        model.put("page", paged.getPage());
-        model.put("size", paged.getSize());
-        model.put("sort", sortBy);
-        model.put("order", orderVal);
-        model.put("orderName", "name".equals(sortBy) && "asc".equals(orderVal) ? "desc" : "asc");
-        model.put("orderSize", "size".equals(sortBy) && "asc".equals(orderVal) ? "desc" : "asc");
-        model.put("fromRow", paged.getFromRow());
-        model.put("toRow", paged.getToRow());
-        model.put("hasPrev", paged.isHasPrev());
-        model.put("hasMore", paged.isHasMore());
-        model.put("prevOffset", paged.getPrevOffset());
-        model.put("nextOffset", paged.getNextOffset());
+        ControllerModelHelper.addPagination(model, paged, "items");
+        ControllerModelHelper.addOrderToggles(model, paged.getSort(), paged.getOrder(),
+                Map.of("name", "orderName", "size", "orderSize"));
 
         return model;
     }
@@ -99,7 +88,7 @@ public class MySqlController {
                                       @QueryValue(value = "size", defaultValue = "50") int size,
                                       @QueryValue(value = "sort", defaultValue = "name") String sort,
                                       @QueryValue(value = "order", defaultValue = "asc") String order) {
-        Map<String, Object> model = baseModel(id);
+        Map<String, Object> model = ControllerModelHelper.baseModel(id, dbConnectionService);
         Optional<DbConnection> conn = dbConnectionService.findById(id);
         if (conn.isEmpty()) {
             return model;
@@ -108,28 +97,14 @@ public class MySqlController {
         List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
         breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/mysql/" + id));
         breadcrumbs.add(new BreadcrumbItem(dbName, null));
-        model.put("breadcrumbs", breadcrumbs);
+        ControllerModelHelper.addBreadcrumbs(model, breadcrumbs);
         model.put("connectionId", id);
         model.put("dbName", dbName);
 
         Page<MySqlTableInfo> paged = mySqlMetadataService.listTablesPaged(id, dbName, page, size, sort, order);
-        String orderVal = paged.getOrder();
-        String sortBy = paged.getSort();
-        model.put("tables", paged.getItems());
-        model.put("page", paged.getPage());
-        model.put("size", paged.getSize());
-        model.put("sort", sortBy);
-        model.put("order", orderVal);
-        model.put("orderName", "name".equals(sortBy) && "asc".equals(orderVal) ? "desc" : "asc");
-        model.put("orderType", "type".equals(sortBy) && "asc".equals(orderVal) ? "desc" : "asc");
-        model.put("orderRows", "rows".equals(sortBy) && "asc".equals(orderVal) ? "desc" : "asc");
-        model.put("orderSize", "size".equals(sortBy) && "asc".equals(orderVal) ? "desc" : "asc");
-        model.put("fromRow", paged.getFromRow());
-        model.put("toRow", paged.getToRow());
-        model.put("hasPrev", paged.isHasPrev());
-        model.put("hasMore", paged.isHasMore());
-        model.put("prevOffset", paged.getPrevOffset());
-        model.put("nextOffset", paged.getNextOffset());
+        ControllerModelHelper.addPagination(model, paged, "tables");
+        ControllerModelHelper.addOrderToggles(model, paged.getSort(), paged.getOrder(),
+                Map.of("name", "orderName", "type", "orderType", "rows", "orderRows", "size", "orderSize"));
 
         return model;
     }
@@ -158,7 +133,7 @@ public class MySqlController {
 
     private Map<String, Object> buildSqlPageModel(Long id, String dbName, String sql,
                                                   Integer offset, Integer limit, String sort, String order) {
-        Map<String, Object> model = baseModel(id);
+        Map<String, Object> model = ControllerModelHelper.baseModel(id, dbConnectionService);
         Optional<DbConnection> conn = dbConnectionService.findById(id);
         if (conn.isEmpty()) {
             return model;
@@ -168,10 +143,12 @@ public class MySqlController {
         breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/mysql/" + id));
         breadcrumbs.add(new BreadcrumbItem(dbName, "/mysql/" + id + "/" + dbName));
         breadcrumbs.add(new BreadcrumbItem("sql", null));
-        model.put("breadcrumbs", breadcrumbs);
+        ControllerModelHelper.addBreadcrumbs(model, breadcrumbs);
         model.put("connectionId", id);
         model.put("dbName", dbName);
         model.put("sql", sql != null ? sql : "");
+        model.put("tableQueryActionUrl", "/mysql/" + id + "/query");
+        model.put("tableDetailActionUrl", "/mysql/" + id + "/" + dbName + "/detail");
 
         int off = offset != null ? Math.max(0, offset) : 0;
         int lim = limit != null && limit > 0 ? Math.min(limit, 1000) : 100;
@@ -225,11 +202,17 @@ public class MySqlController {
         model.put("dbName", dbName);
         if (sql == null || sql.isBlank()) {
             model.put("error", "Empty query");
+            model.put("queryActionUrl", "/mysql/" + id + "/query");
+            model.put("tableQueryActionUrl", "/mysql/" + id + "/query");
+            model.put("tableDetailActionUrl", "/mysql/" + id + "/" + dbName + "/detail");
 
             return "table".equals(target)
-                    ? new ModelAndView<>("partials/mysql-table-view-result", model)
-                    : new ModelAndView<>("partials/mysql-query-result", model);
+                    ? new ModelAndView<>("partials/table-view-result", model)
+                    : new ModelAndView<>("partials/query-result", model);
         }
+        model.put("queryActionUrl", "/mysql/" + id + "/query");
+        model.put("tableQueryActionUrl", "/mysql/" + id + "/query");
+        model.put("tableDetailActionUrl", "/mysql/" + id + "/" + dbName + "/detail");
 
         int off = offset != null ? Math.max(0, offset) : 0;
         int lim = limit != null && limit > 0 ? limit : 100;
@@ -252,8 +235,8 @@ public class MySqlController {
         model.put("order", order != null ? order : "");
 
         return "table".equals(target)
-                ? new ModelAndView<>("partials/mysql-table-view-result", model)
-                : new ModelAndView<>("partials/mysql-query-result", model);
+                ? new ModelAndView<>("partials/table-view-result", model)
+                : new ModelAndView<>("partials/query-result", model);
     }
 
     @Produces(MediaType.TEXT_HTML)
@@ -262,7 +245,7 @@ public class MySqlController {
     @View("mysql/detail")
     public Map<String, Object> rowDetail(@PathVariable Long id, @PathVariable String dbName,
                                          String sql, Integer rowNum, String sort, String order) {
-        Map<String, Object> model = baseModel(id);
+        Map<String, Object> model = ControllerModelHelper.baseModel(id, dbConnectionService);
         Optional<DbConnection> conn = dbConnectionService.findById(id);
         if (conn.isEmpty()) {
             return model;
@@ -272,7 +255,7 @@ public class MySqlController {
         breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/mysql/" + id));
         breadcrumbs.add(new BreadcrumbItem(dbName != null ? dbName : "", "/mysql/" + id + "/" + (dbName != null ? dbName : "")));
         breadcrumbs.add(new BreadcrumbItem("detail", null));
-        model.put("breadcrumbs", breadcrumbs);
+        ControllerModelHelper.addBreadcrumbs(model, breadcrumbs);
         model.put("connectionId", id);
         model.put("dbName", dbName != null ? dbName : "");
         model.put("sql", sql != null ? sql : "");
@@ -347,14 +330,6 @@ public class MySqlController {
         }
 
         return new ModelAndView<>("mysql/detail", rowDetail(id, dbName, sql, rowNum, sort, order));
-    }
-
-    private Map<String, Object> baseModel(Long id) {
-        Map<String, Object> model = new HashMap<>();
-        model.put("connections", dbConnectionService.findAll());
-        dbConnectionService.findById(id).ifPresent(conn -> model.put("connection", conn));
-
-        return model;
     }
 
     private static Integer parseInteger(String s) {

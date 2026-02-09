@@ -3,6 +3,7 @@ package com.panopticum.redis.controller;
 import com.panopticum.core.model.BreadcrumbItem;
 import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.service.DbConnectionService;
+import com.panopticum.core.util.ControllerModelHelper;
 import com.panopticum.redis.model.RedisDbInfo;
 import com.panopticum.redis.model.RedisKeyDetail;
 import com.panopticum.redis.model.RedisKeyInfo;
@@ -51,7 +52,7 @@ public class RedisController {
     public Map<String, Object> databases(@PathVariable Long id,
                                          @QueryValue(value = "sort", defaultValue = "dbIndex") String sort,
                                          @QueryValue(value = "order", defaultValue = "asc") String order) {
-        Map<String, Object> model = baseModel(id);
+        Map<String, Object> model = ControllerModelHelper.baseModel(id, dbConnectionService);
         Optional<DbConnection> conn = dbConnectionService.findById(id);
         if (conn.isEmpty()) {
             return model;
@@ -59,7 +60,7 @@ public class RedisController {
 
         List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
         breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), null));
-        model.put("breadcrumbs", breadcrumbs);
+        ControllerModelHelper.addBreadcrumbs(model, breadcrumbs);
         model.put("connectionId", id);
 
         List<RedisDbInfo> items = redisMetadataService.listDatabasesSorted(id, sort, order);
@@ -84,7 +85,7 @@ public class RedisController {
                                     @QueryValue(value = "size", defaultValue = "100") int size,
                                     @QueryValue(value = "sort", defaultValue = "key") String sort,
                                     @QueryValue(value = "order", defaultValue = "asc") String order) {
-        Map<String, Object> model = baseModel(id);
+        Map<String, Object> model = ControllerModelHelper.baseModel(id, dbConnectionService);
         Optional<DbConnection> conn = dbConnectionService.findById(id);
         if (conn.isEmpty()) {
             return model;
@@ -93,7 +94,7 @@ public class RedisController {
         List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
         breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/redis/" + id));
         breadcrumbs.add(new BreadcrumbItem("DB " + dbIndex, null));
-        model.put("breadcrumbs", breadcrumbs);
+        ControllerModelHelper.addBreadcrumbs(model, breadcrumbs);
         model.put("connectionId", id);
         model.put("dbIndex", dbIndex);
         model.put("pattern", pattern != null ? pattern : "*");
@@ -120,7 +121,7 @@ public class RedisController {
     @View("redis/detail")
     public Map<String, Object> keyDetail(@PathVariable Long id, @PathVariable int dbIndex,
                                          @QueryValue("key") String key) {
-        Map<String, Object> model = baseModel(id);
+        Map<String, Object> model = ControllerModelHelper.baseModel(id, dbConnectionService);
         Optional<DbConnection> conn = dbConnectionService.findById(id);
         if (conn.isEmpty()) {
             return model;
@@ -130,7 +131,7 @@ public class RedisController {
         breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/redis/" + id));
         breadcrumbs.add(new BreadcrumbItem("DB " + dbIndex, "/redis/" + id + "/" + dbIndex));
         breadcrumbs.add(new BreadcrumbItem(key != null ? key : "", null));
-        model.put("breadcrumbs", breadcrumbs);
+        ControllerModelHelper.addBreadcrumbs(model, breadcrumbs);
         model.put("connectionId", id);
         model.put("dbIndex", dbIndex);
         model.put("key", key != null ? key : "");
@@ -164,7 +165,7 @@ public class RedisController {
         }
 
         if (err.isPresent()) {
-            Map<String, Object> model = baseModel(id);
+            Map<String, Object> model = ControllerModelHelper.baseModel(id, dbConnectionService);
             Optional<DbConnection> conn = dbConnectionService.findById(id);
             if (conn.isEmpty()) {
                 model.put("error", err.get());
@@ -180,7 +181,7 @@ public class RedisController {
             breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/redis/" + id));
             breadcrumbs.add(new BreadcrumbItem("DB " + dbIndex, "/redis/" + id + "/" + dbIndex));
             breadcrumbs.add(new BreadcrumbItem(key != null ? key : "", null));
-            model.put("breadcrumbs", breadcrumbs);
+            ControllerModelHelper.addBreadcrumbs(model, breadcrumbs);
             model.put("connectionId", id);
             model.put("dbIndex", dbIndex);
             model.put("key", key != null ? key : "");
@@ -189,13 +190,5 @@ public class RedisController {
             return new ModelAndView<>("redis/detail", model);
         }
         return HttpResponse.redirect(URI.create("/redis/" + id + "/" + dbIndex + "/detail?key=" + URLEncoder.encode(key != null ? key : "", StandardCharsets.UTF_8)));
-    }
-
-    private Map<String, Object> baseModel(Long id) {
-        Map<String, Object> model = new HashMap<>();
-        model.put("connections", dbConnectionService.findAll());
-        dbConnectionService.findById(id).ifPresent(conn -> model.put("connection", conn));
-
-        return model;
     }
 }

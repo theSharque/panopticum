@@ -5,6 +5,7 @@ import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.model.Page;
 import com.panopticum.core.model.QueryResult;
 import com.panopticum.core.service.DbConnectionService;
+import com.panopticum.core.util.ControllerModelHelper;
 import com.panopticum.mongo.model.MongoCollectionInfo;
 import com.panopticum.mongo.model.MongoDatabaseInfo;
 import com.panopticum.mongo.service.MongoMetadataService;
@@ -52,7 +53,7 @@ public class MongoController {
                                          @QueryValue(value = "size", defaultValue = "50") int size,
                                          @QueryValue(value = "sort", defaultValue = "name") String sort,
                                          @QueryValue(value = "order", defaultValue = "asc") String order) {
-        Map<String, Object> model = baseModel(id);
+        Map<String, Object> model = ControllerModelHelper.baseModel(id, dbConnectionService);
         Optional<DbConnection> conn = dbConnectionService.findById(id);
         if (conn.isEmpty()) {
             return model;
@@ -60,28 +61,16 @@ public class MongoController {
 
         List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
         breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), null));
-        model.put("breadcrumbs", breadcrumbs);
+        ControllerModelHelper.addBreadcrumbs(model, breadcrumbs);
         model.put("connectionId", id);
         model.put("dbName", null);
         model.put("itemType", "database");
         model.put("itemUrlPrefix", "/mongo/" + id + "/");
 
         Page<MongoDatabaseInfo> paged = mongoMetadataService.listDatabasesPaged(id, page, size, sort, order);
-        String orderVal = paged.getOrder();
-        String sortBy = paged.getSort();
-        model.put("items", paged.getItems());
-        model.put("page", paged.getPage());
-        model.put("size", paged.getSize());
-        model.put("sort", sortBy);
-        model.put("order", orderVal);
-        model.put("orderName", "name".equals(sortBy) && "asc".equals(orderVal) ? "desc" : "asc");
-        model.put("orderSize", "size".equals(sortBy) && "asc".equals(orderVal) ? "desc" : "asc");
-        model.put("fromRow", paged.getFromRow());
-        model.put("toRow", paged.getToRow());
-        model.put("hasPrev", paged.isHasPrev());
-        model.put("hasMore", paged.isHasMore());
-        model.put("prevOffset", paged.getPrevOffset());
-        model.put("nextOffset", paged.getNextOffset());
+        ControllerModelHelper.addPagination(model, paged, "items");
+        ControllerModelHelper.addOrderToggles(model, paged.getSort(), paged.getOrder(),
+                Map.of("name", "orderName", "size", "orderSize"));
 
         return model;
     }
@@ -94,7 +83,7 @@ public class MongoController {
                                           @QueryValue(value = "size", defaultValue = "50") int size,
                                           @QueryValue(value = "sort", defaultValue = "name") String sort,
                                           @QueryValue(value = "order", defaultValue = "asc") String order) {
-        Map<String, Object> model = baseModel(id);
+        Map<String, Object> model = ControllerModelHelper.baseModel(id, dbConnectionService);
         Optional<DbConnection> conn = dbConnectionService.findById(id);
         if (conn.isEmpty()) {
             return model;
@@ -103,29 +92,16 @@ public class MongoController {
         List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
         breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/mongo/" + id));
         breadcrumbs.add(new BreadcrumbItem(dbName, null));
-        model.put("breadcrumbs", breadcrumbs);
+        ControllerModelHelper.addBreadcrumbs(model, breadcrumbs);
         model.put("connectionId", id);
         model.put("dbName", dbName);
         model.put("itemType", "collection");
         model.put("itemUrlPrefix", "/mongo/" + id + "/" + dbName + "/query?collection=");
 
         Page<MongoCollectionInfo> paged = mongoMetadataService.listCollectionsPaged(id, dbName, page, size, sort, order);
-        String orderVal = paged.getOrder();
-        String sortBy = paged.getSort();
-        model.put("items", paged.getItems());
-        model.put("page", paged.getPage());
-        model.put("size", paged.getSize());
-        model.put("sort", sortBy);
-        model.put("order", orderVal);
-        model.put("orderName", "name".equals(sortBy) && "asc".equals(orderVal) ? "desc" : "asc");
-        model.put("orderCount", "count".equals(sortBy) && "asc".equals(orderVal) ? "desc" : "asc");
-        model.put("orderSize", "size".equals(sortBy) && "asc".equals(orderVal) ? "desc" : "asc");
-        model.put("fromRow", paged.getFromRow());
-        model.put("toRow", paged.getToRow());
-        model.put("hasPrev", paged.isHasPrev());
-        model.put("hasMore", paged.isHasMore());
-        model.put("prevOffset", paged.getPrevOffset());
-        model.put("nextOffset", paged.getNextOffset());
+        ControllerModelHelper.addPagination(model, paged, "items");
+        ControllerModelHelper.addOrderToggles(model, paged.getSort(), paged.getOrder(),
+                Map.of("name", "orderName", "count", "orderCount", "size", "orderSize"));
 
         return model;
     }
@@ -160,7 +136,7 @@ public class MongoController {
 
     private Map<String, Object> buildQueryPageModel(Long id, String dbName, String collection, String query,
                                                     Integer offset, Integer limit, String sort, String order) {
-        Map<String, Object> model = baseModel(id);
+        Map<String, Object> model = ControllerModelHelper.baseModel(id, dbConnectionService);
         Optional<DbConnection> conn = dbConnectionService.findById(id);
         if (conn.isEmpty()) {
             return model;
@@ -174,7 +150,7 @@ public class MongoController {
                 : null;
         breadcrumbs.add(new BreadcrumbItem(collection != null ? collection : "", collectionUrl));
         breadcrumbs.add(new BreadcrumbItem("query", null));
-        model.put("breadcrumbs", breadcrumbs);
+        ControllerModelHelper.addBreadcrumbs(model, breadcrumbs);
         model.put("connectionId", id);
         model.put("dbName", dbName);
         model.put("collection", collection != null ? collection : "");
@@ -227,7 +203,7 @@ public class MongoController {
     public Map<String, Object> documentDetail(@PathVariable Long id, @PathVariable String dbName,
                                               @QueryValue(value = "collection", defaultValue = "") String collection,
                                               @QueryValue(value = "docId", defaultValue = "") String docId) {
-        Map<String, Object> model = baseModel(id);
+        Map<String, Object> model = ControllerModelHelper.baseModel(id, dbConnectionService);
         Optional<DbConnection> conn = dbConnectionService.findById(id);
         if (conn.isEmpty()) {
             model.put("prettyJson", "{}");
@@ -243,7 +219,7 @@ public class MongoController {
                 : null;
         breadcrumbs.add(new BreadcrumbItem(collection != null ? collection : "", collectionDetailUrl));
         breadcrumbs.add(new BreadcrumbItem("detail", null));
-        model.put("breadcrumbs", breadcrumbs);
+        ControllerModelHelper.addBreadcrumbs(model, breadcrumbs);
         model.put("connectionId", id);
         model.put("dbName", dbName);
         model.put("collection", collection != null ? collection : "");
@@ -264,7 +240,7 @@ public class MongoController {
         Optional<String> err = mongoMetadataService.replaceDocument(id, dbName, collection, docId, body);
 
         if (err.isPresent()) {
-            Map<String, Object> model = baseModel(id);
+            Map<String, Object> model = ControllerModelHelper.baseModel(id, dbConnectionService);
             Optional<DbConnection> conn = dbConnectionService.findById(id);
 
             if (conn.isEmpty()) {
@@ -281,7 +257,7 @@ public class MongoController {
                     : null;
             breadcrumbs.add(new BreadcrumbItem(collection != null ? collection : "", collectionDetailUrl));
             breadcrumbs.add(new BreadcrumbItem("detail", null));
-            model.put("breadcrumbs", breadcrumbs);
+            ControllerModelHelper.addBreadcrumbs(model, breadcrumbs);
             model.put("connectionId", id);
             model.put("dbName", dbName);
             model.put("collection", collection != null ? collection : "");
@@ -343,13 +319,5 @@ public class MongoController {
         return "table".equals(target)
                 ? new ModelAndView<>("partials/mongo-table-view-result", model)
                 : new ModelAndView<>("partials/mongo-query-result", model);
-    }
-
-    private Map<String, Object> baseModel(Long id) {
-        Map<String, Object> model = new HashMap<>();
-        model.put("connections", dbConnectionService.findAll());
-        dbConnectionService.findById(id).ifPresent(conn -> model.put("connection", conn));
-
-        return model;
     }
 }

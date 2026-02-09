@@ -5,6 +5,7 @@ import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.model.Page;
 import com.panopticum.core.model.QueryResult;
 import com.panopticum.core.service.DbConnectionService;
+import com.panopticum.core.util.ControllerModelHelper;
 import com.panopticum.cassandra.model.CassandraKeyspaceInfo;
 import com.panopticum.cassandra.model.CassandraTableInfo;
 import com.panopticum.cassandra.service.CassandraMetadataService;
@@ -52,7 +53,7 @@ public class CassandraController {
                                          @QueryValue(value = "size", defaultValue = "50") int size,
                                          @QueryValue(value = "sort", defaultValue = "name") String sort,
                                          @QueryValue(value = "order", defaultValue = "asc") String order) {
-        Map<String, Object> model = baseModel(id);
+        Map<String, Object> model = ControllerModelHelper.baseModel(id, dbConnectionService);
         Optional<DbConnection> conn = dbConnectionService.findById(id);
         if (conn.isEmpty()) {
             return model;
@@ -60,29 +61,16 @@ public class CassandraController {
 
         List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
         breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), null));
-        model.put("breadcrumbs", breadcrumbs);
+        ControllerModelHelper.addBreadcrumbs(model, breadcrumbs);
         model.put("connectionId", id);
         model.put("keyspaceName", null);
         model.put("itemType", "keyspace");
         model.put("itemUrlPrefix", "/cassandra/" + id + "/");
 
         Page<CassandraKeyspaceInfo> paged = cassandraMetadataService.listKeyspacesPaged(id, page, size, sort, order);
-        String orderVal = paged.getOrder();
-        String sortBy = paged.getSort();
-        model.put("items", paged.getItems());
-        model.put("page", paged.getPage());
-        model.put("size", paged.getSize());
-        model.put("sort", sortBy);
-        model.put("order", orderVal);
-        model.put("orderName", "name".equals(sortBy) && "asc".equals(orderVal) ? "desc" : "asc");
-        model.put("orderDurableWrites", "durableWrites".equals(sortBy) && "asc".equals(orderVal) ? "desc" : "asc");
-        model.put("orderReplication", "replication".equals(sortBy) && "asc".equals(orderVal) ? "desc" : "asc");
-        model.put("fromRow", paged.getFromRow());
-        model.put("toRow", paged.getToRow());
-        model.put("hasPrev", paged.isHasPrev());
-        model.put("hasMore", paged.isHasMore());
-        model.put("prevOffset", paged.getPrevOffset());
-        model.put("nextOffset", paged.getNextOffset());
+        ControllerModelHelper.addPagination(model, paged, "items");
+        ControllerModelHelper.addOrderToggles(model, paged.getSort(), paged.getOrder(),
+                Map.of("name", "orderName", "durableWrites", "orderDurableWrites", "replication", "orderReplication"));
 
         return model;
     }
@@ -100,7 +88,7 @@ public class CassandraController {
                                      @QueryValue(value = "size", defaultValue = "50") int size,
                                      @QueryValue(value = "sort", defaultValue = "name") String sort,
                                      @QueryValue(value = "order", defaultValue = "asc") String order) {
-        Map<String, Object> model = baseModel(id);
+        Map<String, Object> model = ControllerModelHelper.baseModel(id, dbConnectionService);
         Optional<DbConnection> conn = dbConnectionService.findById(id);
         if (conn.isEmpty()) {
             return model;
@@ -109,29 +97,14 @@ public class CassandraController {
         List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
         breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/cassandra/" + id));
         breadcrumbs.add(new BreadcrumbItem(keyspaceName, null));
-        model.put("breadcrumbs", breadcrumbs);
+        ControllerModelHelper.addBreadcrumbs(model, breadcrumbs);
         model.put("connectionId", id);
         model.put("keyspaceName", keyspaceName);
 
         Page<CassandraTableInfo> paged = cassandraMetadataService.listTablesPaged(id, keyspaceName, page, size, sort, order);
-        String orderVal = paged.getOrder();
-        String sortBy = paged.getSort();
-        model.put("tables", paged.getItems());
-        model.put("page", paged.getPage());
-        model.put("size", paged.getSize());
-        model.put("sort", sortBy);
-        model.put("order", orderVal);
-        model.put("orderName", "name".equals(sortBy) && "asc".equals(orderVal) ? "desc" : "asc");
-        model.put("orderType", "type".equals(sortBy) && "asc".equals(orderVal) ? "desc" : "asc");
-        model.put("orderComment", "comment".equals(sortBy) && "asc".equals(orderVal) ? "desc" : "asc");
-        model.put("orderTtl", "ttl".equals(sortBy) && "asc".equals(orderVal) ? "desc" : "asc");
-        model.put("orderGcGrace", "gcGrace".equals(sortBy) && "asc".equals(orderVal) ? "desc" : "asc");
-        model.put("fromRow", paged.getFromRow());
-        model.put("toRow", paged.getToRow());
-        model.put("hasPrev", paged.isHasPrev());
-        model.put("hasMore", paged.isHasMore());
-        model.put("prevOffset", paged.getPrevOffset());
-        model.put("nextOffset", paged.getNextOffset());
+        ControllerModelHelper.addPagination(model, paged, "tables");
+        ControllerModelHelper.addOrderToggles(model, paged.getSort(), paged.getOrder(),
+                Map.of("name", "orderName", "type", "orderType", "comment", "orderComment", "ttl", "orderTtl", "gcGrace", "orderGcGrace"));
 
         return model;
     }
@@ -160,7 +133,7 @@ public class CassandraController {
 
     private Map<String, Object> buildCqlPageModel(Long id, String keyspaceName, String sql,
                                                   Integer offset, Integer limit, String sort, String order) {
-        Map<String, Object> model = baseModel(id);
+        Map<String, Object> model = ControllerModelHelper.baseModel(id, dbConnectionService);
         Optional<DbConnection> conn = dbConnectionService.findById(id);
         if (conn.isEmpty()) {
             return model;
@@ -170,7 +143,7 @@ public class CassandraController {
         breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/cassandra/" + id));
         breadcrumbs.add(new BreadcrumbItem(keyspaceName, "/cassandra/" + id + "/" + keyspaceName));
         breadcrumbs.add(new BreadcrumbItem("CQL", null));
-        model.put("breadcrumbs", breadcrumbs);
+        ControllerModelHelper.addBreadcrumbs(model, breadcrumbs);
         model.put("connectionId", id);
         model.put("keyspaceName", keyspaceName);
         model.put("sql", sql != null ? sql : "");
@@ -264,7 +237,7 @@ public class CassandraController {
     @View("cassandra/detail")
     public Map<String, Object> rowDetail(@PathVariable Long id, @PathVariable String keyspaceName,
                                         String sql, Integer rowNum, String sort, String order) {
-        Map<String, Object> model = baseModel(id);
+        Map<String, Object> model = ControllerModelHelper.baseModel(id, dbConnectionService);
         Optional<DbConnection> conn = dbConnectionService.findById(id);
         if (conn.isEmpty()) {
             return model;
@@ -273,7 +246,7 @@ public class CassandraController {
         breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/cassandra/" + id));
         breadcrumbs.add(new BreadcrumbItem(keyspaceName != null ? keyspaceName : "", "/cassandra/" + id + "/" + (keyspaceName != null ? keyspaceName : "")));
         breadcrumbs.add(new BreadcrumbItem("detail", null));
-        model.put("breadcrumbs", breadcrumbs);
+        ControllerModelHelper.addBreadcrumbs(model, breadcrumbs);
         model.put("connectionId", id);
         model.put("keyspaceName", keyspaceName != null ? keyspaceName : "");
         model.put("sql", sql != null ? sql : "");
@@ -359,13 +332,5 @@ public class CassandraController {
         } catch (NumberFormatException e) {
             return null;
         }
-    }
-
-    private Map<String, Object> baseModel(Long id) {
-        Map<String, Object> model = new HashMap<>();
-        model.put("connections", dbConnectionService.findAll());
-        dbConnectionService.findById(id).ifPresent(conn -> model.put("connection", conn));
-
-        return model;
     }
 }
