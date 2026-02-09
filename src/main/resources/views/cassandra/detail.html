@@ -16,7 +16,11 @@
             <div class="detail-field" th:each="field : ${detailRows}">
                 <div class="detail-field-name" th:text="${field.name + ' : ' + field.type}"></div>
                 <div class="detail-field-value">
-                    <input type="text" th:name="|field_${field.name}|" th:value="${field.value}"
+                    <textarea th:if="${#strings.toLowerCase(field.type).contains('text')}"
+                              th:name="|field_${field.name}|" th:readonly="${field.readOnly == 'true'}"
+                              class="detail-edit-input detail-edit-textarea" th:text="${field.value}"></textarea>
+                    <input th:unless="${#strings.toLowerCase(field.type).contains('text')}" type="text"
+                           th:name="|field_${field.name}|" th:value="${field.value}"
                            th:readonly="${field.readOnly == 'true'}" class="detail-edit-input"/>
                 </div>
             </div>

@@ -873,16 +873,17 @@ button[type="submit"]:not(.sidebar-delete):not(.query-th-link):hover {
     flex-shrink: 0;
 }
 
+.query-table tbody tr,
+.query-table td {
+    cursor: default;
+}
+
 .query-table tbody tr {
     transition: background var(--duration);
 }
 
 .query-table tbody tr:hover td {
     background: var(--bg-hover);
-}
-
-.query-row-clickable {
-    cursor: pointer;
 }
 
 .query-th-detail {
@@ -1019,6 +1020,11 @@ a.query-detail-link {
     border-radius: var(--radius-sm);
     background: var(--bg-content);
     color: var(--text-primary);
+}
+
+.detail-edit-textarea {
+    min-height: 6em;
+    resize: vertical;
 }
 
 .query-button {

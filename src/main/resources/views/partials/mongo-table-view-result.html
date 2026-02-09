@@ -101,13 +101,12 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr th:each="row, rowStat : ${rows}" th:with="currentDocId=${docIds != null and rowStat.index < docIds.size() ? docIds.get(rowStat.index) : null}" class="query-data-row query-row-clickable"
-                        onclick="var a = this.querySelector('a.query-detail-link'); if (a && !event.target.closest('a')) location.href = a.href;">
+                    <tr th:each="row, rowStat : ${rows}" th:with="currentDocId=${docIds != null and rowStat.index < docIds.size() ? docIds.get(rowStat.index) : null}" class="query-data-row">
                         <td class="query-detail-cell">
                             <a th:if="${currentDocId != null and !currentDocId.isEmpty()}"
                                th:href="@{/mongo/{id}/{dbName}/detail(id=${connectionId}, dbName=${dbName}, collection=${collection}, docId=${currentDocId})}"
                                class="query-detail-link" th:attr="aria-label=${msg['common.open']}, title=${msg['common.open']}">
-                                <svg class="icon-link" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                                <svg class="icon-link" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
                             </a>
                             <span th:if="${currentDocId == null or currentDocId.isEmpty()}"
                                   class="text-dim">—</span>

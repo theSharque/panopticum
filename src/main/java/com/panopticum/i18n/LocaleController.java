@@ -22,6 +22,7 @@ public class LocaleController {
         String locale = "ru".equalsIgnoreCase(lang) ? "ru" : "en";
         Cookie cookie = Cookie.of(COOKIE_NAME, locale).maxAge(365 * 24 * 60 * 60);
         String redirectTo = redirect.startsWith("/") ? redirect : "/";
+        redirectTo = RedirectHelper.getRedirectForGet(redirectTo);
         return HttpResponse.seeOther(URI.create(redirectTo)).cookie(cookie);
     }
 }

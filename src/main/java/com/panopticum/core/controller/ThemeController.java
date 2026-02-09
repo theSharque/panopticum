@@ -1,5 +1,6 @@
 package com.panopticum.core.controller;
 
+import com.panopticum.i18n.RedirectHelper;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
@@ -22,6 +23,7 @@ public class ThemeController {
         String theme = "light".equalsIgnoreCase(mode) ? "light" : "dark";
         Cookie cookie = Cookie.of(COOKIE_NAME, theme).maxAge(365 * 24 * 60 * 60);
         String redirectTo = redirect != null && redirect.startsWith("/") ? redirect : "/";
+        redirectTo = RedirectHelper.getRedirectForGet(redirectTo);
         return HttpResponse.seeOther(URI.create(redirectTo)).cookie(cookie);
     }
 }
