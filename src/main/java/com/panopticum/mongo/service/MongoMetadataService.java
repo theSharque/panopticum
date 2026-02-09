@@ -10,6 +10,7 @@ import com.panopticum.mongo.model.MongoDatabaseInfo;
 import com.panopticum.mongo.repository.MongoMetadataRepository;
 import io.micronaut.context.annotation.Value;
 import jakarta.inject.Singleton;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.Document;
 import org.bson.conversions.Bson;
@@ -24,16 +25,13 @@ import java.util.stream.Collectors;
 
 @Singleton
 @Slf4j
+@RequiredArgsConstructor
 public class MongoMetadataService {
 
     private final MongoMetadataRepository mongoMetadataRepository;
 
     @Value("${panopticum.limits.query-rows:1000}")
     private int queryRowsLimit;
-
-    public MongoMetadataService(MongoMetadataRepository mongoMetadataRepository) {
-        this.mongoMetadataRepository = mongoMetadataRepository;
-    }
 
     public Optional<String> testConnection(String host, int port, String dbName, String username, String password) {
         if (host == null || host.isBlank()) {

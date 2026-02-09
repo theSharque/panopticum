@@ -1,5 +1,6 @@
 package com.panopticum.core.controller;
 
+import com.panopticum.cassandra.service.CassandraMetadataService;
 import com.panopticum.clickhouse.service.ClickHouseMetadataService;
 import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.service.DbConnectionService;
@@ -26,6 +27,7 @@ import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import io.micronaut.views.ModelAndView;
 import io.micronaut.views.View;
+import lombok.RequiredArgsConstructor;
 
 import java.net.URI;
 import java.util.HashMap;
@@ -34,6 +36,7 @@ import java.util.Map;
 @Controller("/settings")
 @Secured(SecurityRule.IS_AUTHENTICATED)
 @ExecuteOn(TaskExecutors.BLOCKING)
+@RequiredArgsConstructor
 public class SettingsController {
 
     private static final String HX_REQUEST = "HX-Request";
@@ -44,18 +47,7 @@ public class SettingsController {
     private final RedisMetadataService redisMetadataService;
     private final ClickHouseMetadataService clickHouseMetadataService;
     private final MySqlMetadataService mySqlMetadataService;
-
-    public SettingsController(DbConnectionService dbConnectionService, PgMetadataService pgMetadataService,
-                              MongoMetadataService mongoMetadataService, RedisMetadataService redisMetadataService,
-                              ClickHouseMetadataService clickHouseMetadataService,
-                              MySqlMetadataService mySqlMetadataService) {
-        this.dbConnectionService = dbConnectionService;
-        this.pgMetadataService = pgMetadataService;
-        this.mongoMetadataService = mongoMetadataService;
-        this.redisMetadataService = redisMetadataService;
-        this.clickHouseMetadataService = clickHouseMetadataService;
-        this.mySqlMetadataService = mySqlMetadataService;
-    }
+    private final CassandraMetadataService cassandraMetadataService;
 
     @Produces(MediaType.TEXT_HTML)
     @Get
@@ -328,6 +320,65 @@ public class SettingsController {
         try {
             int p = port != null ? port : 3306;
             var error = mySqlMetadataService.testConnection(
+                    host != null ? host : "",
+                    p,
+                    database != null ? database : "",
+                    username != null ? username : "",
+                    password != null ? password : "");
+            model.put("success", error.isEmpty());
+            String messageKey = error.orElse("connectionTest.success");
+            model.put("message", messageKey);
+            putDisplayText(model, request, messageKey);
+        } catch (Exception e) {
+            model.put("success", false);
+            String messageKey = e.getMessage() != null ? e.getMessage() : "error.queryExecutionFailed";
+            model.put("message", messageKey);
+            putDisplayText(model, request, messageKey);
+        }
+
+        return new ModelAndView<>("partials/connection-test-result", model);
+    }
+
+    @Post("/add-cassandra")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @Produces(MediaType.TEXT_HTML)
+    public Object addCassandra(HttpRequest<?> request,
+                              String name, String host, Integer port, String database, String username, String password) {
+        DbConnection conn = DbConnection.builder()
+                .name(name != null ? name : "")
+                .type("cassandra")
+                .host(host != null ? host : "localhost")
+                .port(port != null ? port : 9042)
+                .dbName(database != null ? database : "")
+                .username(username != null ? username : "")
+                .password(password != null ? password : "")
+                .build();
+        DbConnection saved = dbConnectionService.save(conn);
+
+        Map<String, Object> model = new HashMap<>();
+        model.put("connections", dbConnectionService.findAll());
+
+        boolean hxRequest = "true".equalsIgnoreCase(request.getHeaders().get(HX_REQUEST));
+
+        if (hxRequest) {
+            if (saved.getId() != null) {
+                request.setAttribute(HxRedirectFilter.HX_REDIRECT_ATTR, "/cassandra/" + saved.getId());
+            }
+            return new ModelAndView<>("partials/sidebar", model);
+        }
+
+        return new ModelAndView<>("settings/index", model);
+    }
+
+    @Post("/test-cassandra")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @Produces(MediaType.TEXT_HTML)
+    public ModelAndView<Map<String, Object>> testCassandra(HttpRequest<?> request,
+            String host, Integer port, String database, String username, String password) {
+        Map<String, Object> model = new HashMap<>();
+        try {
+            int p = port != null ? port : 9042;
+            var error = cassandraMetadataService.testConnection(
                     host != null ? host : "",
                     p,
                     database != null ? database : "",

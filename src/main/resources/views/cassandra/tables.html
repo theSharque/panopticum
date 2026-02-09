@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(~{::main})}">
+<head></head>
+<body>
+<main th:fragment="main" class="main-content">
+    <div th:replace="~{fragments/breadcrumbs :: breadcrumbs(items=${breadcrumbs})}"></div>
+    <h1 th:text="${msg['pg.tablesAndViews']}">Tables</h1>
+    <div th:if="${tables != null and !tables.isEmpty()}" class="query-result-data">
+        <div class="query-pagination-info">
+            <span class="query-pagination-range" th:text="${msg['common.rowsRange'] + fromRow + '–' + toRow}"></span>
+            <span class="query-pagination-nav">
+                <a th:if="${hasPrev}" th:href="@{/cassandra/{id}/{keyspaceName}(id=${connectionId}, keyspaceName=${keyspaceName}, page=${page - 1}, size=${size}, sort=${sort}, order=${order})}" class="query-pagination-btn" th:text="${'← ' + msg['common.prev']}">← Back</a>
+                <a th:if="${hasMore}" th:href="@{/cassandra/{id}/{keyspaceName}(id=${connectionId}, keyspaceName=${keyspaceName}, page=${page + 1}, size=${size}, sort=${sort}, order=${order})}" class="query-pagination-btn" th:text="${msg['common.next'] + ' →'}">Next →</a>
+            </span>
+        </div>
+        <div class="query-table-wrapper">
+            <table class="query-table">
+                <thead>
+                    <tr>
+                        <th class="query-th query-th-detail"></th>
+                        <th class="query-th query-th-sortable">
+                            <a th:href="@{/cassandra/{id}/{keyspaceName}(id=${connectionId}, keyspaceName=${keyspaceName}, page=1, size=${size}, sort='name', order=${orderName})}" class="query-th-link"><span th:text="${msg['common.name']}">Name</span> <span th:if="${sort == 'name' and order == 'asc'}" class="query-sort-ind">▲</span><span th:if="${sort == 'name' and order == 'desc'}" class="query-sort-ind">▼</span></a>
+                        </th>
+                        <th class="query-th query-th-sortable">
+                            <a th:href="@{/cassandra/{id}/{keyspaceName}(id=${connectionId}, keyspaceName=${keyspaceName}, page=1, size=${size}, sort='type', order=${orderType})}" class="query-th-link"><span th:text="${msg['common.type']}">Type</span> <span th:if="${sort == 'type' and order == 'asc'}" class="query-sort-ind">▲</span><span th:if="${sort == 'type' and order == 'desc'}" class="query-sort-ind">▼</span></a>
+                        </th>
+                        <th class="query-th query-th-sortable">
+                            <a th:href="@{/cassandra/{id}/{keyspaceName}(id=${connectionId}, keyspaceName=${keyspaceName}, page=1, size=${size}, sort='comment', order=${orderComment})}" class="query-th-link"><span th:text="${msg['cassandra.comment']}">Comment</span> <span th:if="${sort == 'comment' and order == 'asc'}" class="query-sort-ind">▲</span><span th:if="${sort == 'comment' and order == 'desc'}" class="query-sort-ind">▼</span></a>
+                        </th>
+                        <th class="query-th query-th-sortable">
+                            <a th:href="@{/cassandra/{id}/{keyspaceName}(id=${connectionId}, keyspaceName=${keyspaceName}, page=1, size=${size}, sort='ttl', order=${orderTtl})}" class="query-th-link"><span th:text="${msg['cassandra.defaultTtl']}">Default TTL</span> <span th:if="${sort == 'ttl' and order == 'asc'}" class="query-sort-ind">▲</span><span th:if="${sort == 'ttl' and order == 'desc'}" class="query-sort-ind">▼</span></a>
+                        </th>
+                        <th class="query-th query-th-sortable">
+                            <a th:href="@{/cassandra/{id}/{keyspaceName}(id=${connectionId}, keyspaceName=${keyspaceName}, page=1, size=${size}, sort='gcGrace', order=${orderGcGrace})}" class="query-th-link"><span th:text="${msg['cassandra.gcGraceSeconds']}">GC grace (s)</span> <span th:if="${sort == 'gcGrace' and order == 'asc'}" class="query-sort-ind">▲</span><span th:if="${sort == 'gcGrace' and order == 'desc'}" class="query-sort-ind">▼</span></a>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="t : ${tables}" class="query-data-row query-row-clickable"
+                        onclick="var f = this.querySelector('.query-row-open-form'); if (f && !event.target.closest('button')) f.submit();">
+                        <td class="query-detail-cell">
+                            <form th:action="@{/cassandra/{id}/{keyspaceName}/cql(id=${connectionId}, keyspaceName=${keyspaceName})}"
+                                  method="post" class="query-row-open-form">
+                                <input type="hidden" name="sql" th:value='${"SELECT * FROM \"" + t.name + "\""}'/>
+                                <input type="hidden" name="offset" value="0"/>
+                                <input type="hidden" name="limit" value="100"/>
+                                <button type="submit" class="query-detail-link" th:attr="aria-label=${msg['common.open']}, title=${msg['common.open']}">
+                                    <svg class="icon-link" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                                </button>
+                            </form>
+                        </td>
+                        <td th:text="${t.name}"></td>
+                        <td th:text="${t.type}"></td>
+                        <td th:text="${t.comment}" th:attr="title=${t.comment}"></td>
+                        <td th:text="${t.defaultTimeToLive != null and t.defaultTimeToLive != 0 ? t.defaultTimeToLive : '—'}" class="query-cell-mono"></td>
+                        <td th:text="${t.gcGraceSeconds}" class="query-cell-mono"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <p th:if="${tables == null or tables.isEmpty()}" class="text-dim" th:text="${msg['common.noTablesOrError']}">No tables or connection error.</p>
+</main>
+</body>
+</html>

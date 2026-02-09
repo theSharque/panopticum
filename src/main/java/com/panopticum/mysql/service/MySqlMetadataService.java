@@ -10,6 +10,7 @@ import com.panopticum.mysql.repository.MySqlMetadataRepository;
 import io.micronaut.core.annotation.NonNull;
 import io.micronaut.context.annotation.Value;
 import jakarta.inject.Singleton;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.sql.Connection;
@@ -25,6 +26,7 @@ import java.util.regex.Pattern;
 
 @Singleton
 @Slf4j
+@RequiredArgsConstructor
 public class MySqlMetadataService {
 
     private static final String MYSQL_PREFIX = "jdbc:mysql://";
@@ -35,10 +37,6 @@ public class MySqlMetadataService {
 
     @Value("${panopticum.limits.query-rows:1000}")
     private int queryRowsLimit;
-
-    public MySqlMetadataService(MySqlMetadataRepository mySqlMetadataRepository) {
-        this.mySqlMetadataRepository = mySqlMetadataRepository;
-    }
 
     public Optional<Connection> getConnection(Long connectionId) {
         return mySqlMetadataRepository.getConnection(connectionId);

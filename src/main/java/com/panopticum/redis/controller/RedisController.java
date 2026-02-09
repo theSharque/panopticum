@@ -24,6 +24,7 @@ import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import io.micronaut.views.ModelAndView;
 import io.micronaut.views.View;
+import lombok.RequiredArgsConstructor;
 
 import java.net.URI;
 import java.net.URLEncoder;
@@ -38,15 +39,11 @@ import java.util.Optional;
 @Controller("/redis")
 @Secured(SecurityRule.IS_AUTHENTICATED)
 @ExecuteOn(TaskExecutors.BLOCKING)
+@RequiredArgsConstructor
 public class RedisController {
 
     private final DbConnectionService dbConnectionService;
     private final RedisMetadataService redisMetadataService;
-
-    public RedisController(DbConnectionService dbConnectionService, RedisMetadataService redisMetadataService) {
-        this.dbConnectionService = dbConnectionService;
-        this.redisMetadataService = redisMetadataService;
-    }
 
     @Produces(MediaType.TEXT_HTML)
     @Get("/{id}")

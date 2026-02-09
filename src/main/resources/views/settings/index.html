@@ -14,6 +14,7 @@
             <option value="redis">Redis</option>
             <option value="clickhouse">ClickHouse</option>
             <option value="mysql">MySQL (MariaDB)</option>
+            <option value="cassandra">Cassandra</option>
         </select>
     </div>
 
@@ -189,6 +190,50 @@
         </form>
     </div>
 
+    <div id="form-cassandra" class="connection-form-block" hidden>
+        <form id="connection-form-cassandra" action="/settings/add-cassandra" method="post" class="add-connection-form"
+              hx-post="/settings/add-cassandra"
+              hx-target="#sidebar"
+              hx-swap="outerHTML">
+            <div class="form-group">
+                <label for="name-cassandra" th:text="${msg['common.name']}">Name</label>
+                <input type="text" id="name-cassandra" name="name" required th:attr="placeholder=${msg['settings.placeholderNameCassandra']}">
+            </div>
+            <div class="form-group">
+                <label for="host-cassandra" th:text="${msg['settings.host']}">Host</label>
+                <input type="text" id="host-cassandra" name="host" required placeholder="localhost" value="localhost">
+            </div>
+            <div class="form-group">
+                <label for="port-cassandra" th:text="${msg['settings.port']}">Port</label>
+                <input type="number" id="port-cassandra" name="port" value="9042">
+            </div>
+            <div class="form-group">
+                <label for="database-cassandra" th:text="${msg['settings.database']}">Keyspace</label>
+                <input type="text" id="database-cassandra" name="database" placeholder="optional">
+            </div>
+            <div class="form-group">
+                <label for="username-cassandra" th:text="${msg['settings.username']}">Username</label>
+                <input type="text" id="username-cassandra" name="username" placeholder="user">
+            </div>
+            <div class="form-group">
+                <label for="password-cassandra" th:text="${msg['settings.password']}">Password</label>
+                <input type="password" id="password-cassandra" name="password" placeholder="password">
+            </div>
+            <div class="form-actions">
+                <span id="test-indicator-cassandra" class="connection-test-indicator" aria-hidden="true" th:text="${msg['settings.testing']}">Checking...</span>
+                <button type="button" class="btn-check"
+                        hx-post="/settings/test-cassandra"
+                        hx-include="#connection-form-cassandra"
+                        hx-target="#connection-test-result-cassandra"
+                        hx-swap="innerHTML show:bottom"
+                        hx-indicator="#test-indicator-cassandra"
+                        th:text="${msg['settings.test']}">Test</button>
+                <button type="submit" th:text="${msg['settings.add']}">Add</button>
+            </div>
+            <div id="connection-test-result-cassandra" class="connection-test-result"></div>
+        </form>
+    </div>
+
     <div id="form-mysql" class="connection-form-block" hidden>
         <form id="connection-form-mysql" action="/settings/add-mysql" method="post" class="add-connection-form"
               hx-post="/settings/add-mysql"
@@ -241,6 +286,7 @@
             document.getElementById('form-redis').hidden = type !== 'redis';
             document.getElementById('form-clickhouse').hidden = type !== 'clickhouse';
             document.getElementById('form-mysql').hidden = type !== 'mysql';
+            document.getElementById('form-cassandra').hidden = type !== 'cassandra';
         });
     </script>
 

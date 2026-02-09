@@ -10,6 +10,7 @@ import com.panopticum.postgres.model.TableInfo;
 import com.panopticum.postgres.repository.PgMetadataRepository;
 import io.micronaut.context.annotation.Value;
 import jakarta.inject.Singleton;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.sql.Connection;
@@ -24,6 +25,7 @@ import java.util.regex.Pattern;
 
 @Singleton
 @Slf4j
+@RequiredArgsConstructor
 public class PgMetadataService {
 
     private static final String POSTGRESQL_PREFIX = "jdbc:postgresql://";
@@ -35,10 +37,6 @@ public class PgMetadataService {
 
     @Value("${panopticum.limits.tables:1000}")
     private int tablesLimit;
-
-    public PgMetadataService(PgMetadataRepository pgMetadataRepository) {
-        this.pgMetadataRepository = pgMetadataRepository;
-    }
 
     public Optional<Connection> getConnection(Long connectionId) {
         return pgMetadataRepository.getConnection(connectionId);

@@ -7,6 +7,7 @@ import com.panopticum.mysql.model.MySqlDatabaseInfo;
 import com.panopticum.mysql.model.MySqlQueryResultData;
 import com.panopticum.mysql.model.MySqlTableInfo;
 import jakarta.inject.Singleton;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.sql.Connection;
@@ -24,6 +25,7 @@ import java.util.Optional;
 
 @Singleton
 @Slf4j
+@RequiredArgsConstructor
 public class MySqlMetadataRepository {
 
     private static final String JDBC_PREFIX = "jdbc:mysql://";
@@ -52,17 +54,13 @@ public class MySqlMetadataRepository {
 
     private final DbConnectionService dbConnectionService;
 
-    public MySqlMetadataRepository(DbConnectionService dbConnectionService) {
-        this.dbConnectionService = dbConnectionService;
-    }
-
     public Optional<Connection> getConnection(Long connectionId) {
         return dbConnectionService.findById(connectionId).flatMap(this::createConnection);
     }
 
     public Optional<Connection> getConnection(Long connectionId, String dbName) {
         return dbConnectionService.findById(connectionId)
-                .filter(c -> "mysql".equalsIgnoreCase(c.getType()) || "mariadb".equalsIgnoreCase(c.getType()))
+                .filter(c -> "mysql".equalsIgnoreCase(c.getType()))
                 .flatMap(c -> createConnectionToDb(c, dbName != null && !dbName.isBlank() ? dbName : c.getDbName()));
     }
 
@@ -80,7 +78,7 @@ public class MySqlMetadataRepository {
     }
 
     private Optional<Connection> createConnection(DbConnection conn) {
-        if (!"mysql".equalsIgnoreCase(conn.getType()) && !"mariadb".equalsIgnoreCase(conn.getType())) {
+        if (!"mysql".equalsIgnoreCase(conn.getType())) {
             return Optional.empty();
         }
         String db = conn.getDbName();

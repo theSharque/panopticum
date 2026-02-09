@@ -24,6 +24,7 @@ import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import io.micronaut.views.ModelAndView;
 import io.micronaut.views.View;
+import lombok.RequiredArgsConstructor;
 
 import java.net.URI;
 import java.net.URLEncoder;
@@ -37,15 +38,11 @@ import java.util.Optional;
 @Controller("/mongo")
 @Secured(SecurityRule.IS_AUTHENTICATED)
 @ExecuteOn(TaskExecutors.BLOCKING)
+@RequiredArgsConstructor
 public class MongoController {
 
     private final DbConnectionService dbConnectionService;
     private final MongoMetadataService mongoMetadataService;
-
-    public MongoController(DbConnectionService dbConnectionService, MongoMetadataService mongoMetadataService) {
-        this.dbConnectionService = dbConnectionService;
-        this.mongoMetadataService = mongoMetadataService;
-    }
 
     @Produces(MediaType.TEXT_HTML)
     @Get("/{id}")

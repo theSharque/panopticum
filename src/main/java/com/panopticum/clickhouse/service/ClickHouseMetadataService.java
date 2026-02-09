@@ -10,6 +10,7 @@ import com.panopticum.clickhouse.repository.ClickHouseMetadataRepository;
 import io.micronaut.core.annotation.NonNull;
 import io.micronaut.context.annotation.Value;
 import jakarta.inject.Singleton;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.sql.Connection;
@@ -21,16 +22,13 @@ import java.util.Properties;
 
 @Singleton
 @Slf4j
+@RequiredArgsConstructor
 public class ClickHouseMetadataService {
 
     private final ClickHouseMetadataRepository clickHouseMetadataRepository;
 
     @Value("${panopticum.limits.query-rows:1000}")
     private int queryRowsLimit;
-
-    public ClickHouseMetadataService(ClickHouseMetadataRepository clickHouseMetadataRepository) {
-        this.clickHouseMetadataRepository = clickHouseMetadataRepository;
-    }
 
     public Optional<Connection> getConnection(Long connectionId) {
         return clickHouseMetadataRepository.getConnection(connectionId);

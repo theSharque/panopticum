@@ -4,6 +4,7 @@
 # - Redis: localhost:43002
 # - ClickHouse: http://localhost:43003 (default user, no password)
 # - MySQL: host=localhost, port=43005, db=panopticum_dev, user=panopticum, password=panopticum
+# - Cassandra: host=localhost, port=43006, keyspace optional (e.g. create panopticum_dev via cqlsh)
 
 services:
   postgres:
@@ -76,9 +77,23 @@ services:
       timeout: 5s
       retries: 5
 
+  cassandra:
+    image: cassandra:4
+    ports:
+      - "43006:9042"
+    volumes:
+      - cassandra_data:/var/lib/cassandra
+    healthcheck:
+      test: ["CMD-SHELL", "cqlsh -e 'DESCRIBE KEYSPACES' || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
 volumes:
   postgres_data:
   mongodb_data:
   redis_data:
   clickhouse_data:
   mysql_data:
+  cassandra_data:

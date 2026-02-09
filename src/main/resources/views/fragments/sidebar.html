@@ -16,8 +16,9 @@
                 <a th:if="${conn.type == 'mongodb'}" th:href="@{/mongo/{id}(id=${conn.id})}" th:text="${conn.name}" class="sidebar-link">Mongo</a>
                 <a th:if="${conn.type == 'redis'}" th:href="@{/redis/{id}(id=${conn.id})}" th:text="${conn.name}" class="sidebar-link">Redis</a>
                 <a th:if="${conn.type == 'clickhouse'}" th:href="@{/ch/{id}(id=${conn.id})}" th:text="${conn.name}" class="sidebar-link">ClickHouse</a>
-                <a th:if="${conn.type == 'mysql' or conn.type == 'mariadb'}" th:href="@{/mysql/{id}(id=${conn.id})}" th:text="${conn.name}" class="sidebar-link">MySQL</a>
-                <a th:if="${conn.type != 'postgresql' and conn.type != 'mongodb' and conn.type != 'redis' and conn.type != 'clickhouse' and conn.type != 'mysql' and conn.type != 'mariadb'}" th:href="@{/pg/{id}(id=${conn.id})}" th:text="${conn.name}" class="sidebar-link"></a>
+                <a th:if="${conn.type == 'mysql'}" th:href="@{/mysql/{id}(id=${conn.id})}" th:text="${conn.name}" class="sidebar-link">MySQL</a>
+                <a th:if="${conn.type == 'cassandra'}" th:href="@{/cassandra/{id}(id=${conn.id})}" th:text="${conn.name}" class="sidebar-link">Cassandra</a>
+                <a th:if="${conn.type != 'postgresql' and conn.type != 'mongodb' and conn.type != 'redis' and conn.type != 'clickhouse' and conn.type != 'mysql' and conn.type != 'cassandra'}" th:href="@{/pg/{id}(id=${conn.id})}" th:text="${conn.name}" class="sidebar-link"></a>
                 <form class="sidebar-delete-form"
                       th:attr="hx-delete=@{/settings/delete-connection/{id}(id=${conn.id})}, hx-confirm=${msg['sidebar.deleteConfirmPrefix'] + conn.name + msg['sidebar.deleteConfirmSuffix']}"
                       hx-target="#sidebar"

@@ -24,6 +24,7 @@ import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import io.micronaut.views.ModelAndView;
 import io.micronaut.views.View;
+import lombok.RequiredArgsConstructor;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -35,16 +36,11 @@ import java.util.Optional;
 @Controller("/ch")
 @Secured(SecurityRule.IS_AUTHENTICATED)
 @ExecuteOn(TaskExecutors.BLOCKING)
+@RequiredArgsConstructor
 public class ClickHouseController {
 
     private final DbConnectionService dbConnectionService;
     private final ClickHouseMetadataService clickHouseMetadataService;
-
-    public ClickHouseController(DbConnectionService dbConnectionService,
-                                ClickHouseMetadataService clickHouseMetadataService) {
-        this.dbConnectionService = dbConnectionService;
-        this.clickHouseMetadataService = clickHouseMetadataService;
-    }
 
     @Produces(MediaType.TEXT_HTML)
     @Get("/{id}")

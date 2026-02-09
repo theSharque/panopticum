@@ -9,6 +9,7 @@ import com.panopticum.redis.repository.RedisMetadataRepository;
 import io.lettuce.core.RedisURI;
 import io.micronaut.context.annotation.Value;
 import jakarta.inject.Singleton;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
@@ -19,6 +20,7 @@ import java.util.Optional;
 
 @Singleton
 @Slf4j
+@RequiredArgsConstructor
 public class RedisMetadataService {
 
     private static final int DEFAULT_PORT = 6379;
@@ -31,10 +33,6 @@ public class RedisMetadataService {
 
     @Value("${panopticum.limits.redis.value-preview-length:10000}")
     private int valuePreviewLength;
-
-    public RedisMetadataService(RedisMetadataRepository redisMetadataRepository) {
-        this.redisMetadataRepository = redisMetadataRepository;
-    }
 
     public Optional<String> testConnection(String host, int port, String password, int dbIndex) {
         if (host == null || host.isBlank()) {

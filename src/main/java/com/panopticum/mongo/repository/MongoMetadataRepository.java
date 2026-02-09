@@ -11,6 +11,7 @@ import com.panopticum.mongo.model.MongoCollectionInfo;
 import com.panopticum.mongo.model.MongoDatabaseInfo;
 import io.micronaut.context.annotation.Value;
 import jakarta.inject.Singleton;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.Document;
 import org.bson.conversions.Bson;
@@ -26,6 +27,7 @@ import java.util.stream.StreamSupport;
 
 @Singleton
 @Slf4j
+@RequiredArgsConstructor
 public class MongoMetadataRepository {
 
     private static final String MONGO_PREFIX = "mongodb://";
@@ -38,10 +40,6 @@ public class MongoMetadataRepository {
 
     @Value("${panopticum.limits.collections:500}")
     private int collectionsLimit;
-
-    public MongoMetadataRepository(DbConnectionService dbConnectionService) {
-        this.dbConnectionService = dbConnectionService;
-    }
 
     public Optional<MongoClient> createClient(Long connectionId) {
         return dbConnectionService.findById(connectionId)

@@ -2,6 +2,7 @@ package com.panopticum.core.repository;
 
 import com.panopticum.core.model.DbConnection;
 import jakarta.inject.Singleton;
+import lombok.RequiredArgsConstructor;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -15,6 +16,7 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @Singleton
+@RequiredArgsConstructor
 public class DbConnectionRepository {
 
     private static final String CREATE_TABLE_SQL =
@@ -32,10 +34,6 @@ public class DbConnectionRepository {
 
     private final DataSource dataSource;
     private final AtomicBoolean tableChecked = new AtomicBoolean(false);
-
-    public DbConnectionRepository(DataSource dataSource) {
-        this.dataSource = dataSource;
-    }
 
     private void ensureTableExists() {
         if (!tableChecked.compareAndSet(false, true)) {

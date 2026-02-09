@@ -8,21 +8,19 @@ import io.lettuce.core.api.StatefulRedisConnection;
 import io.lettuce.core.api.sync.RedisCommands;
 import io.lettuce.core.api.sync.RedisServerCommands;
 import jakarta.inject.Singleton;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Optional;
 
 @Singleton
 @Slf4j
+@RequiredArgsConstructor
 public class RedisMetadataRepository {
 
     private static final int DEFAULT_PORT = 6379;
 
     private final DbConnectionService dbConnectionService;
-
-    public RedisMetadataRepository(DbConnectionService dbConnectionService) {
-        this.dbConnectionService = dbConnectionService;
-    }
 
     public RedisURI buildUri(String host, int port, String username, String password, int database) {
         RedisURI.Builder builder = RedisURI.builder()

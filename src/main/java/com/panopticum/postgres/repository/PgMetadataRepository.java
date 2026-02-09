@@ -8,6 +8,7 @@ import com.panopticum.postgres.model.PgQueryResultData;
 import com.panopticum.postgres.model.PgSchemaInfo;
 import com.panopticum.postgres.model.TableInfo;
 import jakarta.inject.Singleton;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.sql.Connection;
@@ -25,6 +26,7 @@ import java.util.Optional;
 
 @Singleton
 @Slf4j
+@RequiredArgsConstructor
 public class PgMetadataRepository {
 
     private static final String POSTGRESQL_PREFIX = "jdbc:postgresql://";
@@ -46,10 +48,6 @@ public class PgMetadataRepository {
             "SELECT column_name, data_type FROM information_schema.columns WHERE table_schema = ? AND table_name = ? ORDER BY ordinal_position";
 
     private final DbConnectionService dbConnectionService;
-
-    public PgMetadataRepository(DbConnectionService dbConnectionService) {
-        this.dbConnectionService = dbConnectionService;
-    }
 
     public Optional<Connection> getConnection(Long connectionId) {
         return dbConnectionService.findById(connectionId).flatMap(this::createConnection);

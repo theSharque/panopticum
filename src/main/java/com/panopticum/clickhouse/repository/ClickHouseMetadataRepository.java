@@ -7,6 +7,7 @@ import com.panopticum.clickhouse.model.ChDatabaseInfo;
 import com.panopticum.clickhouse.model.ChQueryResultData;
 import com.panopticum.clickhouse.model.ChTableInfo;
 import jakarta.inject.Singleton;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.sql.Connection;
@@ -22,6 +23,7 @@ import java.util.Properties;
 
 @Singleton
 @Slf4j
+@RequiredArgsConstructor
 public class ClickHouseMetadataRepository {
 
     private static final String JDBC_PREFIX = "jdbc:ch:http://";
@@ -34,10 +36,6 @@ public class ClickHouseMetadataRepository {
             "SELECT name, engine AS type, total_rows, total_bytes FROM system.tables WHERE database = ? ORDER BY name";
 
     private final DbConnectionService dbConnectionService;
-
-    public ClickHouseMetadataRepository(DbConnectionService dbConnectionService) {
-        this.dbConnectionService = dbConnectionService;
-    }
 
     public Optional<Connection> getConnection(Long connectionId) {
         return dbConnectionService.findById(connectionId).flatMap(this::createConnection);
