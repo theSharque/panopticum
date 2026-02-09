@@ -10,6 +10,21 @@ repositories {
     mavenCentral()
 }
 
+configurations.all {
+    resolutionStrategy {
+        eachDependency { details ->
+            if (details.requested.group == "io.netty") {
+                details.useVersion("4.1.130.Final")
+                details.because("CVE fixes: 2025-55163, 2025-58057, 2025-67735, 2025-58056")
+            }
+            if (details.requested.group == "ch.qos.logback") {
+                details.useVersion("1.5.19")
+                details.because("CVE fixes: 2024-12798, 2025-11226, 2024-12801, 2026-1225")
+            }
+        }
+    }
+}
+
 dependencies {
     implementation(platform("io.micronaut.platform:micronaut-platform:4.4.2"))
     annotationProcessor("org.projectlombok:lombok")
