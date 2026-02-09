@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(~{::main})}">
+<head></head>
+<body>
+<main th:fragment="main" class="main-content">
+    <div th:replace="~{fragments/breadcrumbs :: breadcrumbs(items=${breadcrumbs})}"></div>
+    <p th:if="${error}" th:text="${msg != null and msg[error] != null ? msg[error] : error}" class="query-error"></p>
+    <h1 th:text="${msg['pg.rowDetail']}">Row details</h1>
+    <form th:if="${detailRows != null and !detailRows.isEmpty() and editable}" th:action="@{/mysql/{id}/{dbName}/detail/update(id=${connectionId}, dbName=${dbName})}" method="post" class="detail-form">
+        <input type="hidden" name="sql" th:value="${sql}"/>
+        <input type="hidden" name="rowNum" th:value="${rowNum}"/>
+        <input type="hidden" name="sort" th:value="${sort}"/>
+        <input type="hidden" name="order" th:value="${order}"/>
+        <input type="hidden" name="qualifiedTable" th:value="${qualifiedTable}"/>
+        <input type="hidden" name="uniqueKeyColumns" th:value="${uniqueKeyColumnsJoined}"/>
+        <div class="detail-block">
+            <div class="detail-field" th:each="field : ${detailRows}">
+                <div class="detail-field-name" th:text="${field.name + ' : ' + field.type}"></div>
+                <div class="detail-field-value">
+                    <input type="text" th:name="|field_${field.name}|" th:value="${field.value}"
+                           th:readonly="${field.readOnly == 'true'}" class="detail-edit-input"/>
+                </div>
+            </div>
+        </div>
+        <div class="detail-actions">
+            <button type="submit" class="query-button" th:text="${msg['common.save']}">Save</button>
+        </div>
+    </form>
+    <div th:if="${detailRows != null and !detailRows.isEmpty() and !editable}" class="detail-block">
+        <div class="detail-field" th:each="field : ${detailRows}">
+            <div class="detail-field-name" th:text="${field.name + ' : ' + field.type}"></div>
+            <div class="detail-field-value" th:text="${field.value}"></div>
+        </div>
+    </div>
+    <p th:if="${detailRows == null or detailRows.isEmpty()}" class="text-dim" th:text="${msg['common.noData']}">No data.</p>
+</main>
+</body>
+</html>

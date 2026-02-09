@@ -3,6 +3,7 @@
 # - MongoDB: mongodb://localhost:43001
 # - Redis: localhost:43002
 # - ClickHouse: http://localhost:43003 (default user, no password)
+# - MySQL: host=localhost, port=43005, db=panopticum_dev, user=panopticum, password=panopticum
 
 services:
   postgres:
@@ -58,8 +59,26 @@ services:
       timeout: 5s
       retries: 5
 
+  mysql:
+    image: mysql:8
+    ports:
+      - "43005:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_USER: panopticum
+      MYSQL_PASSWORD: panopticum
+      MYSQL_DATABASE: panopticum_dev
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "panopticum", "-ppanopticum"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
 volumes:
   postgres_data:
   mongodb_data:
   redis_data:
   clickhouse_data:
+  mysql_data:

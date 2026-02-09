@@ -14,7 +14,8 @@ A tool for developers and QA — web interface for viewing and managing database
 
 | Type | Features |
 |------|----------|
-| **PostgreSQL** | Browse databases, schemas, tables; run SQL |
+| **PostgreSQL** | Browse databases, schemas, tables; run SQL; edit rows |
+| **MySQL (MariaDB)** | Browse databases and tables; run SQL; edit rows (if table has PK or unique index) |
 | **MongoDB** | Browse databases and collections; run queries |
 | **Redis** | Browse databases and keys; view key types and values |
 | **ClickHouse** | Browse databases and tables; run SQL |
@@ -24,10 +25,12 @@ Connections are stored in H2. In Settings you can add connections, test them, an
 ## Features
 
 - HTTP Basic Auth (credentials from env)
+- Light and dark theme (toggle in header and on login page)
 - Sidebar with saved connections and quick access to Settings
 - Add, test, and remove connections per database type
 - Browse metadata (schemas, tables, collections, keys) with pagination
-- Execute SQL (PostgreSQL, ClickHouse) and queries (MongoDB)
+- Execute SQL (PostgreSQL, MySQL/MariaDB, ClickHouse) and queries (MongoDB)
+- Edit and save rows in detail view (PostgreSQL, MySQL when table has PK/unique, MongoDB, Redis)
 - HTMX for partial updates without full page reloads
 - Localization: EN and RU (browser or path)
 

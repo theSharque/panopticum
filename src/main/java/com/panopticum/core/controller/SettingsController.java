@@ -6,6 +6,7 @@ import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.i18n.LocaleFilter;
 import com.panopticum.i18n.Messages;
 import com.panopticum.mongo.service.MongoMetadataService;
+import com.panopticum.mysql.service.MySqlMetadataService;
 import com.panopticum.postgres.service.PgMetadataService;
 import com.panopticum.redis.service.RedisMetadataService;
 import com.panopticum.config.HxRedirectFilter;
@@ -42,15 +43,18 @@ public class SettingsController {
     private final MongoMetadataService mongoMetadataService;
     private final RedisMetadataService redisMetadataService;
     private final ClickHouseMetadataService clickHouseMetadataService;
+    private final MySqlMetadataService mySqlMetadataService;
 
     public SettingsController(DbConnectionService dbConnectionService, PgMetadataService pgMetadataService,
                               MongoMetadataService mongoMetadataService, RedisMetadataService redisMetadataService,
-                              ClickHouseMetadataService clickHouseMetadataService) {
+                              ClickHouseMetadataService clickHouseMetadataService,
+                              MySqlMetadataService mySqlMetadataService) {
         this.dbConnectionService = dbConnectionService;
         this.pgMetadataService = pgMetadataService;
         this.mongoMetadataService = mongoMetadataService;
         this.redisMetadataService = redisMetadataService;
         this.clickHouseMetadataService = clickHouseMetadataService;
+        this.mySqlMetadataService = mySqlMetadataService;
     }
 
     @Produces(MediaType.TEXT_HTML)
@@ -280,6 +284,65 @@ public class SettingsController {
         String messageKey = error.orElse("connectionTest.success");
         model.put("message", messageKey);
         putDisplayText(model, request, messageKey);
+
+        return new ModelAndView<>("partials/connection-test-result", model);
+    }
+
+    @Post("/add-mysql")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @Produces(MediaType.TEXT_HTML)
+    public Object addMysql(HttpRequest<?> request,
+                          String name, String host, Integer port, String database, String username, String password) {
+        DbConnection conn = DbConnection.builder()
+                .name(name != null ? name : "")
+                .type("mysql")
+                .host(host != null ? host : "localhost")
+                .port(port != null ? port : 3306)
+                .dbName(database != null ? database : "")
+                .username(username != null ? username : "")
+                .password(password != null ? password : "")
+                .build();
+        DbConnection saved = dbConnectionService.save(conn);
+
+        Map<String, Object> model = new HashMap<>();
+        model.put("connections", dbConnectionService.findAll());
+
+        boolean hxRequest = "true".equalsIgnoreCase(request.getHeaders().get(HX_REQUEST));
+
+        if (hxRequest) {
+            if (saved.getId() != null) {
+                request.setAttribute(HxRedirectFilter.HX_REDIRECT_ATTR, "/mysql/" + saved.getId());
+            }
+            return new ModelAndView<>("partials/sidebar", model);
+        }
+
+        return new ModelAndView<>("settings/index", model);
+    }
+
+    @Post("/test-mysql")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @Produces(MediaType.TEXT_HTML)
+    public ModelAndView<Map<String, Object>> testMysql(HttpRequest<?> request,
+            String host, Integer port, String database, String username, String password) {
+        Map<String, Object> model = new HashMap<>();
+        try {
+            int p = port != null ? port : 3306;
+            var error = mySqlMetadataService.testConnection(
+                    host != null ? host : "",
+                    p,
+                    database != null ? database : "",
+                    username != null ? username : "",
+                    password != null ? password : "");
+            model.put("success", error.isEmpty());
+            String messageKey = error.orElse("connectionTest.success");
+            model.put("message", messageKey);
+            putDisplayText(model, request, messageKey);
+        } catch (Exception e) {
+            model.put("success", false);
+            String messageKey = e.getMessage() != null ? e.getMessage() : "error.queryExecutionFailed";
+            model.put("message", messageKey);
+            putDisplayText(model, request, messageKey);
+        }
 
         return new ModelAndView<>("partials/connection-test-result", model);
     }

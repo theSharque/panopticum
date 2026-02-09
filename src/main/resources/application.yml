@@ -80,7 +80,18 @@ micronaut:
         httpMethod: POST
         access:
           - isAuthenticated()
+      - pattern: /settings/add-mysql
+        httpMethod: POST
+        access:
+          - isAuthenticated()
+      - pattern: /settings/test-mysql
+        httpMethod: POST
+        access:
+          - isAuthenticated()
       - pattern: /ch/**
+        access:
+          - isAuthenticated()
+      - pattern: /mysql/**
         access:
           - isAuthenticated()
       - pattern: /redis/**

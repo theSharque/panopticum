@@ -1,13 +1,17 @@
 package com.panopticum.clickhouse.model;
 
-import lombok.Value;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.List;
 
-@Value
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class ChQueryResultData {
 
-    private final List<String> columns;
-    private final List<String> columnTypes;
-    private final List<List<Object>> rows;
+    private List<String> columns;
+    private List<String> columnTypes;
+    private List<List<Object>> rows;
 }

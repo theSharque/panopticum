@@ -47,6 +47,7 @@ dependencies {
     runtimeOnly("ch.qos.logback:logback-core")
     runtimeOnly("com.h2database:h2")
     runtimeOnly("org.postgresql:postgresql")
+    runtimeOnly("com.mysql:mysql-connector-j")
     implementation("org.mongodb:mongodb-driver-sync")
     implementation("io.lettuce:lettuce-core:6.5.4.RELEASE")
     runtimeOnly("com.clickhouse:clickhouse-jdbc:0.9.6:all")

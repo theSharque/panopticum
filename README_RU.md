@@ -14,7 +14,8 @@
 
 | Тип | Возможности |
 |-----|--------------|
-| **PostgreSQL** | Просмотр баз, схем, таблиц; выполнение SQL |
+| **PostgreSQL** | Просмотр баз, схем, таблиц; выполнение SQL; редактирование строк |
+| **MySQL (MariaDB)** | Просмотр баз и таблиц; выполнение SQL; редактирование строк (если у таблицы есть PK или unique-индекс) |
 | **MongoDB** | Просмотр баз и коллекций; выполнение запросов |
 | **Redis** | Просмотр баз и ключей; типы и значения |
 | **ClickHouse** | Просмотр баз и таблиц; выполнение SQL |
@@ -24,10 +25,12 @@
 ## Возможности
 
 - HTTP Basic Auth (учётные данные из env)
+- Светлая и тёмная тема (переключатель в шапке и на странице входа)
 - Боковая панель со списком сохранённых подключений и быстрым доступом в Настройки
 - Добавление, проверка и удаление подключений для каждого типа БД
 - Просмотр метаданных (схемы, таблицы, коллекции, ключи) с постраничной навигацией
-- Выполнение SQL (PostgreSQL, ClickHouse) и запросов (MongoDB)
+- Выполнение SQL (PostgreSQL, MySQL/MariaDB, ClickHouse) и запросов (MongoDB)
+- Редактирование и сохранение строк в детальном просмотре (PostgreSQL, MySQL при наличии PK/unique, MongoDB, Redis)
 - HTMX для частичного обновления без перезагрузки страницы
 - Локализация: EN и RU (по браузеру или пути)
 
@@ -103,7 +106,7 @@ docker run -d --name panopticum \
 
 ## CI/CD
 
-Пуш тега версии (например `v0.1`, `v1.0.0`) запускает GitHub Actions: один билд Docker-образа и пуш в оба registry:
+Пуш тега версии (например `v0.1`, `v1.0.0`) запускает GitHub Actions: один билд Docker-образа и пуш в:
 
 - [GitHub Container Registry](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry): `ghcr.io/<owner>/panopticum:<tag>`
 - [Docker Hub](https://hub.docker.com/r/sharque/panopticum): `<DOCKERHUB_USERNAME>/panopticum:<tag>` (если включено переменной и секретами)

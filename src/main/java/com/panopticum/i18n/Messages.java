@@ -6,7 +6,7 @@ public final class Messages {
 
     public static final Map<String, String> EN = Map.ofEntries(
             Map.entry("home.title", "Panopticum — a place from which everything is visible"),
-            Map.entry("home.description", "The name derives from Greek pan (all) and optikon (vision) — \"all-seeing\". The idea of the panopticum is a single vantage point from which the entire controlled space is visible. Here it is a tool for viewing and managing database connections — MongoDB, PostgreSQL, Redis, ClickHouse — from one place."),
+            Map.entry("home.description", "The name derives from Greek pan (all) and optikon (vision) — \"all-seeing\". The idea of the panopticum is a single vantage point from which the entire controlled space is visible. Here it is a tool for viewing and managing database connections — MongoDB, PostgreSQL, Redis, ClickHouse, MySQL — from one place."),
             Map.entry("home.pickDb", "Select a database from the menu or go to settings to add a connection."),
             Map.entry("nav.settings", "Settings"),
             Map.entry("sidebar.connections", "Connections"),
@@ -52,6 +52,7 @@ public final class Messages {
             Map.entry("settings.placeholderNameMongo", "e.g. Production Mongo"),
             Map.entry("settings.placeholderNameRedis", "e.g. Production Redis"),
             Map.entry("settings.placeholderNameCh", "e.g. Production ClickHouse"),
+            Map.entry("settings.placeholderNameMysql", "e.g. Production MySQL"),
             Map.entry("redis.dbNumber", "DB number"),
             Map.entry("redis.keyCount", "Keys"),
             Map.entry("redis.keysTitle", "Keys"),
@@ -95,7 +96,7 @@ public final class Messages {
 
     public static final Map<String, String> RU = Map.ofEntries(
             Map.entry("home.title", "Panopticum — место, откуда видно всё"),
-            Map.entry("home.description", "Название восходит к греческому pan (всё) и optikon (видение) — «всевидящий». Идея паноптикума — единая точка обзора, с которой всё подконтрольное пространство видно целиком. Здесь это инструмент для просмотра и управления подключениями к базам данных — MongoDB, PostgreSQL, Redis, ClickHouse — из одного места."),
+            Map.entry("home.description", "Название восходит к греческому pan (всё) и optikon (видение) — «всевидящий». Идея паноптикума — единая точка обзора, с которой всё подконтрольное пространство видно целиком. Здесь это инструмент для просмотра и управления подключениями к базам данных — MongoDB, PostgreSQL, Redis, ClickHouse, MySQL — из одного места."),
             Map.entry("home.pickDb", "Выберите базу данных в меню или перейдите в настройки для добавления подключения."),
             Map.entry("nav.settings", "Настройки"),
             Map.entry("sidebar.connections", "Подключения"),
@@ -141,6 +142,7 @@ public final class Messages {
             Map.entry("settings.placeholderNameMongo", "Например: Production Mongo"),
             Map.entry("settings.placeholderNameRedis", "Например: Production Redis"),
             Map.entry("settings.placeholderNameCh", "Например: Production ClickHouse"),
+            Map.entry("settings.placeholderNameMysql", "Например: Production MySQL"),
             Map.entry("redis.dbNumber", "Номер БД"),
             Map.entry("redis.keyCount", "Ключей"),
             Map.entry("redis.keysTitle", "Ключи"),

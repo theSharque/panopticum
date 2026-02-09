@@ -1,4 +1,4 @@
-package com.panopticum.postgres.model;
+package com.panopticum.mysql.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -9,7 +9,7 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class PgQueryResultData {
+public class MySqlQueryResultData {
 
     private List<String> columns;
     private List<String> columnTypes;

@@ -13,6 +13,7 @@
             <option value="mongodb">MongoDB</option>
             <option value="redis">Redis</option>
             <option value="clickhouse">ClickHouse</option>
+            <option value="mysql">MySQL (MariaDB)</option>
         </select>
     </div>
 
@@ -188,6 +189,50 @@
         </form>
     </div>
 
+    <div id="form-mysql" class="connection-form-block" hidden>
+        <form id="connection-form-mysql" action="/settings/add-mysql" method="post" class="add-connection-form"
+              hx-post="/settings/add-mysql"
+              hx-target="#sidebar"
+              hx-swap="outerHTML">
+            <div class="form-group">
+                <label for="name-mysql" th:text="${msg['common.name']}">Name</label>
+                <input type="text" id="name-mysql" name="name" required th:attr="placeholder=${msg['settings.placeholderNameMysql']}">
+            </div>
+            <div class="form-group">
+                <label for="host-mysql" th:text="${msg['settings.host']}">Host</label>
+                <input type="text" id="host-mysql" name="host" required placeholder="localhost" value="localhost">
+            </div>
+            <div class="form-group">
+                <label for="port-mysql" th:text="${msg['settings.port']}">Port</label>
+                <input type="number" id="port-mysql" name="port" value="3306">
+            </div>
+            <div class="form-group">
+                <label for="database-mysql" th:text="${msg['settings.database']}">Database</label>
+                <input type="text" id="database-mysql" name="database" required placeholder="mydb">
+            </div>
+            <div class="form-group">
+                <label for="username-mysql" th:text="${msg['settings.username']}">Username</label>
+                <input type="text" id="username-mysql" name="username" required placeholder="user">
+            </div>
+            <div class="form-group">
+                <label for="password-mysql" th:text="${msg['settings.password']}">Password</label>
+                <input type="password" id="password-mysql" name="password" placeholder="password">
+            </div>
+            <div class="form-actions">
+                <span id="test-indicator-mysql" class="connection-test-indicator" aria-hidden="true" th:text="${msg['settings.testing']}">Checking...</span>
+                <button type="button" class="btn-check"
+                        hx-post="/settings/test-mysql"
+                        hx-include="#connection-form-mysql"
+                        hx-target="#connection-test-result-mysql"
+                        hx-swap="innerHTML show:bottom"
+                        hx-indicator="#test-indicator-mysql"
+                        th:text="${msg['settings.test']}">Test</button>
+                <button type="submit" th:text="${msg['settings.add']}">Add</button>
+            </div>
+            <div id="connection-test-result-mysql" class="connection-test-result"></div>
+        </form>
+    </div>
+
     <script>
         document.getElementById('connection-type').addEventListener('change', function () {
             var type = this.value;
@@ -195,6 +240,7 @@
             document.getElementById('form-mongo').hidden = type !== 'mongodb';
             document.getElementById('form-redis').hidden = type !== 'redis';
             document.getElementById('form-clickhouse').hidden = type !== 'clickhouse';
+            document.getElementById('form-mysql').hidden = type !== 'mysql';
         });
     </script>
 
