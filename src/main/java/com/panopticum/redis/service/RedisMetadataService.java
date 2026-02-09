@@ -1,6 +1,5 @@
 package com.panopticum.redis.service;
 
-import com.panopticum.core.util.StringUtils;
 import com.panopticum.redis.model.RedisDbInfo;
 import com.panopticum.redis.model.RedisKeyDetail;
 import com.panopticum.redis.model.RedisKeyInfo;
@@ -132,7 +131,7 @@ public class RedisMetadataService {
                 ttl = null;
             }
             Object value = switch (type.toLowerCase()) {
-                case "string" -> StringUtils.truncate(cmd.get(key));
+                case "string" -> cmd.get(key);
                 case "hash" -> cmd.hgetall(key);
                 case "list" -> cmd.lrange(key, 0, valuePreviewLength - 1);
                 case "set" -> cmd.smembers(key);

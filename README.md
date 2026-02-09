@@ -19,6 +19,7 @@ A tool for developers and QA — web interface for viewing and managing database
 | **MongoDB** | Browse databases and collections; run queries |
 | **Redis** | Browse databases and keys; view key types and values |
 | **ClickHouse** | Browse databases and tables; run SQL |
+| **Cassandra** | Browse keyspaces and tables; run CQL; edit rows (when table has primary key) |
 
 Connections are stored in H2. In Settings you can add connections, test them, and delete them.
 
@@ -29,8 +30,8 @@ Connections are stored in H2. In Settings you can add connections, test them, an
 - Sidebar with saved connections and quick access to Settings
 - Add, test, and remove connections per database type
 - Browse metadata (schemas, tables, collections, keys) with pagination
-- Execute SQL (PostgreSQL, MySQL/MariaDB, ClickHouse) and queries (MongoDB)
-- Edit and save rows in detail view (PostgreSQL, MySQL when table has PK/unique, MongoDB, Redis)
+- Execute SQL (PostgreSQL, MySQL/MariaDB, ClickHouse, Cassandra CQL) and queries (MongoDB)
+- Edit and save rows in detail view (PostgreSQL, MySQL when table has PK/unique, MongoDB, Redis, Cassandra when table has primary key)
 - HTMX for partial updates without full page reloads
 - Localization: EN and RU (browser or path)
 
@@ -74,7 +75,7 @@ docker run -d --name panopticum \
   ghcr.io/thesharque/panopticum:latest
 ```
 
-Use a version tag for a fixed release, e.g. `ghcr.io/thesharque/panopticum:v0.1`. If the package is private, log in first: `echo $GITHUB_TOKEN | docker login ghcr.io -u YOUR_GITHUB_USER --password-stdin`.
+Use a version tag for a fixed release, e.g. `ghcr.io/thesharque/panopticum:v4.1.0`. If the package is private, log in first: `echo $GITHUB_TOKEN | docker login ghcr.io -u YOUR_GITHUB_USER --password-stdin`.
 
 ### From Docker Hub
 
@@ -106,14 +107,14 @@ Open **http://localhost:8080**. For Kubernetes, use the same env vars and mount 
 
 ## CI/CD
 
-Push a version tag (e.g. `v0.1`, `v1.0.0`) to trigger a GitHub Actions workflow that builds the Docker image once and pushes it to:
+Push a version tag (e.g. `v4.1.0`) to trigger a GitHub Actions workflow that builds the Docker image once and pushes it to:
 
 - [GitHub Container Registry](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry): `ghcr.io/<owner>/panopticum:<tag>`
 - [Docker Hub](https://hub.docker.com/r/sharque/panopticum): `<DOCKERHUB_USERNAME>/panopticum:<tag>` (if Docker Hub is enabled via variable and secrets)
 
 ```bash
-git tag v0.1
-git push origin v0.1
+git tag v4.1.0
+git push origin v4.1.0
 ```
 
 **Docker Hub:** to also push to Docker Hub, set a repository variable `ENABLE_DOCKERHUB` = `true` (Settings → Secrets and variables → Actions → Variables) and add secrets `DOCKERHUB_USERNAME` (your Docker Hub login) and `DOCKERHUB_TOKEN` ([access token](https://hub.docker.com/settings/security)). If you don’t set these, the workflow still runs and pushes only to GHCR.

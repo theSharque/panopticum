@@ -19,6 +19,7 @@
 | **MongoDB** | Просмотр баз и коллекций; выполнение запросов |
 | **Redis** | Просмотр баз и ключей; типы и значения |
 | **ClickHouse** | Просмотр баз и таблиц; выполнение SQL |
+| **Cassandra** | Просмотр keyspace и таблиц; выполнение CQL; редактирование строк (если у таблицы есть primary key) |
 
 Подключения хранятся в H2. В настройках можно добавлять подключения, проверять их и удалять.
 
@@ -29,8 +30,8 @@
 - Боковая панель со списком сохранённых подключений и быстрым доступом в Настройки
 - Добавление, проверка и удаление подключений для каждого типа БД
 - Просмотр метаданных (схемы, таблицы, коллекции, ключи) с постраничной навигацией
-- Выполнение SQL (PostgreSQL, MySQL/MariaDB, ClickHouse) и запросов (MongoDB)
-- Редактирование и сохранение строк в детальном просмотре (PostgreSQL, MySQL при наличии PK/unique, MongoDB, Redis)
+- Выполнение SQL (PostgreSQL, MySQL/MariaDB, ClickHouse, Cassandra CQL) и запросов (MongoDB)
+- Редактирование и сохранение строк в детальном просмотре (PostgreSQL, MySQL при наличии PK/unique, MongoDB, Redis, Cassandra при наличии primary key)
 - HTMX для частичного обновления без перезагрузки страницы
 - Локализация: EN и RU (по браузеру или пути)
 
@@ -74,7 +75,7 @@ docker run -d --name panopticum \
   ghcr.io/thesharque/panopticum:latest
 ```
 
-Для фиксированной версии используйте тег, например `ghcr.io/thesharque/panopticum:v0.1`. Если пакет приватный, сначала выполните вход: `echo $GITHUB_TOKEN | docker login ghcr.io -u ВАШ_ЛОГИН_GITHUB --password-stdin`.
+Для фиксированной версии используйте тег, например `ghcr.io/thesharque/panopticum:v4.1.0`. Если пакет приватный, сначала выполните вход: `echo $GITHUB_TOKEN | docker login ghcr.io -u ВАШ_ЛОГИН_GITHUB --password-stdin`.
 
 ### Из Docker Hub
 
@@ -106,14 +107,14 @@ docker run -d --name panopticum \
 
 ## CI/CD
 
-Пуш тега версии (например `v0.1`, `v1.0.0`) запускает GitHub Actions: один билд Docker-образа и пуш в:
+Пуш тега версии (например `v4.1.0`) запускает GitHub Actions: один билд Docker-образа и пуш в:
 
 - [GitHub Container Registry](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry): `ghcr.io/<owner>/panopticum:<tag>`
 - [Docker Hub](https://hub.docker.com/r/sharque/panopticum): `<DOCKERHUB_USERNAME>/panopticum:<tag>` (если включено переменной и секретами)
 
 ```bash
-git tag v0.1
-git push origin v0.1
+git tag v4.1.0
+git push origin v4.1.0
 ```
 
 **Docker Hub:** чтобы также пушить в Docker Hub, задайте переменную репозитория `ENABLE_DOCKERHUB` = `true` (Settings → Secrets and variables → Actions → Variables) и добавьте секреты `DOCKERHUB_USERNAME` (логин Docker Hub) и `DOCKERHUB_TOKEN` ([токен](https://hub.docker.com/settings/security)). Без этого workflow выполнится и будет пушить только в GHCR.

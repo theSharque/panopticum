@@ -67,7 +67,7 @@ public class CassandraMetadataService {
         }
         String tableName = tableOpt.get();
         List<String> primaryKeyColumns = cassandraMetadataRepository.getPrimaryKeyColumns(connectionId, keyspaceName, tableName);
-        Optional<QueryResult> resultOpt = executeQuery(connectionId, keyspaceName, sql, 0, rowNum + 1);
+        Optional<QueryResult> resultOpt = executeQuery(connectionId, keyspaceName, sql, 0, rowNum + 1, false);
         if (resultOpt.isEmpty() || resultOpt.get().hasError() || resultOpt.get().getRows() == null
                 || resultOpt.get().getRows().size() <= rowNum) {
             out.put("editable", false);
