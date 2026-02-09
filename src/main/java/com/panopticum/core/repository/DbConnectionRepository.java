@@ -89,6 +89,26 @@ public class DbConnectionRepository {
         return Optional.empty();
     }
 
+    public Optional<DbConnection> findByName(String name) {
+        ensureTableExists();
+
+        String sql = "SELECT id, name, type, host, port, db_name, username, password, created_at FROM db_connections WHERE name = ? LIMIT 1";
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, name);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return Optional.of(mapRow(rs));
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to find connection by name", e);
+        }
+
+        return Optional.empty();
+    }
+
     public DbConnection save(DbConnection conn) {
         if (conn.getId() == null) {
             return insert(conn);

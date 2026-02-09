@@ -50,6 +50,28 @@ Application: **http://localhost:8080**
 | `PANOPTICUM_USER` | Basic Auth login | `admin` |
 | `PANOPTICUM_PASSWORD` | Basic Auth password | `admin` |
 | `PANOPTICUM_DB_PATH` | H2 database file path | `./data/panopticum` |
+| `PANOPTICUM_CONNECTIONS_JSON` | JSON array of connections to load on first start (see below) | — |
+
+### Bootstrap connections (first start only)
+
+If the `db_connections` table is **empty** at startup, the app reads the environment variable `PANOPTICUM_CONNECTIONS_JSON` and inserts the given connections into H2. If there is already at least one connection in the database, the variable is ignored.
+
+Value: a JSON array of connection objects. Each object can be specified in one of two ways:
+
+1. **Explicit fields:** `name`, `type`, `host`, `port`, `database`, `username`, `password`. Supported `type` values: `postgresql`, `mongodb`, `redis`, `clickhouse`, `mysql`, `cassandra`.
+2. **JDBC URL:** `name` and `jdbcUrl` (or `url`). The URL is parsed to derive type, host, port, database, username, and password. Supported for PostgreSQL, MySQL, and ClickHouse (e.g. `jdbc:postgresql://user:pass@host:5432/dbname`).
+
+Example:
+
+```json
+[
+  {"name": "prod-pg", "jdbcUrl": "jdbc:postgresql://app:secret@pg.svc:5432/mydb"},
+  {"name": "analytics", "jdbcUrl": "jdbc:clickhouse://ch.svc:8123/default"},
+  {"name": "cache", "type": "redis", "host": "redis.svc", "port": 6379}
+]
+```
+
+For Helm: put the JSON in a Secret and mount it as the env var `PANOPTICUM_CONNECTIONS_JSON` (e.g. `valueFrom.secretKeyRef`). Use a Secret rather than a ConfigMap if the JSON contains passwords.
 
 ## Build
 

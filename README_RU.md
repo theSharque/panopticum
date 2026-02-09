@@ -50,6 +50,28 @@
 | `PANOPTICUM_USER` | Логин для Basic Auth | `admin` |
 | `PANOPTICUM_PASSWORD` | Пароль для Basic Auth | `admin` |
 | `PANOPTICUM_DB_PATH` | Путь к файлам H2 | `./data/panopticum` |
+| `PANOPTICUM_CONNECTIONS_JSON` | JSON-массив подключений для загрузки при первом старте (см. ниже) | — |
+
+### Подключения при первом старте (bootstrap)
+
+Если при старте приложения таблица `db_connections` **пуста**, приложение читает переменную окружения `PANOPTICUM_CONNECTIONS_JSON` и добавляет указанные подключения в H2. Если в базе уже есть хотя бы одно подключение, переменная не используется.
+
+Значение — JSON-массив объектов подключений. Каждый объект можно задать одним из двух способов:
+
+1. **Явные поля:** `name`, `type`, `host`, `port`, `database`, `username`, `password`. Поддерживаемые значения `type`: `postgresql`, `mongodb`, `redis`, `clickhouse`, `mysql`, `cassandra`.
+2. **JDBC-строка:** поля `name` и `jdbcUrl` (или `url`). По URL извлекаются тип, хост, порт, база, пользователь и пароль. Поддерживается для PostgreSQL, MySQL и ClickHouse (например `jdbc:postgresql://user:pass@host:5432/dbname`).
+
+Пример:
+
+```json
+[
+  {"name": "prod-pg", "jdbcUrl": "jdbc:postgresql://app:secret@pg.svc:5432/mydb"},
+  {"name": "analytics", "jdbcUrl": "jdbc:clickhouse://ch.svc:8123/default"},
+  {"name": "cache", "type": "redis", "host": "redis.svc", "port": 6379}
+]
+```
+
+Для Helm: поместите JSON в Secret и смонтируйте его в переменную окружения `PANOPTICUM_CONNECTIONS_JSON` (например через `valueFrom.secretKeyRef`). Для JSON с паролями используйте Secret, а не ConfigMap.
 
 ## Сборка
 
