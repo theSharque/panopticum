@@ -74,7 +74,7 @@ public class RedisController {
 
         return model;
     }
-
+/*  */
     @Produces(MediaType.TEXT_HTML)
     @Get("/{id}/{dbIndex}")
     @View("redis/keys")
