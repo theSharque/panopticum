@@ -7,7 +7,7 @@ import com.panopticum.core.model.QueryResult;
 import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.core.util.ControllerModelHelper;
 import com.panopticum.mongo.model.MongoCollectionInfo;
-import com.panopticum.mongo.model.MongoDatabaseInfo;
+import com.panopticum.core.model.DatabaseInfo;
 import com.panopticum.mongo.service.MongoMetadataService;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.http.HttpResponse;
@@ -67,7 +67,7 @@ public class MongoController {
         model.put("itemType", "database");
         model.put("itemUrlPrefix", "/mongo/" + id + "/");
 
-        Page<MongoDatabaseInfo> paged = mongoMetadataService.listDatabasesPaged(id, page, size, sort, order);
+        Page<DatabaseInfo> paged = mongoMetadataService.listDatabasesPaged(id, page, size, sort, order);
         ControllerModelHelper.addPagination(model, paged, "items");
         ControllerModelHelper.addOrderToggles(model, paged.getSort(), paged.getOrder(),
                 Map.of("name", "orderName", "size", "orderSize"));

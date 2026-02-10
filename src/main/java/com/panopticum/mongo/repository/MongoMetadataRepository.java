@@ -8,7 +8,7 @@ import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.core.util.SizeFormatter;
 import com.panopticum.mongo.model.MongoCollectionInfo;
-import com.panopticum.mongo.model.MongoDatabaseInfo;
+import com.panopticum.core.model.DatabaseInfo;
 import io.micronaut.context.annotation.Value;
 import jakarta.inject.Singleton;
 import lombok.RequiredArgsConstructor;
@@ -77,16 +77,16 @@ public class MongoMetadataRepository {
         }
     }
 
-    public List<MongoDatabaseInfo> listDatabaseInfos(Long connectionId) {
+    public List<DatabaseInfo> listDatabaseInfos(Long connectionId) {
         try (MongoClient client = createClient(connectionId).orElse(null)) {
             if (client == null) {
                 return List.of();
             }
-            List<MongoDatabaseInfo> infos = new ArrayList<>();
+            List<DatabaseInfo> infos = new ArrayList<>();
             for (Document doc : client.listDatabases()) {
                 String name = doc.getString("name");
                 long sizeOnDisk = doc.getLong("sizeOnDisk") != null ? doc.getLong("sizeOnDisk") : 0L;
-                infos.add(new MongoDatabaseInfo(name, sizeOnDisk, SizeFormatter.formatSize(sizeOnDisk)));
+                infos.add(new DatabaseInfo(name, sizeOnDisk, SizeFormatter.formatSize(sizeOnDisk)));
             }
             return infos;
         } catch (Exception e) {

@@ -3,9 +3,9 @@ package com.panopticum.clickhouse.service;
 import com.panopticum.core.model.Page;
 import com.panopticum.core.model.QueryResult;
 import com.panopticum.core.util.StringUtils;
-import com.panopticum.clickhouse.model.ChDatabaseInfo;
-import com.panopticum.clickhouse.model.ChQueryResultData;
-import com.panopticum.clickhouse.model.ChTableInfo;
+import com.panopticum.core.model.DatabaseInfo;
+import com.panopticum.core.model.QueryResultData;
+import com.panopticum.core.model.TableInfo;
 import com.panopticum.clickhouse.repository.ClickHouseMetadataRepository;
 import io.micronaut.core.annotation.NonNull;
 import io.micronaut.context.annotation.Value;
@@ -60,30 +60,30 @@ public class ClickHouseMetadataService {
         }
     }
 
-    public List<ChDatabaseInfo> listDatabaseInfos(Long connectionId) {
+    public List<DatabaseInfo> listDatabaseInfos(Long connectionId) {
         return clickHouseMetadataRepository.listDatabaseInfos(connectionId);
     }
 
-    public Page<ChDatabaseInfo> listDatabasesPaged(Long connectionId, int page, int size, String sort, String order) {
-        List<ChDatabaseInfo> all = new ArrayList<>(listDatabaseInfos(connectionId));
+    public Page<DatabaseInfo> listDatabasesPaged(Long connectionId, int page, int size, String sort, String order) {
+        List<DatabaseInfo> all = new ArrayList<>(listDatabaseInfos(connectionId));
         boolean desc = "desc".equalsIgnoreCase(order);
         String sortBy = sort != null ? sort : "name";
-        java.util.Comparator<ChDatabaseInfo> comparator = "size".equals(sortBy)
+        java.util.Comparator<DatabaseInfo> comparator = "size".equals(sortBy)
                 ? (desc ? (a, b) -> Long.compare(b.getSizeOnDisk(), a.getSizeOnDisk()) : (a, b) -> Long.compare(a.getSizeOnDisk(), b.getSizeOnDisk()))
                 : (desc ? (a, b) -> b.getName().compareToIgnoreCase(a.getName()) : (a, b) -> a.getName().compareToIgnoreCase(b.getName()));
-        List<ChDatabaseInfo> sorted = all.stream().sorted(comparator).toList();
+        List<DatabaseInfo> sorted = all.stream().sorted(comparator).toList();
         return Page.of(sorted, page, size, sortBy, order != null ? order : "asc");
     }
 
-    public List<ChTableInfo> listTableInfos(Long connectionId, String dbName) {
+    public List<TableInfo> listTableInfos(Long connectionId, String dbName) {
         return clickHouseMetadataRepository.listTableInfos(connectionId, dbName);
     }
 
-    public Page<ChTableInfo> listTablesPaged(Long connectionId, String dbName, int page, int size, String sort, String order) {
-        List<ChTableInfo> all = new ArrayList<>(listTableInfos(connectionId, dbName));
+    public Page<TableInfo> listTablesPaged(Long connectionId, String dbName, int page, int size, String sort, String order) {
+        List<TableInfo> all = new ArrayList<>(listTableInfos(connectionId, dbName));
         boolean desc = "desc".equalsIgnoreCase(order);
         String sortBy = sort != null ? sort : "name";
-        java.util.Comparator<ChTableInfo> comparator;
+        java.util.Comparator<TableInfo> comparator;
         if ("type".equalsIgnoreCase(sortBy)) {
             comparator = desc ? (a, b) -> (b.getType() != null ? b.getType() : "").compareToIgnoreCase(a.getType() != null ? a.getType() : "")
                     : (a, b) -> (a.getType() != null ? a.getType() : "").compareToIgnoreCase(b.getType() != null ? b.getType() : "");
@@ -94,7 +94,7 @@ public class ClickHouseMetadataService {
         } else {
             comparator = desc ? (a, b) -> b.getName().compareToIgnoreCase(a.getName()) : (a, b) -> a.getName().compareToIgnoreCase(b.getName());
         }
-        List<ChTableInfo> sorted = all.stream().sorted(comparator).toList();
+        List<TableInfo> sorted = all.stream().sorted(comparator).toList();
         return Page.of(sorted, page, size, sortBy, order != null ? order : "asc");
     }
 
@@ -109,11 +109,11 @@ public class ClickHouseMetadataService {
             return Optional.of(QueryResult.error("Connection not available"));
         }
         String pagedSql = wrapWithLimitOffset(sql.trim(), limit, offset, sortBy, sortOrder);
-        Optional<ChQueryResultData> dataOpt = clickHouseMetadataRepository.executeQuery(connectionId, dbName, pagedSql);
+        Optional<QueryResultData> dataOpt = clickHouseMetadataRepository.executeQuery(connectionId, dbName, pagedSql);
         if (dataOpt.isEmpty()) {
             return Optional.of(QueryResult.error("Connection not available"));
         }
-        ChQueryResultData data = dataOpt.get();
+        QueryResultData data = dataOpt.get();
         boolean hasMore = data.getRows().size() == limit;
         List<List<Object>> rows = data.getRows();
         if (truncateCells) {

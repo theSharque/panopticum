@@ -3,9 +3,9 @@ package com.panopticum.mysql.repository;
 import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.core.util.SizeFormatter;
-import com.panopticum.mysql.model.MySqlDatabaseInfo;
-import com.panopticum.mysql.model.MySqlQueryResultData;
-import com.panopticum.mysql.model.MySqlTableInfo;
+import com.panopticum.core.model.DatabaseInfo;
+import com.panopticum.core.model.QueryResultData;
+import com.panopticum.core.model.TableInfo;
 import jakarta.inject.Singleton;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -88,18 +88,18 @@ public class MySqlMetadataRepository {
         return createConnectionToDb(conn, db);
     }
 
-    public List<MySqlDatabaseInfo> listDatabaseInfos(Long connectionId) {
+    public List<DatabaseInfo> listDatabaseInfos(Long connectionId) {
         try (Connection conn = getConnection(connectionId).orElse(null)) {
             if (conn == null) {
                 return List.of();
             }
-            List<MySqlDatabaseInfo> infos = new ArrayList<>();
+            List<DatabaseInfo> infos = new ArrayList<>();
             try (PreparedStatement ps = conn.prepareStatement(LIST_DATABASES_SQL);
                  ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     String name = rs.getString("schema_name");
                     long size = rs.getLong("size");
-                    infos.add(new MySqlDatabaseInfo(name, size, SizeFormatter.formatSize(size)));
+                    infos.add(new DatabaseInfo(name, size, SizeFormatter.formatSize(size)));
                 }
             }
             return infos;
@@ -109,12 +109,12 @@ public class MySqlMetadataRepository {
         }
     }
 
-    public List<MySqlTableInfo> listTableInfos(Long connectionId, String dbName) {
+    public List<TableInfo> listTableInfos(Long connectionId, String dbName) {
         try (Connection conn = getConnection(connectionId, dbName).orElse(null)) {
             if (conn == null || dbName == null || dbName.isBlank()) {
                 return List.of();
             }
-            List<MySqlTableInfo> tables = new ArrayList<>();
+            List<TableInfo> tables = new ArrayList<>();
             try (PreparedStatement ps = conn.prepareStatement(LIST_TABLES_SQL)) {
                 ps.setString(1, dbName);
                 try (ResultSet rs = ps.executeQuery()) {
@@ -124,7 +124,7 @@ public class MySqlMetadataRepository {
                         long rows = rs.getLong("table_rows");
                         long size = rs.getLong("size");
                         String typeStr = "BASE TABLE".equalsIgnoreCase(type) ? "table" : "view";
-                        tables.add(new MySqlTableInfo(name, typeStr, rows, size, SizeFormatter.formatSize(size)));
+                        tables.add(new TableInfo(name, typeStr, rows, size, SizeFormatter.formatSize(size)));
                     }
                 }
             }
@@ -135,7 +135,7 @@ public class MySqlMetadataRepository {
         }
     }
 
-    public Optional<MySqlQueryResultData> executeQuery(Long connectionId, String dbName, String sql) {
+    public Optional<QueryResultData> executeQuery(Long connectionId, String dbName, String sql) {
         try (Connection conn = getConnection(connectionId, dbName).orElse(null)) {
             if (conn == null) {
                 return Optional.empty();
@@ -162,7 +162,7 @@ public class MySqlMetadataRepository {
                     }
                     rows.add(row);
                 }
-                return Optional.of(new MySqlQueryResultData(columns, columnTypes, rows));
+                return Optional.of(new QueryResultData(columns, columnTypes, rows));
             }
         } catch (SQLException e) {
             log.warn("executeQuery failed: {}", e.getMessage());

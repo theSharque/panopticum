@@ -9,7 +9,7 @@ import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.cassandra.model.CassandraKeyspaceInfo;
-import com.panopticum.cassandra.model.CassandraQueryResultData;
+import com.panopticum.core.model.QueryResultData;
 import com.panopticum.cassandra.model.CassandraTableInfo;
 import jakarta.inject.Singleton;
 import lombok.RequiredArgsConstructor;
@@ -92,7 +92,7 @@ public class CassandraMetadataRepository {
         }
     }
 
-    public Optional<CassandraQueryResultData> executeCql(Long connectionId, String keyspaceName, String cql, int limit) {
+    public Optional<QueryResultData> executeCql(Long connectionId, String keyspaceName, String cql, int limit) {
         Optional<CqlSession> sessionOpt = createSession(connectionId, keyspaceName != null && !keyspaceName.isBlank() ? keyspaceName : null);
         if (sessionOpt.isEmpty()) {
             return Optional.empty();
@@ -106,7 +106,7 @@ public class CassandraMetadataRepository {
             ResultSet rs = session.execute(stmt);
             var defs = rs.getColumnDefinitions();
             if (defs == null || defs.size() == 0) {
-                return Optional.of(new CassandraQueryResultData(List.of(), List.of(), List.of()));
+                return Optional.of(new QueryResultData(List.of(), List.of(), List.of()));
             }
             int colCount = defs.size();
             List<String> columns = new ArrayList<>();
@@ -123,7 +123,7 @@ public class CassandraMetadataRepository {
                 }
                 rows.add(cellList);
             }
-            return Optional.of(new CassandraQueryResultData(columns, columnTypes, rows));
+            return Optional.of(new QueryResultData(columns, columnTypes, rows));
         } catch (Exception e) {
             log.warn("executeCql failed: {}", e.getMessage());
             return Optional.empty();

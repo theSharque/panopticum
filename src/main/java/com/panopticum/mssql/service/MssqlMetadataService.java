@@ -1,4 +1,4 @@
-package com.panopticum.postgres.service;
+package com.panopticum.mssql.service;
 
 import com.panopticum.core.model.DatabaseInfo;
 import com.panopticum.core.model.Page;
@@ -7,7 +7,7 @@ import com.panopticum.core.model.QueryResultData;
 import com.panopticum.core.model.SchemaInfo;
 import com.panopticum.core.model.TableInfo;
 import com.panopticum.core.util.StringUtils;
-import com.panopticum.postgres.repository.PgMetadataRepository;
+import com.panopticum.mssql.repository.MssqlMetadataRepository;
 import io.micronaut.context.annotation.Value;
 import jakarta.inject.Singleton;
 import lombok.RequiredArgsConstructor;
@@ -20,37 +20,37 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Singleton
 @Slf4j
 @RequiredArgsConstructor
-public class PgMetadataService {
+public class MssqlMetadataService {
 
-    private static final String POSTGRESQL_PREFIX = "jdbc:postgresql://";
+    private static final String MSSQL_PREFIX = "jdbc:sqlserver://";
 
-    private final PgMetadataRepository pgMetadataRepository;
+    private static final Pattern FROM_TABLE = Pattern.compile("(?i)FROM\\s+([^\\s,;()]+)(?:\\s+[Aa][Ss]\\s+[^\\s,;()]+)?(?=[\\s,;(]|$)");
+
+    private final MssqlMetadataRepository mssqlMetadataRepository;
 
     @Value("${panopticum.limits.query-rows:1000}")
     private int queryRowsLimit;
 
-    @Value("${panopticum.limits.tables:1000}")
-    private int tablesLimit;
-
     public Optional<Connection> getConnection(Long connectionId) {
-        return pgMetadataRepository.getConnection(connectionId);
+        return mssqlMetadataRepository.getConnection(connectionId);
     }
 
     public Optional<Connection> getConnection(Long connectionId, String dbName) {
-        return pgMetadataRepository.getConnection(connectionId, dbName);
+        return mssqlMetadataRepository.getConnection(connectionId, dbName);
     }
 
-    public Optional<String> testConnection(String host, int port, String dbName, String username, String password) {
-        if (host == null || host.isBlank() || dbName == null || dbName.isBlank() || username == null || username.isBlank()) {
+    public Optional<String> testConnection(String host, int port, String database, String username, String password) {
+        if (host == null || host.isBlank() || database == null || database.isBlank() || username == null || username.isBlank()) {
             return Optional.of("error.specifyHostDbUser");
         }
-        String url = POSTGRESQL_PREFIX + host.trim() + ":" + port + "/" + dbName.trim();
+        String url = MSSQL_PREFIX + host.trim() + ":" + port + ";databaseName=" + database.trim() + ";encrypt=false;trustServerCertificate=true";
         try (Connection c = DriverManager.getConnection(url, username.trim(), password != null ? password : "")) {
             return Optional.empty();
         } catch (Exception e) {
@@ -58,12 +58,8 @@ public class PgMetadataService {
         }
     }
 
-    public List<String> listDatabases(Long connectionId) {
-        return pgMetadataRepository.listDatabaseInfos(connectionId).stream().map(DatabaseInfo::getName).toList();
-    }
-
     public List<DatabaseInfo> listDatabaseInfos(Long connectionId) {
-        return pgMetadataRepository.listDatabaseInfos(connectionId);
+        return mssqlMetadataRepository.listDatabaseInfos(connectionId);
     }
 
     public Page<DatabaseInfo> listDatabasesPaged(Long connectionId, int page, int size, String sort, String order) {
@@ -77,12 +73,8 @@ public class PgMetadataService {
         return Page.of(sorted, page, size, sortBy, order != null ? order : "asc");
     }
 
-    public List<String> listSchemas(Long connectionId, String dbName, int offset, int limit) {
-        return pgMetadataRepository.listSchemaInfos(connectionId, dbName).stream().map(SchemaInfo::getName).toList();
-    }
-
     public List<SchemaInfo> listSchemaInfos(Long connectionId, String dbName) {
-        return pgMetadataRepository.listSchemaInfos(connectionId, dbName);
+        return mssqlMetadataRepository.listSchemaInfos(connectionId, dbName);
     }
 
     public Page<SchemaInfo> listSchemasPaged(Long connectionId, String dbName, int page, int size, String sort, String order) {
@@ -102,14 +94,8 @@ public class PgMetadataService {
         return Page.of(sorted, page, size, sortBy, order != null ? order : "asc");
     }
 
-    public List<TableInfo> listTables(Long connectionId, String dbName, String schema, int offset, int limit) {
-        List<TableInfo> all = pgMetadataRepository.listTableInfos(connectionId, dbName, schema);
-        int end = Math.min(offset + Math.min(limit, tablesLimit - offset), all.size());
-        return offset < all.size() ? all.subList(offset, end) : List.of();
-    }
-
     public List<TableInfo> listTableInfos(Long connectionId, String dbName, String schema) {
-        return pgMetadataRepository.listTableInfos(connectionId, dbName, schema);
+        return mssqlMetadataRepository.listTableInfos(connectionId, dbName, schema);
     }
 
     public Page<TableInfo> listTablesPaged(Long connectionId, String dbName, String schema, int page, int size, String sort, String order) {
@@ -138,11 +124,11 @@ public class PgMetadataService {
 
     public Optional<QueryResult> executeQuery(Long connectionId, String dbName, String sql, int offset, int limit,
                                               String sortBy, String sortOrder, boolean truncateCells) {
-        if (pgMetadataRepository.getConnection(connectionId, dbName).isEmpty()) {
+        if (mssqlMetadataRepository.getConnection(connectionId, dbName).isEmpty()) {
             return Optional.of(QueryResult.error("Connection not available"));
         }
         String pagedSql = wrapWithLimitOffset(sql.trim(), limit, offset, sortBy, sortOrder);
-        Optional<QueryResultData> dataOpt = pgMetadataRepository.executeQuery(connectionId, dbName, pagedSql);
+        Optional<QueryResultData> dataOpt = mssqlMetadataRepository.executeQuery(connectionId, dbName, pagedSql);
         if (dataOpt.isEmpty()) {
             return Optional.of(QueryResult.error("Connection not available"));
         }
@@ -173,15 +159,13 @@ public class PgMetadataService {
         String orderBy;
         if (sortBy != null && !sortBy.isBlank() && sortOrder != null && !sortOrder.isBlank()
                 && ("asc".equalsIgnoreCase(sortOrder) || "desc".equalsIgnoreCase(sortOrder))) {
-            String quotedCol = "\"" + sortBy.replace("\"", "\"\"") + "\"";
+            String quotedCol = "[" + sortBy.replace("]", "]]") + "]";
             orderBy = " ORDER BY " + quotedCol + " " + sortOrder.toUpperCase();
         } else {
             orderBy = " ORDER BY 1 ASC";
         }
-        return "SELECT * FROM (" + trimmed + ") AS _paged" + orderBy + " LIMIT " + maxLimit + " OFFSET " + Math.max(0, offset);
+        return "SELECT * FROM (" + trimmed + ") AS _paged" + orderBy + " OFFSET " + Math.max(0, offset) + " ROWS FETCH NEXT " + maxLimit + " ROWS ONLY";
     }
-
-    private static final Pattern FROM_TABLE = Pattern.compile("(?i)FROM\\s+([^\\s,;()]+)(?:\\s+[Aa][Ss]\\s+[^\\s,;()]+)?(?=[\\s,;(]|$)");
 
     public Optional<String> parseTableFromSql(String sql) {
         if (sql == null || sql.isBlank()) {
@@ -198,149 +182,168 @@ public class PgMetadataService {
         return tableRef.isBlank() ? Optional.empty() : Optional.of(tableRef);
     }
 
-    public Map<String, Object> getDetailRowWithCtid(Long connectionId, String dbName, String schema, String sql,
-                                                   int rowNum, String sortBy, String sortOrder) {
+    public Map<String, Object> getDetailRow(Long connectionId, String dbName, String schema, String sql, int rowNum,
+                                            String sortBy, String sortOrder) {
         Map<String, Object> out = new LinkedHashMap<>();
         Optional<String> tableRef = parseTableFromSql(sql);
 
         if (tableRef.isEmpty()) {
             out.put("error", "Could not determine table from SQL.");
+            out.put("editable", false);
+            out.put("detailRows", List.<Map<String, String>>of());
             return out;
         }
 
         String qualified = tableRef.get();
-        String schemaName = schema;
-        String tableName = null;
-        String normalized = qualified.replace("\".\"", "\u0000");
-        String[] parts = normalized.split("\u0000");
-
-        if (parts.length == 2) {
-            schemaName = parts[0].replace("\"", "").trim();
-            tableName = parts[1].replace("\"", "").trim();
-        } else if (qualified.contains(".")) {
-            String[] dotParts = qualified.split("\\.", 2);
-            schemaName = dotParts[0].replace("\"", "").trim();
-            tableName = dotParts[1].replace("\"", "").trim();
-        } else {
-            tableName = qualified.replace("\"", "").trim();
+        String schemaName = parseSchemaName(qualified, schema);
+        String tableName = parseTableName(qualified, schema);
+        if (tableName == null) {
+            tableName = qualified.replace("[", "").replace("]", "").trim();
+        }
+        if (schemaName == null || schemaName.isBlank()) {
+            schemaName = "dbo";
         }
 
-        Map<String, String> columnTypes = (schemaName != null && tableName != null)
-                ? pgMetadataRepository.getColumnTypes(connectionId, dbName, schemaName, tableName)
-                : Map.of();
+        List<String> uniqueKeyColumns = mssqlMetadataRepository.getUniqueKeyColumns(connectionId, dbName, schemaName, tableName);
+        boolean editable = !uniqueKeyColumns.isEmpty();
 
-        String modifiedSql = sql.strip().replaceFirst(";+\\s*$", "")
-                .replaceFirst("(?i)SELECT\\s+\\*", "SELECT *, " + qualified + ".ctid");
-        String pagedSql = wrapWithLimitOffset(modifiedSql, 1, rowNum, sortBy, sortOrder);
-        Optional<Map<String, Object>> rowOpt = pgMetadataRepository.executeQuerySingleRow(connectionId, dbName, pagedSql);
+        Map<String, String> columnTypes = mssqlMetadataRepository.getColumnTypes(connectionId, dbName, schemaName, tableName);
+
+        String pagedSql = wrapWithLimitOffset(sql.strip().replaceFirst(";+\\s*$", ""), 1, rowNum, sortBy, sortOrder);
+        Optional<Map<String, Object>> rowOpt = mssqlMetadataRepository.executeQuerySingleRow(connectionId, dbName, pagedSql);
 
         if (rowOpt.isEmpty()) {
             out.put("error", "error.connectionNotAvailable");
+            out.put("editable", false);
+            out.put("detailRows", List.<Map<String, String>>of());
             return out;
         }
 
         Map<String, Object> row = rowOpt.get();
         if (row.isEmpty()) {
             out.put("error", "No row at this position.");
+            out.put("editable", false);
+            out.put("detailRows", List.<Map<String, String>>of());
             return out;
         }
 
         List<Map<String, String>> detailRows = new ArrayList<>();
-        String rowCtid = null;
+        Set<String> keySet = Set.copyOf(uniqueKeyColumns);
         for (Map.Entry<String, Object> e : row.entrySet()) {
-            if ("ctid".equalsIgnoreCase(e.getKey())) {
-                rowCtid = e.getValue() != null ? e.getValue().toString() : null;
-                continue;
-            }
             Map<String, String> entry = new LinkedHashMap<>();
             entry.put("name", e.getKey());
             entry.put("type", columnTypes.getOrDefault(e.getKey(), "unknown"));
             entry.put("value", e.getValue() != null ? e.getValue().toString() : "");
+            entry.put("readOnly", String.valueOf(keySet.contains(e.getKey())));
             detailRows.add(entry);
         }
 
         out.put("detailRows", detailRows);
-        out.put("rowCtid", rowCtid != null ? rowCtid : "");
+        out.put("editable", editable);
+        out.put("uniqueKeyColumns", uniqueKeyColumns);
+        out.put("uniqueKeyColumnsJoined", String.join(",", uniqueKeyColumns));
+        out.put("qualifiedTable", qualified);
 
         return out;
     }
 
-    public Optional<String> executeUpdateByCtid(Long connectionId, String dbName, String qualifiedTable,
-                                                String ctid, Map<String, String> columnValues) {
-        if (ctid == null || ctid.isBlank() || qualifiedTable == null || qualifiedTable.isBlank()) {
-            return Optional.of("Missing ctid or table.");
+    private String parseSchemaName(String qualified, String defaultSchema) {
+        String normalized = qualified.replace("].[", "\u0000");
+        String[] parts = normalized.split("\u0000");
+        if (parts.length == 2) {
+            return parts[0].replace("[", "").trim();
         }
+        if (qualified.contains(".")) {
+            String[] dotParts = qualified.split("\\.", 2);
+            return dotParts[0].replace("[", "").replace("]", "").trim();
+        }
+        return defaultSchema;
+    }
 
+    private String parseTableName(String qualified, String defaultSchema) {
+        String normalized = qualified.replace("].[", "\u0000");
+        String[] parts = normalized.split("\u0000");
+        if (parts.length == 2) {
+            return parts[1].replace("]", "").trim();
+        }
+        if (qualified.contains(".")) {
+            String[] dotParts = qualified.split("\\.", 2);
+            return dotParts[1].replace("[", "").replace("]", "").trim();
+        }
+        return qualified.replace("[", "").replace("]", "").trim();
+    }
+
+    public Optional<String> executeUpdateByKey(Long connectionId, String dbName, String schema, String qualifiedTable,
+                                              List<String> uniqueKeyColumns, Map<String, Object> keyValues,
+                                              Map<String, String> columnValues) {
+        if (uniqueKeyColumns == null || uniqueKeyColumns.isEmpty()) {
+            return Optional.of("No primary key or unique index.");
+        }
+        if (qualifiedTable == null || qualifiedTable.isBlank()) {
+            return Optional.of("Invalid table.");
+        }
         if (columnValues == null || columnValues.isEmpty()) {
             return Optional.empty();
         }
 
-        String schemaName = null;
-        String tableName = qualifiedTable.replace("\"", "").trim();
-        String normalized = qualifiedTable.replace("\".\"", "\u0000");
-        String[] parts = normalized.split("\u0000");
-
-        if (parts.length == 2) {
-            schemaName = parts[0].replace("\"", "").trim();
-            tableName = parts[1].replace("\"", "").trim();
-        } else if (qualifiedTable.contains(".")) {
-            String[] dotParts = qualifiedTable.split("\\.", 2);
-            schemaName = dotParts[0].replace("\"", "").trim();
-            tableName = dotParts[1].replace("\"", "").trim();
+        String schemaName = parseSchemaName(qualifiedTable, schema);
+        String tableName = parseTableName(qualifiedTable, schema);
+        if (schemaName == null || schemaName.isBlank()) {
+            schemaName = "dbo";
         }
 
-        Map<String, String> columnTypes = (schemaName != null && tableName != null)
-                ? pgMetadataRepository.getColumnTypes(connectionId, dbName, schemaName, tableName)
-                : Map.of();
+        String fullTable = "[" + schemaName.replace("]", "]]") + "].[" + tableName.replace("]", "]]") + "]";
+
+        Map<String, String> columnTypes = mssqlMetadataRepository.getColumnTypes(connectionId, dbName, schemaName, tableName);
+        Set<String> keySet = Set.copyOf(uniqueKeyColumns);
+
         List<String> setParts = new ArrayList<>();
-        List<String> values = new ArrayList<>();
+        List<Object> params = new ArrayList<>();
+
         for (Map.Entry<String, String> e : columnValues.entrySet()) {
-            if ("ctid".equalsIgnoreCase(e.getKey())) {
+            if (keySet.contains(e.getKey())) {
                 continue;
             }
-            String quoted = "\"" + e.getKey().replace("\"", "\"\"") + "\"";
+            String quoted = "[" + e.getKey().replace("]", "]]") + "]";
             String dataType = columnTypes.get(e.getKey());
             String cast = sqlCastForDataType(dataType);
             setParts.add(quoted + " = " + cast);
             String raw = e.getValue();
-            values.add((raw == null || raw.isBlank()) && isScalarDataType(dataType) ? null : (raw != null ? raw : ""));
+            params.add((raw == null || raw.isBlank()) && isScalarDataType(dataType) ? null : (raw != null ? raw : ""));
         }
 
         if (setParts.isEmpty()) {
             return Optional.empty();
         }
 
-        if (tableName == null || tableName.isBlank()) {
-            return Optional.of("Invalid table.");
+        List<String> whereParts = new ArrayList<>();
+        for (String col : uniqueKeyColumns) {
+            Object val = keyValues != null ? keyValues.get(col) : null;
+            if (val == null) {
+                return Optional.of("Missing key value for " + col);
+            }
+            String quoted = "[" + col.replace("]", "]]") + "]";
+            String dataType = columnTypes.get(col);
+            String cast = sqlCastForDataType(dataType);
+            whereParts.add(quoted + " = " + cast);
+            params.add(val);
         }
 
-        String trimmedCtid = ctid.trim();
-        if (!trimmedCtid.matches("\\(\\d+\\s*,\\s*\\d+\\)")) {
-            return Optional.of("Invalid ctid format.");
-        }
-
-        String qualified = (schemaName != null && !schemaName.isBlank())
-                ? "\"" + schemaName.replace("\"", "\"\"") + "\".\"" + tableName.replace("\"", "\"\"") + "\""
-                : "\"" + tableName.replace("\"", "\"\"") + "\"";
-        String updateSql = "UPDATE " + qualified + " SET " + String.join(", ", setParts) + " WHERE ctid = '" + trimmedCtid + "'::tid";
-
-        return pgMetadataRepository.executeUpdate(connectionId, dbName, updateSql, values);
+        String updateSql = "UPDATE " + fullTable + " SET " + String.join(", ", setParts) + " WHERE " + String.join(" AND ", whereParts);
+        return mssqlMetadataRepository.executeUpdate(connectionId, dbName, updateSql, params);
     }
 
     private static String sqlCastForDataType(String dataType) {
         if (dataType == null) {
             return "?";
         }
-        return switch (dataType) {
-            case "bigint", "integer", "smallint", "numeric" -> "?::" + dataType;
-            case "double precision" -> "?::double precision";
-            case "real" -> "?::real";
-            case "timestamp without time zone" -> "?::timestamp";
-            case "timestamp with time zone" -> "?::timestamptz";
-            case "date" -> "?::date";
-            case "time without time zone" -> "?::time";
-            case "time with time zone" -> "?::timetz";
-            case "boolean" -> "?::boolean";
+        return switch (dataType.toLowerCase()) {
+            case "bigint", "int", "integer", "smallint", "tinyint" -> "CAST(? AS BIGINT)";
+            case "decimal", "numeric", "float", "real" -> "CAST(? AS DECIMAL(38,10))";
+            case "date" -> "CAST(? AS DATE)";
+            case "datetime", "datetime2", "smalldatetime" -> "CAST(? AS DATETIME2)";
+            case "time" -> "CAST(? AS TIME)";
+            case "bit" -> "CAST(? AS BIT)";
             default -> "?";
         };
     }
@@ -349,11 +352,7 @@ public class PgMetadataService {
         if (dataType == null) {
             return false;
         }
-        return switch (dataType) {
-            case "bigint", "integer", "smallint", "numeric", "double precision", "real",
-                    "timestamp without time zone", "timestamp with time zone", "date",
-                    "time without time zone", "time with time zone", "boolean" -> true;
-            default -> false;
-        };
+        String lower = dataType.toLowerCase();
+        return lower.matches("(bigint|int|integer|smallint|tinyint|decimal|numeric|float|real|date|datetime|datetime2|smalldatetime|time|bit)");
     }
 }

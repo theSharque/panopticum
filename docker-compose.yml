@@ -5,6 +5,7 @@
 # - ClickHouse: http://localhost:43003 (default user, no password)
 # - MySQL: host=localhost, port=43005, db=panopticum_dev, user=panopticum, password=panopticum
 # - Cassandra: host=localhost, port=43006, keyspace optional (e.g. create panopticum_dev via cqlsh)
+# - MS SQL: host=localhost, port=43007, db=panopticum_dev, user=sa, password=Pan0pticum!
 
 services:
   postgres:
@@ -90,6 +91,31 @@ services:
       retries: 10
       start_period: 30s
 
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    ports:
+      - "43007:1433"
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "Pan0pticum!"
+    volumes:
+      - mssql_data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P $$MSSQL_SA_PASSWORD -Q 'SELECT 1' -C -b || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+  mssql-init:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    depends_on:
+      mssql:
+        condition: service_healthy
+    volumes:
+      - ./docker/mssql-init/init.sql:/init.sql
+    entrypoint: ["/opt/mssql-tools18/bin/sqlcmd", "-S", "mssql", "-U", "sa", "-P", "Pan0pticum!", "-C", "-i", "/init.sql"]
+
 volumes:
   postgres_data:
   mongodb_data:
@@ -97,3 +123,4 @@ volumes:
   clickhouse_data:
   mysql_data:
   cassandra_data:
+  mssql_data:

@@ -5,7 +5,7 @@ import com.panopticum.core.model.Page;
 import com.panopticum.core.model.QueryResult;
 import com.panopticum.core.util.StringUtils;
 import com.panopticum.cassandra.model.CassandraKeyspaceInfo;
-import com.panopticum.cassandra.model.CassandraQueryResultData;
+import com.panopticum.core.model.QueryResultData;
 import com.panopticum.cassandra.model.CassandraTableInfo;
 import com.panopticum.cassandra.repository.CassandraMetadataRepository;
 import io.micronaut.context.annotation.Value;
@@ -198,11 +198,11 @@ public class CassandraMetadataService {
 
     public Optional<QueryResult> executeQuery(Long connectionId, String keyspaceName, String cql, int offset, int limit, boolean truncateCells) {
         int lim = Math.min(limit > 0 ? limit : 100, queryRowsLimit);
-        Optional<CassandraQueryResultData> dataOpt = cassandraMetadataRepository.executeCql(connectionId, keyspaceName, cql, lim);
+        Optional<QueryResultData> dataOpt = cassandraMetadataRepository.executeCql(connectionId, keyspaceName, cql, lim);
         if (dataOpt.isEmpty()) {
             return Optional.of(QueryResult.error("error.connectionNotAvailable"));
         }
-        CassandraQueryResultData data = dataOpt.get();
+        QueryResultData data = dataOpt.get();
         boolean hasMore = data.getRows() != null && data.getRows().size() == lim;
         List<List<Object>> rows = data.getRows() != null ? new ArrayList<>(data.getRows()) : List.of();
         if (truncateCells) {

@@ -24,6 +24,11 @@ public final class JdbcUrlParser {
 
         String type = m.group(1).toLowerCase();
         String rest = m.group(2);
+
+        if ("sqlserver".equals(type)) {
+            return parseSqlServerUrl(rest);
+        }
+
         String authority = rest;
         String path = "";
         String query = "";
@@ -90,6 +95,49 @@ public final class JdbcUrlParser {
         }
 
         return new JdbcUrlParts(type, host, port, database, username, password);
+    }
+
+    private static JdbcUrlParts parseSqlServerUrl(String rest) {
+        String host = "localhost";
+        int port = -1;
+        String database = "";
+        String username = null;
+        String password = null;
+
+        String[] segments = rest.split(";");
+        if (segments.length > 0 && !segments[0].isBlank()) {
+            String first = segments[0].trim();
+            int colon = first.indexOf(':');
+            if (colon >= 0) {
+                host = first.substring(0, colon).trim();
+                if (host.isBlank()) {
+                    host = "localhost";
+                }
+                try {
+                    port = Integer.parseInt(first.substring(colon + 1).trim());
+                } catch (NumberFormatException ignored) {
+                }
+            } else {
+                host = first.isBlank() ? "localhost" : first;
+            }
+        }
+
+        for (int i = 1; i < segments.length; i++) {
+            String seg = segments[i].trim();
+            int eq = seg.indexOf('=');
+            if (eq > 0) {
+                String key = seg.substring(0, eq).trim().toLowerCase();
+                String value = decode(seg.substring(eq + 1).trim());
+                switch (key) {
+                    case "databasename", "database" -> database = value != null ? value : "";
+                    case "user" -> username = value;
+                    case "password" -> password = value;
+                    default -> { }
+                }
+            }
+        }
+
+        return new JdbcUrlParts("sqlserver", host, port, database, username, password);
     }
 
     private static String decode(String s) {

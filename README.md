@@ -16,6 +16,7 @@ A tool for developers and QA — web interface for viewing and managing database
 |------|----------|
 | **PostgreSQL** | Browse databases, schemas, tables; run SQL; edit rows |
 | **MySQL (MariaDB)** | Browse databases and tables; run SQL; edit rows (if table has PK or unique index) |
+| **MS SQL Server** | Browse databases, schemas, tables; run SQL; edit rows (if table has PK or unique index) |
 | **MongoDB** | Browse databases and collections; run queries |
 | **Redis** | Browse databases and keys; view key types and values |
 | **ClickHouse** | Browse databases and tables; run SQL |
@@ -30,8 +31,8 @@ Connections are stored in H2. In Settings you can add connections, test them, an
 - Sidebar with saved connections and quick access to Settings
 - Add, test, and remove connections per database type
 - Browse metadata (schemas, tables, collections, keys) with pagination
-- Execute SQL (PostgreSQL, MySQL/MariaDB, ClickHouse, Cassandra CQL) and queries (MongoDB)
-- Edit and save rows in detail view (PostgreSQL, MySQL when table has PK/unique, MongoDB, Redis, Cassandra when table has primary key)
+- Execute SQL (PostgreSQL, MySQL/MariaDB, MS SQL Server, ClickHouse, Cassandra CQL) and queries (MongoDB)
+- Edit and save rows in detail view (PostgreSQL, MySQL, MS SQL Server when table has PK/unique, MongoDB, Redis, Cassandra when table has primary key)
 - HTMX for partial updates without full page reloads
 - Localization: EN and RU (browser or path)
 
@@ -58,8 +59,8 @@ If the `db_connections` table is **empty** at startup, the app reads the environ
 
 Value: a JSON array of connection objects. Each object can be specified in one of two ways:
 
-1. **Explicit fields:** `name`, `type`, `host`, `port`, `database`, `username`, `password`. Supported `type` values: `postgresql`, `mongodb`, `redis`, `clickhouse`, `mysql`, `cassandra`.
-2. **JDBC URL:** `name` and `jdbcUrl` (or `url`). The URL is parsed to derive type, host, port, database, username, and password. Supported for PostgreSQL, MySQL, and ClickHouse (e.g. `jdbc:postgresql://user:pass@host:5432/dbname`).
+1. **Explicit fields:** `name`, `type`, `host`, `port`, `database`, `username`, `password`. Supported `type` values: `postgresql`, `mongodb`, `redis`, `clickhouse`, `mysql`, `sqlserver`, `cassandra`.
+2. **JDBC URL:** `name` and `jdbcUrl` (or `url`). The URL is parsed to derive type, host, port, database, username, and password. Supported for PostgreSQL, MySQL, MS SQL Server, and ClickHouse (e.g. `jdbc:postgresql://user:pass@host:5432/dbname`, `jdbc:sqlserver://host:1433;databaseName=db;user=sa;password=secret`).
 
 Example:
 

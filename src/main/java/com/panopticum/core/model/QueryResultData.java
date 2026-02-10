@@ -1,5 +1,6 @@
-package com.panopticum.mysql.model;
+package com.panopticum.core.model;
 
+import io.micronaut.core.annotation.Introspected;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -9,7 +10,8 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class MySqlQueryResultData {
+@Introspected
+public class QueryResultData {
 
     private List<String> columns;
     private List<String> columnTypes;

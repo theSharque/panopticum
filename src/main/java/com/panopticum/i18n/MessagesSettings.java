@@ -27,6 +27,7 @@ public final class MessagesSettings {
             Map.entry("settings.placeholderNameRedis", "e.g. Production Redis"),
             Map.entry("settings.placeholderNameCh", "e.g. Production ClickHouse"),
             Map.entry("settings.placeholderNameMysql", "e.g. Production MySQL"),
+            Map.entry("settings.placeholderNameMssql", "e.g. Production MS SQL"),
             Map.entry("settings.placeholderNameCassandra", "e.g. Production Cassandra")
     );
 
@@ -50,6 +51,7 @@ public final class MessagesSettings {
             Map.entry("settings.placeholderNameRedis", "Например: Production Redis"),
             Map.entry("settings.placeholderNameCh", "Например: Production ClickHouse"),
             Map.entry("settings.placeholderNameMysql", "Например: Production MySQL"),
+            Map.entry("settings.placeholderNameMssql", "Например: Production MS SQL"),
             Map.entry("settings.placeholderNameCassandra", "Например: Production Cassandra")
     );
 }

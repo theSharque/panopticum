@@ -6,8 +6,8 @@ import com.panopticum.core.model.Page;
 import com.panopticum.core.model.QueryResult;
 import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.core.util.ControllerModelHelper;
-import com.panopticum.clickhouse.model.ChDatabaseInfo;
-import com.panopticum.clickhouse.model.ChTableInfo;
+import com.panopticum.core.model.DatabaseInfo;
+import com.panopticum.core.model.TableInfo;
 import com.panopticum.clickhouse.service.ClickHouseMetadataService;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.http.HttpResponse;
@@ -65,7 +65,7 @@ public class ClickHouseController {
         model.put("itemType", "database");
         model.put("itemUrlPrefix", "/ch/" + id + "/");
 
-        Page<ChDatabaseInfo> paged = clickHouseMetadataService.listDatabasesPaged(id, page, size, sort, order);
+        Page<DatabaseInfo> paged = clickHouseMetadataService.listDatabasesPaged(id, page, size, sort, order);
         ControllerModelHelper.addPagination(model, paged, "items");
         ControllerModelHelper.addOrderToggles(model, paged.getSort(), paged.getOrder(),
                 Map.of("name", "orderName", "size", "orderSize"));
@@ -99,7 +99,7 @@ public class ClickHouseController {
         model.put("connectionId", id);
         model.put("dbName", dbName);
 
-        Page<ChTableInfo> paged = clickHouseMetadataService.listTablesPaged(id, dbName, page, size, sort, order);
+        Page<TableInfo> paged = clickHouseMetadataService.listTablesPaged(id, dbName, page, size, sort, order);
         ControllerModelHelper.addPagination(model, paged, "tables");
         ControllerModelHelper.addOrderToggles(model, paged.getSort(), paged.getOrder(),
                 Map.of("name", "orderName", "type", "orderType", "rows", "orderRows", "size", "orderSize"));

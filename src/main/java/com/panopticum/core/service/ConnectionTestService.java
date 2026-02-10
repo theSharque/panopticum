@@ -3,6 +3,7 @@ package com.panopticum.core.service;
 import com.panopticum.cassandra.service.CassandraMetadataService;
 import com.panopticum.clickhouse.service.ClickHouseMetadataService;
 import com.panopticum.mongo.service.MongoMetadataService;
+import com.panopticum.mssql.service.MssqlMetadataService;
 import com.panopticum.mysql.service.MySqlMetadataService;
 import com.panopticum.postgres.service.PgMetadataService;
 import com.panopticum.redis.service.RedisMetadataService;
@@ -21,6 +22,7 @@ public class ConnectionTestService {
     private final RedisMetadataService redisMetadataService;
     private final ClickHouseMetadataService clickHouseMetadataService;
     private final MySqlMetadataService mySqlMetadataService;
+    private final MssqlMetadataService mssqlMetadataService;
     private final CassandraMetadataService cassandraMetadataService;
 
     public Optional<String> test(String type, String host, Integer port, String database,
@@ -50,6 +52,7 @@ public class ConnectionTestService {
             case "clickhouse" -> clickHouseMetadataService.testConnection(h, p,
                     db.isBlank() ? "default" : db, user, pass);
             case "mysql" -> mySqlMetadataService.testConnection(h, p, db, user, pass);
+            case "sqlserver" -> mssqlMetadataService.testConnection(h, p, db, user, pass);
             case "cassandra" -> cassandraMetadataService.testConnection(h, p, db, user, pass);
             default -> Optional.of("error.specifyHostDbUser");
         };
@@ -65,6 +68,7 @@ public class ConnectionTestService {
             case "redis" -> 6379;
             case "clickhouse" -> 8123;
             case "mysql" -> 3306;
+            case "sqlserver" -> 1433;
             case "cassandra" -> 9042;
             default -> 5432;
         };

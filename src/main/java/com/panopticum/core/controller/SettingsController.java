@@ -156,6 +156,27 @@ public class SettingsController {
         return testConnectionResult(request, "mysql", host, port, database, username, password);
     }
 
+    @Post("/add-mssql")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @Produces(MediaType.TEXT_HTML)
+    public Object addMssql(HttpRequest<?> request,
+                           String name, String host, Integer port, String database, String username, String password) {
+        DbConnection conn = dbConnectionFactory.build("sqlserver", name, host, port, database, username, password);
+        DbConnection saved = dbConnectionService.save(conn);
+        Map<String, Object> model = new HashMap<>();
+        model.put("connections", dbConnectionService.findAll());
+
+        return responseAfterAdd(request, model, saved.getId(), "/mssql/" + saved.getId());
+    }
+
+    @Post("/test-mssql")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @Produces(MediaType.TEXT_HTML)
+    public ModelAndView<Map<String, Object>> testMssql(HttpRequest<?> request,
+            String host, Integer port, String database, String username, String password) {
+        return testConnectionResult(request, "sqlserver", host, port, database, username, password);
+    }
+
     @Post("/add-cassandra")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces(MediaType.TEXT_HTML)

@@ -1,4 +1,4 @@
-package com.panopticum.postgres.repository;
+package com.panopticum.mssql.repository;
 
 import com.panopticum.core.model.DatabaseInfo;
 import com.panopticum.core.model.DbConnection;
@@ -27,27 +27,36 @@ import java.util.Optional;
 @Singleton
 @Slf4j
 @RequiredArgsConstructor
-public class PgMetadataRepository {
-
-    private static final String POSTGRESQL_PREFIX = "jdbc:postgresql://";
+public class MssqlMetadataRepository {
 
     private static final String LIST_DATABASES_SQL =
-            "SELECT datname, pg_database_size(datname)::bigint AS size FROM pg_catalog.pg_database WHERE datistemplate = false";
+            "SELECT d.name, COALESCE(SUM(CAST(mf.size AS BIGINT) * 8192), 0) AS size "
+                    + "FROM sys.databases d "
+                    + "LEFT JOIN sys.master_files mf ON d.database_id = mf.database_id "
+                    + "WHERE d.name NOT IN ('master','tempdb','model','msdb') "
+                    + "GROUP BY d.name, d.database_id ORDER BY d.name";
 
     private static final String LIST_SCHEMAS_SQL =
-            "SELECT s.schema_name, s.schema_owner, (SELECT count(*) FROM information_schema.tables t WHERE t.table_schema = s.schema_name AND t.table_type IN ('BASE TABLE', 'VIEW'))::int AS table_count "
-                    + "FROM information_schema.schemata s WHERE s.schema_name NOT IN ('information_schema', 'pg_catalog') AND s.schema_name NOT LIKE 'pg_toast%'";
+            "SELECT s.name, ISNULL(USER_NAME(s.principal_id), '') AS owner, "
+                    + "(SELECT COUNT(*) FROM sys.objects o WHERE o.schema_id = s.schema_id AND o.type IN ('U','V')) AS table_count "
+                    + "FROM sys.schemas s ORDER BY s.name";
 
     private static final String LIST_TABLES_SQL =
-            "SELECT c.relname, CASE c.relkind WHEN 'r' THEN 'table' WHEN 'v' THEN 'view' END AS reltype, "
-                    + "COALESCE(c.reltuples::bigint, 0) AS row_estimate, COALESCE(pg_total_relation_size(c.oid), 0)::bigint AS size "
-                    + "FROM pg_class c JOIN pg_namespace n ON c.relnamespace = n.oid "
-                    + "WHERE n.nspname = ? AND c.relkind IN ('r','v') ORDER BY c.relname";
+            "SELECT o.name, CASE o.type WHEN 'U' THEN 'table' WHEN 'V' THEN 'view' END AS reltype, "
+                    + "COALESCE((SELECT SUM(p.rows) FROM sys.partitions p WHERE p.object_id = o.object_id AND p.index_id IN (0,1)), 0) AS row_count, "
+                    + "COALESCE((SELECT SUM(au.total_pages * 8192) FROM sys.allocation_units au INNER JOIN sys.partitions p ON au.container_id = p.partition_id WHERE p.object_id = o.object_id), 0) AS size "
+                    + "FROM sys.objects o "
+                    + "WHERE o.schema_id = SCHEMA_ID(?) AND o.type IN ('U','V') ORDER BY o.name";
 
     private static final String COLUMN_TYPES_SQL =
             "SELECT column_name, data_type FROM information_schema.columns WHERE table_schema = ? AND table_name = ? ORDER BY ordinal_position";
 
     private final DbConnectionService dbConnectionService;
+
+    private static String buildJdbcUrl(String host, int port, String database) {
+        String db = database != null && !database.isBlank() ? database : "master";
+        return "jdbc:sqlserver://" + host + ":" + port + ";databaseName=" + db + ";encrypt=false;trustServerCertificate=true";
+    }
 
     public Optional<Connection> getConnection(Long connectionId) {
         return dbConnectionService.findById(connectionId).flatMap(this::createConnection);
@@ -55,17 +64,15 @@ public class PgMetadataRepository {
 
     public Optional<Connection> getConnection(Long connectionId, String dbName) {
         return dbConnectionService.findById(connectionId)
-                .filter(c -> "postgresql".equalsIgnoreCase(c.getType()))
+                .filter(c -> "sqlserver".equalsIgnoreCase(c.getType()))
                 .flatMap(c -> createConnectionToDb(c, dbName != null && !dbName.isBlank() ? dbName : c.getDbName()));
     }
 
     private Optional<Connection> createConnectionToDb(DbConnection conn, String db) {
         if (db == null || db.isBlank()) {
-            db = "postgres";
+            db = "master";
         }
-
-        String url = POSTGRESQL_PREFIX + conn.getHost() + ":" + conn.getPort() + "/" + db;
-
+        String url = buildJdbcUrl(conn.getHost(), conn.getPort(), db);
         try {
             return Optional.of(DriverManager.getConnection(url, conn.getUsername(), conn.getPassword() != null ? conn.getPassword() : ""));
         } catch (SQLException e) {
@@ -75,23 +82,14 @@ public class PgMetadataRepository {
     }
 
     private Optional<Connection> createConnection(DbConnection conn) {
-        if (!"postgresql".equalsIgnoreCase(conn.getType())) {
+        if (!"sqlserver".equalsIgnoreCase(conn.getType())) {
             return Optional.empty();
         }
-
         String db = conn.getDbName();
         if (db == null || db.isBlank()) {
-            db = "postgres";
+            db = "master";
         }
-
-        String url = POSTGRESQL_PREFIX + conn.getHost() + ":" + conn.getPort() + "/" + db;
-        try {
-            return Optional.of(DriverManager.getConnection(url, conn.getUsername(), conn.getPassword() != null ? conn.getPassword() : ""));
-        } catch (SQLException e) {
-            log.warn("Failed to connect to {}: {}", conn.getName(), e.getMessage());
-
-            return Optional.empty();
-        }
+        return createConnectionToDb(conn, db);
     }
 
     public List<DatabaseInfo> listDatabaseInfos(Long connectionId) {
@@ -99,17 +97,15 @@ public class PgMetadataRepository {
             if (conn == null) {
                 return List.of();
             }
-
             List<DatabaseInfo> infos = new ArrayList<>();
             try (PreparedStatement ps = conn.prepareStatement(LIST_DATABASES_SQL);
                  ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    String name = rs.getString("datname");
+                    String name = rs.getString("name");
                     long size = rs.getLong("size");
                     infos.add(new DatabaseInfo(name, size, SizeFormatter.formatSize(size)));
                 }
             }
-
             return infos;
         } catch (SQLException e) {
             log.warn("listDatabaseInfos failed: {}", e.getMessage());
@@ -122,23 +118,19 @@ public class PgMetadataRepository {
             if (conn == null) {
                 return List.of();
             }
-
             List<SchemaInfo> infos = new ArrayList<>();
             try (PreparedStatement ps = conn.prepareStatement(LIST_SCHEMAS_SQL);
                  ResultSet rs = ps.executeQuery()) {
-
-                    while (rs.next()) {
-                    String name = rs.getString("schema_name");
-                    String owner = rs.getString("schema_owner");
+                while (rs.next()) {
+                    String name = rs.getString("name");
+                    String owner = rs.getString("owner");
                     int tableCount = rs.getInt("table_count");
                     infos.add(new SchemaInfo(name, owner != null ? owner : "", tableCount));
                 }
             }
-
             return infos;
         } catch (SQLException e) {
             log.warn("listSchemaInfos failed: {}", e.getMessage());
-
             return List.of();
         }
     }
@@ -148,22 +140,19 @@ public class PgMetadataRepository {
             if (conn == null || schema == null || schema.isBlank()) {
                 return List.of();
             }
-
             List<TableInfo> tables = new ArrayList<>();
             try (PreparedStatement ps = conn.prepareStatement(LIST_TABLES_SQL)) {
                 ps.setString(1, schema);
-
                 try (ResultSet rs = ps.executeQuery()) {
                     while (rs.next()) {
-                        String name = rs.getString("relname");
+                        String name = rs.getString("name");
                         String type = rs.getString("reltype");
-                        long rowEst = rs.getLong("row_estimate");
+                        long rows = rs.getLong("row_count");
                         long size = rs.getLong("size");
-                        tables.add(new TableInfo(name, type != null ? type : "table", rowEst, size, SizeFormatter.formatSize(size)));
+                        tables.add(new TableInfo(name, type != null ? type : "table", rows, size, SizeFormatter.formatSize(size)));
                     }
                 }
             }
-
             return tables;
         } catch (SQLException e) {
             log.warn("listTableInfos failed: {}", e.getMessage());
@@ -176,14 +165,12 @@ public class PgMetadataRepository {
             if (conn == null) {
                 return Optional.empty();
             }
-
             try (Statement stmt = conn.createStatement();
                  ResultSet rs = stmt.executeQuery(sql)) {
                 ResultSetMetaData meta = rs.getMetaData();
                 int colCount = meta.getColumnCount();
                 List<String> columns = new ArrayList<>();
                 List<String> columnTypes = new ArrayList<>();
-
                 for (int i = 1; i <= colCount; i++) {
                     columns.add(meta.getColumnLabel(i));
                     String typeName = meta.getColumnTypeName(i);
@@ -192,7 +179,6 @@ public class PgMetadataRepository {
                             : (nullable == ResultSetMetaData.columnNullable ? " NULL" : "");
                     columnTypes.add(typeName + nullability);
                 }
-
                 List<List<Object>> rows = new ArrayList<>();
                 while (rs.next()) {
                     List<Object> row = new ArrayList<>();
@@ -201,7 +187,6 @@ public class PgMetadataRepository {
                     }
                     rows.add(row);
                 }
-
                 return Optional.of(new QueryResultData(columns, columnTypes, rows));
             }
         } catch (SQLException e) {
@@ -228,11 +213,40 @@ public class PgMetadataRepository {
                     }
                 }
             }
-
             return types;
         } catch (SQLException e) {
             log.warn("getColumnTypes failed: {}", e.getMessage());
             return Map.of();
+        }
+    }
+
+    public List<String> getUniqueKeyColumns(Long connectionId, String dbName, String schema, String table) {
+        if (schema == null || schema.isBlank() || table == null || table.isBlank()) {
+            return List.of();
+        }
+        try (Connection conn = getConnection(connectionId, dbName).orElse(null)) {
+            if (conn == null) {
+                return List.of();
+            }
+            List<String> columns = new ArrayList<>();
+            String qualName = "[" + schema + "].[" + table + "]";
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "SELECT c.name FROM sys.index_columns ic "
+                            + "JOIN sys.columns c ON ic.object_id = c.object_id AND ic.column_id = c.column_id "
+                            + "JOIN sys.indexes i ON ic.object_id = i.object_id AND ic.index_id = i.index_id "
+                            + "WHERE ic.object_id = OBJECT_ID(?) AND (i.is_primary_key = 1 OR i.is_unique_constraint = 1) "
+                            + "ORDER BY i.name, ic.key_ordinal")) {
+                ps.setString(1, qualName);
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        columns.add(rs.getString("name"));
+                    }
+                }
+            }
+            return columns;
+        } catch (SQLException e) {
+            log.warn("getUniqueKeyColumns failed: {}", e.getMessage());
+            return List.of();
         }
     }
 
@@ -241,22 +255,17 @@ public class PgMetadataRepository {
             if (conn == null) {
                 return Optional.empty();
             }
-
             try (Statement stmt = conn.createStatement();
                  ResultSet rs = stmt.executeQuery(sql)) {
                 ResultSetMetaData meta = rs.getMetaData();
-
                 int colCount = meta.getColumnCount();
-
                 if (!rs.next()) {
                     return Optional.empty();
                 }
-
                 Map<String, Object> row = new LinkedHashMap<>();
                 for (int i = 1; i <= colCount; i++) {
                     row.put(meta.getColumnLabel(i), rs.getObject(i));
                 }
-
                 return Optional.of(row);
             }
         } catch (SQLException e) {
@@ -265,26 +274,22 @@ public class PgMetadataRepository {
         }
     }
 
-    public Optional<String> executeUpdate(Long connectionId, String dbName, String updateSql, List<String> params) {
+    public Optional<String> executeUpdate(Long connectionId, String dbName, String updateSql, List<Object> params) {
         if (params == null) {
             return Optional.of("Missing params");
         }
-
         try (Connection conn = getConnection(connectionId, dbName).orElse(null)) {
             if (conn == null) {
                 return Optional.of("error.connectionNotAvailable");
             }
-
             try (PreparedStatement ps = conn.prepareStatement(updateSql)) {
                 for (int i = 0; i < params.size(); i++) {
                     ps.setObject(i + 1, params.get(i));
                 }
-
                 int updated = ps.executeUpdate();
                 if (updated == 0) {
                     return Optional.of("Row not found or already changed.");
                 }
-
                 return Optional.empty();
             }
         } catch (SQLException e) {

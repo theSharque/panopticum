@@ -16,6 +16,7 @@
 |-----|--------------|
 | **PostgreSQL** | Просмотр баз, схем, таблиц; выполнение SQL; редактирование строк |
 | **MySQL (MariaDB)** | Просмотр баз и таблиц; выполнение SQL; редактирование строк (если у таблицы есть PK или unique-индекс) |
+| **MS SQL Server** | Просмотр баз, схем, таблиц; выполнение SQL; редактирование строк (если у таблицы есть PK или unique-индекс) |
 | **MongoDB** | Просмотр баз и коллекций; выполнение запросов |
 | **Redis** | Просмотр баз и ключей; типы и значения |
 | **ClickHouse** | Просмотр баз и таблиц; выполнение SQL |
@@ -30,8 +31,8 @@
 - Боковая панель со списком сохранённых подключений и быстрым доступом в Настройки
 - Добавление, проверка и удаление подключений для каждого типа БД
 - Просмотр метаданных (схемы, таблицы, коллекции, ключи) с постраничной навигацией
-- Выполнение SQL (PostgreSQL, MySQL/MariaDB, ClickHouse, Cassandra CQL) и запросов (MongoDB)
-- Редактирование и сохранение строк в детальном просмотре (PostgreSQL, MySQL при наличии PK/unique, MongoDB, Redis, Cassandra при наличии primary key)
+- Выполнение SQL (PostgreSQL, MySQL/MariaDB, MS SQL Server, ClickHouse, Cassandra CQL) и запросов (MongoDB)
+- Редактирование и сохранение строк в детальном просмотре (PostgreSQL, MySQL, MS SQL Server при наличии PK/unique, MongoDB, Redis, Cassandra при наличии primary key)
 - HTMX для частичного обновления без перезагрузки страницы
 - Локализация: EN и RU (по браузеру или пути)
 
@@ -58,8 +59,8 @@
 
 Значение — JSON-массив объектов подключений. Каждый объект можно задать одним из двух способов:
 
-1. **Явные поля:** `name`, `type`, `host`, `port`, `database`, `username`, `password`. Поддерживаемые значения `type`: `postgresql`, `mongodb`, `redis`, `clickhouse`, `mysql`, `cassandra`.
-2. **JDBC-строка:** поля `name` и `jdbcUrl` (или `url`). По URL извлекаются тип, хост, порт, база, пользователь и пароль. Поддерживается для PostgreSQL, MySQL и ClickHouse (например `jdbc:postgresql://user:pass@host:5432/dbname`).
+1. **Явные поля:** `name`, `type`, `host`, `port`, `database`, `username`, `password`. Поддерживаемые значения `type`: `postgresql`, `mongodb`, `redis`, `clickhouse`, `mysql`, `sqlserver`, `cassandra`.
+2. **JDBC-строка:** поля `name` и `jdbcUrl` (или `url`). По URL извлекаются тип, хост, порт, база, пользователь и пароль. Поддерживается для PostgreSQL, MySQL, MS SQL Server и ClickHouse (например `jdbc:postgresql://user:pass@host:5432/dbname`, `jdbc:sqlserver://host:1433;databaseName=db;user=sa;password=secret`).
 
 Пример:
 

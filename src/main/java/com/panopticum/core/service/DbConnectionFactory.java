@@ -13,6 +13,7 @@ public class DbConnectionFactory {
     private static final int PORT_CLICKHOUSE = 8123;
     private static final int PORT_MYSQL = 3306;
     private static final int PORT_CASSANDRA = 9042;
+    private static final int PORT_MSSQL = 1433;
 
     public DbConnection build(String type, String name, String host, Integer port,
                              String database, String username, String password) {
@@ -60,6 +61,7 @@ public class DbConnectionFactory {
             case "clickhouse" -> PORT_CLICKHOUSE;
             case "mysql" -> PORT_MYSQL;
             case "cassandra" -> PORT_CASSANDRA;
+            case "sqlserver" -> PORT_MSSQL;
             default -> PORT_POSTGRESQL;
         };
     }
@@ -71,6 +73,7 @@ public class DbConnectionFactory {
         return switch (type.toLowerCase()) {
             case "redis" -> "0";
             case "clickhouse" -> "default";
+            case "sqlserver" -> "master";
             default -> "";
         };
     }

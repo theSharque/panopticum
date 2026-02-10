@@ -1,0 +1,43 @@
+<div xmlns:th="http://www.thymeleaf.org" id="form-mssql" class="connection-form-block" hidden th:fragment="form-mssql">
+    <form id="connection-form-mssql" action="/settings/add-mssql" method="post" class="add-connection-form"
+          hx-post="/settings/add-mssql"
+          hx-target="#sidebar"
+          hx-swap="outerHTML">
+        <div class="form-group">
+            <label for="name-mssql" th:text="${msg['common.name']}">Name</label>
+            <input type="text" id="name-mssql" name="name" required th:attr="placeholder=${msg['settings.placeholderNameMssql']}">
+        </div>
+        <div class="form-group">
+            <label for="host-mssql" th:text="${msg['settings.host']}">Host</label>
+            <input type="text" id="host-mssql" name="host" required placeholder="localhost" value="localhost">
+        </div>
+        <div class="form-group">
+            <label for="port-mssql" th:text="${msg['settings.port']}">Port</label>
+            <input type="number" id="port-mssql" name="port" value="1433">
+        </div>
+        <div class="form-group">
+            <label for="database-mssql" th:text="${msg['settings.database']}">Database</label>
+            <input type="text" id="database-mssql" name="database" required placeholder="master">
+        </div>
+        <div class="form-group">
+            <label for="username-mssql" th:text="${msg['settings.username']}">Username</label>
+            <input type="text" id="username-mssql" name="username" required placeholder="sa">
+        </div>
+        <div class="form-group">
+            <label for="password-mssql" th:text="${msg['settings.password']}">Password</label>
+            <input type="password" id="password-mssql" name="password" placeholder="password">
+        </div>
+        <div class="form-actions">
+            <span id="test-indicator-mssql" class="connection-test-indicator" aria-hidden="true" th:text="${msg['settings.testing']}">Checking...</span>
+            <button type="button" class="btn-check"
+                    hx-post="/settings/test-mssql"
+                    hx-include="#connection-form-mssql"
+                    hx-target="#connection-test-result-mssql"
+                    hx-swap="innerHTML show:bottom"
+                    hx-indicator="#test-indicator-mssql"
+                    th:text="${msg['settings.test']}">Test</button>
+            <button type="submit" th:text="${msg['settings.add']}">Add</button>
+        </div>
+        <div id="connection-test-result-mssql" class="connection-test-result"></div>
+    </form>
+</div>

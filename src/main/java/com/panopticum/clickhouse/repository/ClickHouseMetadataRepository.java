@@ -3,9 +3,9 @@ package com.panopticum.clickhouse.repository;
 import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.core.util.SizeFormatter;
-import com.panopticum.clickhouse.model.ChDatabaseInfo;
-import com.panopticum.clickhouse.model.ChQueryResultData;
-import com.panopticum.clickhouse.model.ChTableInfo;
+import com.panopticum.core.model.DatabaseInfo;
+import com.panopticum.core.model.QueryResultData;
+import com.panopticum.core.model.TableInfo;
 import jakarta.inject.Singleton;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -82,18 +82,18 @@ public class ClickHouseMetadataRepository {
         return JDBC_PREFIX + host + ":" + port + "/" + database;
     }
 
-    public List<ChDatabaseInfo> listDatabaseInfos(Long connectionId) {
+    public List<DatabaseInfo> listDatabaseInfos(Long connectionId) {
         try (Connection conn = getConnection(connectionId).orElse(null)) {
             if (conn == null) {
                 return List.of();
             }
-            List<ChDatabaseInfo> infos = new ArrayList<>();
+            List<DatabaseInfo> infos = new ArrayList<>();
             try (PreparedStatement ps = conn.prepareStatement(LIST_DATABASES_SQL);
                  ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     String name = rs.getString("name");
                     long size = rs.getLong("size");
-                    infos.add(new ChDatabaseInfo(name, size, SizeFormatter.formatSize(size)));
+                    infos.add(new DatabaseInfo(name, size, SizeFormatter.formatSize(size)));
                 }
             }
             return infos;
@@ -103,12 +103,12 @@ public class ClickHouseMetadataRepository {
         }
     }
 
-    public List<ChTableInfo> listTableInfos(Long connectionId, String dbName) {
+    public List<TableInfo> listTableInfos(Long connectionId, String dbName) {
         try (Connection conn = getConnection(connectionId, dbName).orElse(null)) {
             if (conn == null || dbName == null || dbName.isBlank()) {
                 return List.of();
             }
-            List<ChTableInfo> tables = new ArrayList<>();
+            List<TableInfo> tables = new ArrayList<>();
             try (PreparedStatement ps = conn.prepareStatement(LIST_TABLES_SQL)) {
                 ps.setString(1, dbName);
                 try (ResultSet rs = ps.executeQuery()) {
@@ -117,7 +117,7 @@ public class ClickHouseMetadataRepository {
                         String type = rs.getString("type");
                         long rows = rs.getLong("total_rows");
                         long size = rs.getLong("total_bytes");
-                        tables.add(new ChTableInfo(name, type != null ? type : "table", rows, size, SizeFormatter.formatSize(size)));
+                        tables.add(new TableInfo(name, type != null ? type : "table", rows, size, SizeFormatter.formatSize(size)));
                     }
                 }
             }
@@ -128,7 +128,7 @@ public class ClickHouseMetadataRepository {
         }
     }
 
-    public Optional<ChQueryResultData> executeQuery(Long connectionId, String dbName, String sql) {
+    public Optional<QueryResultData> executeQuery(Long connectionId, String dbName, String sql) {
         try (Connection conn = getConnection(connectionId, dbName).orElse(null)) {
             if (conn == null) {
                 return Optional.empty();
@@ -151,7 +151,7 @@ public class ClickHouseMetadataRepository {
                     }
                     rows.add(row);
                 }
-                return Optional.of(new ChQueryResultData(columns, columnTypes, rows));
+                return Optional.of(new QueryResultData(columns, columnTypes, rows));
             }
         } catch (SQLException e) {
             log.warn("executeQuery failed: {}", e.getMessage());

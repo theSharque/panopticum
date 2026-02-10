@@ -1,15 +1,15 @@
-package com.panopticum.postgres.controller;
+package com.panopticum.mssql.controller;
 
 import com.panopticum.core.model.BreadcrumbItem;
-import com.panopticum.core.model.DatabaseInfo;
 import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.model.Page;
 import com.panopticum.core.model.QueryResult;
-import com.panopticum.core.model.SchemaInfo;
-import com.panopticum.core.model.TableInfo;
 import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.core.util.ControllerModelHelper;
-import com.panopticum.postgres.service.PgMetadataService;
+import com.panopticum.core.model.DatabaseInfo;
+import com.panopticum.core.model.SchemaInfo;
+import com.panopticum.core.model.TableInfo;
+import com.panopticum.mssql.service.MssqlMetadataService;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.MediaType;
@@ -37,23 +37,23 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-@Controller("/pg")
+@Controller("/mssql")
 @Secured(SecurityRule.IS_AUTHENTICATED)
 @ExecuteOn(TaskExecutors.BLOCKING)
 @RequiredArgsConstructor
-public class PgController {
+public class MssqlController {
 
     private final DbConnectionService dbConnectionService;
-    private final PgMetadataService pgMetadataService;
+    private final MssqlMetadataService mssqlMetadataService;
 
     @Produces(MediaType.TEXT_HTML)
     @Get("/{id}")
-    @View("pg/databases")
+    @View("mssql/databases")
     public Map<String, Object> databases(@PathVariable Long id,
-                                         @QueryValue(value = "page", defaultValue = "1") int page,
-                                         @QueryValue(value = "size", defaultValue = "50") int size,
-                                         @QueryValue(value = "sort", defaultValue = "name") String sort,
-                                         @QueryValue(value = "order", defaultValue = "asc") String order) {
+                                        @QueryValue(value = "page", defaultValue = "1") int page,
+                                        @QueryValue(value = "size", defaultValue = "50") int size,
+                                        @QueryValue(value = "sort", defaultValue = "name") String sort,
+                                        @QueryValue(value = "order", defaultValue = "asc") String order) {
         Map<String, Object> model = ControllerModelHelper.baseModel(id, dbConnectionService);
         Optional<DbConnection> conn = dbConnectionService.findById(id);
         if (conn.isEmpty()) {
@@ -67,9 +67,9 @@ public class PgController {
         model.put("dbName", null);
         model.put("schema", null);
         model.put("itemType", "database");
-        model.put("itemUrlPrefix", "/pg/" + id + "/");
+        model.put("itemUrlPrefix", "/mssql/" + id + "/");
 
-        Page<DatabaseInfo> paged = pgMetadataService.listDatabasesPaged(id, page, size, sort, order);
+        Page<DatabaseInfo> paged = mssqlMetadataService.listDatabasesPaged(id, page, size, sort, order);
         ControllerModelHelper.addPagination(model, paged, "items");
         ControllerModelHelper.addOrderToggles(model, paged.getSort(), paged.getOrder(),
                 Map.of("name", "orderName", "size", "orderSize"));
@@ -79,22 +79,22 @@ public class PgController {
 
     @Get("/{id}/detail")
     public HttpResponse<?> detailRedirect(@PathVariable Long id) {
-        return HttpResponse.redirect(URI.create("/pg/" + id));
+        return HttpResponse.redirect(URI.create("/mssql/" + id));
     }
 
     @Get("/{id}/{dbName}/{schema}/detail")
     public HttpResponse<?> detailRedirectWithContext(@PathVariable Long id, @PathVariable String dbName, @PathVariable String schema) {
-        return HttpResponse.redirect(URI.create("/pg/" + id + "/" + dbName + "/" + schema));
+        return HttpResponse.redirect(URI.create("/mssql/" + id + "/" + dbName + "/" + schema));
     }
 
     @Produces(MediaType.TEXT_HTML)
     @Get("/{id}/{dbName}")
-    @View("pg/schemas")
+    @View("mssql/schemas")
     public Map<String, Object> schemas(@PathVariable Long id, @PathVariable String dbName,
-                                       @QueryValue(value = "page", defaultValue = "1") int page,
-                                       @QueryValue(value = "size", defaultValue = "50") int size,
-                                       @QueryValue(value = "sort", defaultValue = "name") String sort,
-                                       @QueryValue(value = "order", defaultValue = "asc") String order) {
+                                      @QueryValue(value = "page", defaultValue = "1") int page,
+                                      @QueryValue(value = "size", defaultValue = "50") int size,
+                                      @QueryValue(value = "sort", defaultValue = "name") String sort,
+                                      @QueryValue(value = "order", defaultValue = "asc") String order) {
         Map<String, Object> model = ControllerModelHelper.baseModel(id, dbConnectionService);
         Optional<DbConnection> conn = dbConnectionService.findById(id);
         if (conn.isEmpty()) {
@@ -102,16 +102,16 @@ public class PgController {
         }
 
         List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
-        breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/pg/" + id));
+        breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/mssql/" + id));
         breadcrumbs.add(new BreadcrumbItem(dbName, null));
         ControllerModelHelper.addBreadcrumbs(model, breadcrumbs);
         model.put("connectionId", id);
         model.put("dbName", dbName);
         model.put("schema", null);
         model.put("itemType", "schema");
-        model.put("itemUrlPrefix", "/pg/" + id + "/" + dbName + "/");
+        model.put("itemUrlPrefix", "/mssql/" + id + "/" + dbName + "/");
 
-        Page<SchemaInfo> paged = pgMetadataService.listSchemasPaged(id, dbName, page, size, sort, order);
+        Page<SchemaInfo> paged = mssqlMetadataService.listSchemasPaged(id, dbName, page, size, sort, order);
         ControllerModelHelper.addPagination(model, paged, "items");
         ControllerModelHelper.addOrderToggles(model, paged.getSort(), paged.getOrder(),
                 Map.of("name", "orderName", "owner", "orderOwner", "tables", "orderTables"));
@@ -121,7 +121,7 @@ public class PgController {
 
     @Produces(MediaType.TEXT_HTML)
     @Get("/{id}/{dbName}/{schema}")
-    @View("pg/tables")
+    @View("mssql/tables")
     public Map<String, Object> tables(@PathVariable Long id, @PathVariable String dbName, @PathVariable String schema,
                                       @QueryValue(value = "page", defaultValue = "1") int page,
                                       @QueryValue(value = "size", defaultValue = "50") int size,
@@ -134,15 +134,15 @@ public class PgController {
         }
 
         List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
-        breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/pg/" + id));
-        breadcrumbs.add(new BreadcrumbItem(dbName, "/pg/" + id + "/" + dbName));
+        breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/mssql/" + id));
+        breadcrumbs.add(new BreadcrumbItem(dbName, "/mssql/" + id + "/" + dbName));
         breadcrumbs.add(new BreadcrumbItem(schema, null));
         ControllerModelHelper.addBreadcrumbs(model, breadcrumbs);
         model.put("connectionId", id);
         model.put("dbName", dbName);
         model.put("schema", schema);
 
-        Page<TableInfo> paged = pgMetadataService.listTablesPaged(id, dbName, schema, page, size, sort, order);
+        Page<TableInfo> paged = mssqlMetadataService.listTablesPaged(id, dbName, schema, page, size, sort, order);
         ControllerModelHelper.addPagination(model, paged, "tables");
         ControllerModelHelper.addOrderToggles(model, paged.getSort(), paged.getOrder(),
                 Map.of("name", "orderName", "type", "orderType", "rows", "orderRows", "size", "orderSize"));
@@ -152,7 +152,7 @@ public class PgController {
 
     @Produces(MediaType.TEXT_HTML)
     @Get("/{id}/{dbName}/{schema}/sql")
-    @View("pg/sql")
+    @View("mssql/sql")
     public Map<String, Object> sqlPageGet(@PathVariable Long id, @PathVariable String dbName, @PathVariable String schema,
                                          @QueryValue(value = "sql", defaultValue = "") String sql,
                                          @QueryValue(value = "offset", defaultValue = "0") Integer offset,
@@ -165,10 +165,10 @@ public class PgController {
     @Produces(MediaType.TEXT_HTML)
     @Post("/{id}/{dbName}/{schema}/sql")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
-    @View("pg/sql")
+    @View("mssql/sql")
     public Map<String, Object> sqlPagePost(@PathVariable Long id, @PathVariable String dbName, @PathVariable String schema,
-                                          String sql, @Nullable Integer offset, @Nullable Integer limit,
-                                          @Nullable String sort, @Nullable String order) {
+                                           String sql, @Nullable Integer offset, @Nullable Integer limit,
+                                           @Nullable String sort, @Nullable String order) {
         return buildSqlPageModel(id, dbName, schema, sql, offset, limit, sort, order);
     }
 
@@ -181,17 +181,17 @@ public class PgController {
         }
 
         List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
-        breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/pg/" + id));
-        breadcrumbs.add(new BreadcrumbItem(dbName, "/pg/" + id + "/" + dbName));
-        breadcrumbs.add(new BreadcrumbItem(schema, "/pg/" + id + "/" + dbName + "/" + schema));
+        breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/mssql/" + id));
+        breadcrumbs.add(new BreadcrumbItem(dbName, "/mssql/" + id + "/" + dbName));
+        breadcrumbs.add(new BreadcrumbItem(schema, "/mssql/" + id + "/" + dbName + "/" + schema));
         breadcrumbs.add(new BreadcrumbItem("sql", null));
         ControllerModelHelper.addBreadcrumbs(model, breadcrumbs);
         model.put("connectionId", id);
         model.put("dbName", dbName);
         model.put("schema", schema);
         model.put("sql", sql != null ? sql : "");
-        model.put("tableQueryActionUrl", "/pg/" + id + "/query");
-        model.put("tableDetailActionUrl", "/pg/" + id + "/" + dbName + "/" + schema + "/detail");
+        model.put("tableQueryActionUrl", "/mssql/" + id + "/query");
+        model.put("tableDetailActionUrl", "/mssql/" + id + "/" + dbName + "/" + schema + "/detail");
 
         int off = offset != null ? Math.max(0, offset) : 0;
         int lim = limit != null && limit > 0 ? Math.min(limit, 1000) : 100;
@@ -213,16 +213,15 @@ public class PgController {
             model.put("sort", "");
             model.put("order", "");
         } else {
-            var result = pgMetadataService.executeQuery(id, dbName, sql, off, lim, sort, order)
+            var result = mssqlMetadataService.executeQuery(id, dbName, sql, off, lim, sort, order)
                     .orElse(QueryResult.error("error.queryExecutionFailed"));
-            putQueryResultIntoModel(model, result, sql != null ? sql : "", sort, order);
+            putQueryResultIntoModel(model, result, sort, order);
         }
 
         return model;
     }
 
-    private void putQueryResultIntoModel(Map<String, Object> model, QueryResult result, String sql,
-                                        String sort, String order) {
+    private void putQueryResultIntoModel(Map<String, Object> model, QueryResult result, String sort, String order) {
         model.put("error", result.hasError() ? result.getError() : null);
         model.put("columns", result.getColumns());
         model.put("columnTypes", result.getColumnTypes() != null ? result.getColumnTypes() : List.<String>of());
@@ -243,8 +242,8 @@ public class PgController {
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces(MediaType.TEXT_HTML)
     public Object executeQuery(@PathVariable Long id, String sql, String dbName, String schema,
-                              @Nullable Integer offset, @Nullable Integer limit,
-                              @Nullable String sort, @Nullable String order, String target) {
+                               @Nullable Integer offset, @Nullable Integer limit,
+                               @Nullable String sort, @Nullable String order, String target) {
         Map<String, Object> model = new HashMap<>();
         model.put("connectionId", id);
         model.put("dbName", dbName);
@@ -252,23 +251,23 @@ public class PgController {
 
         if (sql == null || sql.isBlank()) {
             model.put("error", "Empty query");
-            model.put("queryActionUrl", "/pg/" + id + "/query");
-            model.put("tableQueryActionUrl", "/pg/" + id + "/query");
-            model.put("tableDetailActionUrl", "/pg/" + id + "/" + dbName + "/" + schema + "/detail");
+            model.put("queryActionUrl", "/mssql/" + id + "/query");
+            model.put("tableQueryActionUrl", "/mssql/" + id + "/query");
+            model.put("tableDetailActionUrl", "/mssql/" + id + "/" + dbName + "/" + schema + "/detail");
 
             return "table".equals(target)
                     ? new ModelAndView<>("partials/table-view-result", model)
                     : new ModelAndView<>("partials/query-result", model);
         }
-        model.put("queryActionUrl", "/pg/" + id + "/query");
-        model.put("tableQueryActionUrl", "/pg/" + id + "/query");
-        model.put("tableDetailActionUrl", "/pg/" + id + "/" + dbName + "/" + schema + "/detail");
+        model.put("queryActionUrl", "/mssql/" + id + "/query");
+        model.put("tableQueryActionUrl", "/mssql/" + id + "/query");
+        model.put("tableDetailActionUrl", "/mssql/" + id + "/" + dbName + "/" + schema + "/detail");
 
         int off = offset != null ? Math.max(0, offset) : 0;
         int lim = limit != null && limit > 0 ? limit : 100;
-        var result = pgMetadataService.executeQuery(id, dbName, sql, off, lim, sort, order)
+        var result = mssqlMetadataService.executeQuery(id, dbName, sql, off, lim, sort, order)
                 .orElse(QueryResult.error("Execution failed"));
-        putQueryResultIntoModel(model, result, sql, sort, order);
+        putQueryResultIntoModel(model, result, sort, order);
         model.put("sql", sql);
 
         return "table".equals(target)
@@ -279,9 +278,9 @@ public class PgController {
     @Produces(MediaType.TEXT_HTML)
     @Post("/{id}/{dbName}/{schema}/detail")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
-    @View("pg/detail")
+    @View("mssql/detail")
     public Map<String, Object> rowDetail(@PathVariable Long id, @PathVariable String dbName, @PathVariable String schema,
-                                         String sql, Integer rowNum, String sort, String order) {
+                                        String sql, Integer rowNum, String sort, String order) {
         Map<String, Object> model = ControllerModelHelper.baseModel(id, dbConnectionService);
         Optional<DbConnection> conn = dbConnectionService.findById(id);
         if (conn.isEmpty()) {
@@ -289,10 +288,10 @@ public class PgController {
         }
 
         List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
-        breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/pg/" + id));
-        breadcrumbs.add(new BreadcrumbItem(dbName != null ? dbName : "", "/pg/" + id + "/" + (dbName != null ? dbName : "")));
+        breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/mssql/" + id));
+        breadcrumbs.add(new BreadcrumbItem(dbName != null ? dbName : "", "/mssql/" + id + "/" + (dbName != null ? dbName : "")));
         String schemaUrl = (dbName != null && schema != null && !dbName.isBlank() && !schema.isBlank())
-                ? "/pg/" + id + "/" + dbName + "/" + schema
+                ? "/mssql/" + id + "/" + dbName + "/" + schema
                 : null;
         breadcrumbs.add(new BreadcrumbItem(schema != null ? schema : "", schemaUrl));
         breadcrumbs.add(new BreadcrumbItem("detail", null));
@@ -305,24 +304,13 @@ public class PgController {
         model.put("sort", sort != null ? sort : "");
         model.put("order", order != null ? order : "");
 
-        List<Map<String, String>> detailRows = new ArrayList<>();
-        String rowCtid = null;
         if (sql != null && !sql.isBlank() && rowNum != null && rowNum >= 0) {
-            var result = pgMetadataService.getDetailRowWithCtid(id, dbName, schema, sql, Math.max(0, rowNum), sort, order);
-            if (result.containsKey("error")) {
-                model.put("error", result.get("error"));
-            } else {
-                @SuppressWarnings("unchecked")
-                List<Map<String, String>> rows = (List<Map<String, String>>) result.get("detailRows");
-                if (rows != null) {
-                    detailRows = rows;
-                }
-                rowCtid = (String) result.get("rowCtid");
-            }
+            Map<String, Object> detailResult = mssqlMetadataService.getDetailRow(id, dbName, schema, sql, Math.max(0, rowNum), sort, order);
+            model.putAll(detailResult);
+        } else {
+            model.put("detailRows", List.<Map<String, String>>of());
+            model.put("editable", false);
         }
-
-        model.put("detailRows", detailRows);
-        model.put("rowCtid", rowCtid != null ? rowCtid : "");
 
         return model;
     }
@@ -336,33 +324,53 @@ public class PgController {
         Integer rowNum = form != null && form.containsKey("rowNum") ? parseInteger(form.get("rowNum")) : null;
         String sort = form != null ? form.get("sort") : null;
         String order = form != null ? form.get("order") : null;
-        String ctid = form != null ? form.get("ctid") : null;
-        Map<String, String> columnValues = new LinkedHashMap<>();
-        if (form != null) {
-            for (Map.Entry<String, String> e : form.entrySet()) {
-                if (e.getKey() != null && e.getKey().startsWith("field_")) {
-                    columnValues.put(e.getKey().substring(6), e.getValue() != null ? e.getValue() : "");
+        String qualifiedTable = form != null ? form.get("qualifiedTable") : null;
+
+        List<String> uniqueKeyColumns = new ArrayList<>();
+        if (form != null && form.containsKey("uniqueKeyColumns")) {
+            String raw = form.get("uniqueKeyColumns");
+            if (raw != null && !raw.isBlank()) {
+                for (String s : raw.split(",")) {
+                    String t = s.trim();
+                    if (!t.isBlank()) {
+                        uniqueKeyColumns.add(t);
+                    }
                 }
             }
         }
 
-        Optional<String> qualifiedTable = pgMetadataService.parseTableFromSql(sql);
-        if (qualifiedTable.isEmpty()) {
-            Map<String, Object> model = rowDetail(id, dbName, schema, sql, rowNum, sort, order);
-            model.put("error", "Could not determine table from SQL.");
-
-            return new ModelAndView<>("pg/detail", model);
+        Map<String, String> columnValues = new LinkedHashMap<>();
+        Map<String, Object> keyValues = new LinkedHashMap<>();
+        if (form != null) {
+            for (Map.Entry<String, String> e : form.entrySet()) {
+                if (e.getKey() != null && e.getKey().startsWith("field_")) {
+                    String colName = e.getKey().substring(6);
+                    String val = e.getValue() != null ? e.getValue() : "";
+                    if (uniqueKeyColumns.contains(colName)) {
+                        keyValues.put(colName, val.isEmpty() ? null : val);
+                    } else {
+                        columnValues.put(colName, val);
+                    }
+                }
+            }
         }
 
-        Optional<String> err = pgMetadataService.executeUpdateByCtid(id, dbName, qualifiedTable.get(), ctid, columnValues);
+        Optional<String> parsedTable = mssqlMetadataService.parseTableFromSql(sql);
+        if (parsedTable.isEmpty()) {
+            Map<String, Object> model = rowDetail(id, dbName, schema, sql, rowNum, sort, order);
+            model.put("error", "Could not determine table from SQL.");
+            return new ModelAndView<>("mssql/detail", model);
+        }
+
+        String tableRef = qualifiedTable != null && !qualifiedTable.isBlank() ? qualifiedTable : parsedTable.get();
+        Optional<String> err = mssqlMetadataService.executeUpdateByKey(id, dbName, schema, tableRef, uniqueKeyColumns, keyValues, columnValues);
         if (err.isPresent()) {
             Map<String, Object> model = rowDetail(id, dbName, schema, sql, rowNum, sort, order);
             model.put("error", err.get());
-
-            return new ModelAndView<>("pg/detail", model);
+            return new ModelAndView<>("mssql/detail", model);
         }
 
-        return new ModelAndView<>("pg/detail", rowDetail(id, dbName, schema, sql, rowNum, sort, order));
+        return new ModelAndView<>("mssql/detail", rowDetail(id, dbName, schema, sql, rowNum, sort, order));
     }
 
     private static Integer parseInteger(String s) {

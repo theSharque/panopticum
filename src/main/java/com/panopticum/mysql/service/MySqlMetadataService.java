@@ -1,11 +1,11 @@
 package com.panopticum.mysql.service;
 
+import com.panopticum.core.model.DatabaseInfo;
 import com.panopticum.core.model.Page;
 import com.panopticum.core.model.QueryResult;
+import com.panopticum.core.model.QueryResultData;
+import com.panopticum.core.model.TableInfo;
 import com.panopticum.core.util.StringUtils;
-import com.panopticum.mysql.model.MySqlDatabaseInfo;
-import com.panopticum.mysql.model.MySqlQueryResultData;
-import com.panopticum.mysql.model.MySqlTableInfo;
 import com.panopticum.mysql.repository.MySqlMetadataRepository;
 import io.micronaut.core.annotation.NonNull;
 import io.micronaut.context.annotation.Value;
@@ -58,30 +58,30 @@ public class MySqlMetadataService {
         }
     }
 
-    public List<MySqlDatabaseInfo> listDatabaseInfos(Long connectionId) {
+    public List<DatabaseInfo> listDatabaseInfos(Long connectionId) {
         return mySqlMetadataRepository.listDatabaseInfos(connectionId);
     }
 
-    public Page<MySqlDatabaseInfo> listDatabasesPaged(Long connectionId, int page, int size, String sort, String order) {
-        List<MySqlDatabaseInfo> all = new ArrayList<>(listDatabaseInfos(connectionId));
+    public Page<DatabaseInfo> listDatabasesPaged(Long connectionId, int page, int size, String sort, String order) {
+        List<DatabaseInfo> all = new ArrayList<>(listDatabaseInfos(connectionId));
         boolean desc = "desc".equalsIgnoreCase(order);
         String sortBy = sort != null ? sort : "name";
-        java.util.Comparator<MySqlDatabaseInfo> comparator = "size".equals(sortBy)
+        java.util.Comparator<DatabaseInfo> comparator = "size".equals(sortBy)
                 ? (desc ? (a, b) -> Long.compare(b.getSizeOnDisk(), a.getSizeOnDisk()) : (a, b) -> Long.compare(a.getSizeOnDisk(), b.getSizeOnDisk()))
                 : (desc ? (a, b) -> b.getName().compareToIgnoreCase(a.getName()) : (a, b) -> a.getName().compareToIgnoreCase(b.getName()));
-        List<MySqlDatabaseInfo> sorted = all.stream().sorted(comparator).toList();
+        List<DatabaseInfo> sorted = all.stream().sorted(comparator).toList();
         return Page.of(sorted, page, size, sortBy, order != null ? order : "asc");
     }
 
-    public List<MySqlTableInfo> listTableInfos(Long connectionId, String dbName) {
+    public List<TableInfo> listTableInfos(Long connectionId, String dbName) {
         return mySqlMetadataRepository.listTableInfos(connectionId, dbName);
     }
 
-    public Page<MySqlTableInfo> listTablesPaged(Long connectionId, String dbName, int page, int size, String sort, String order) {
-        List<MySqlTableInfo> all = new ArrayList<>(listTableInfos(connectionId, dbName));
+    public Page<TableInfo> listTablesPaged(Long connectionId, String dbName, int page, int size, String sort, String order) {
+        List<TableInfo> all = new ArrayList<>(listTableInfos(connectionId, dbName));
         boolean desc = "desc".equalsIgnoreCase(order);
         String sortBy = sort != null ? sort : "name";
-        java.util.Comparator<MySqlTableInfo> comparator;
+        java.util.Comparator<TableInfo> comparator;
         if ("type".equalsIgnoreCase(sortBy)) {
             comparator = desc ? (a, b) -> (b.getType() != null ? b.getType() : "").compareToIgnoreCase(a.getType() != null ? a.getType() : "")
                     : (a, b) -> (a.getType() != null ? a.getType() : "").compareToIgnoreCase(b.getType() != null ? b.getType() : "");
@@ -92,7 +92,7 @@ public class MySqlMetadataService {
         } else {
             comparator = desc ? (a, b) -> b.getName().compareToIgnoreCase(a.getName()) : (a, b) -> a.getName().compareToIgnoreCase(b.getName());
         }
-        List<MySqlTableInfo> sorted = all.stream().sorted(comparator).toList();
+        List<TableInfo> sorted = all.stream().sorted(comparator).toList();
         return Page.of(sorted, page, size, sortBy, order != null ? order : "asc");
     }
 
@@ -107,11 +107,11 @@ public class MySqlMetadataService {
             return Optional.of(QueryResult.error("Connection not available"));
         }
         String pagedSql = wrapWithLimitOffset(sql.trim(), limit, offset, sortBy, sortOrder);
-        Optional<MySqlQueryResultData> dataOpt = mySqlMetadataRepository.executeQuery(connectionId, dbName, pagedSql);
+        Optional<QueryResultData> dataOpt = mySqlMetadataRepository.executeQuery(connectionId, dbName, pagedSql);
         if (dataOpt.isEmpty()) {
             return Optional.of(QueryResult.error("Connection not available"));
         }
-        MySqlQueryResultData data = dataOpt.get();
+        QueryResultData data = dataOpt.get();
         boolean hasMore = data.getRows().size() == limit;
         List<List<Object>> rows = data.getRows().size() > limit ? data.getRows().subList(0, limit) : data.getRows();
         if (truncateCells) {

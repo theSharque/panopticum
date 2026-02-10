@@ -6,8 +6,8 @@ import com.panopticum.core.model.Page;
 import com.panopticum.core.model.QueryResult;
 import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.core.util.ControllerModelHelper;
-import com.panopticum.mysql.model.MySqlDatabaseInfo;
-import com.panopticum.mysql.model.MySqlTableInfo;
+import com.panopticum.core.model.DatabaseInfo;
+import com.panopticum.core.model.TableInfo;
 import com.panopticum.mysql.service.MySqlMetadataService;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.http.HttpResponse;
@@ -67,7 +67,7 @@ public class MySqlController {
         model.put("itemType", "database");
         model.put("itemUrlPrefix", "/mysql/" + id + "/");
 
-        Page<MySqlDatabaseInfo> paged = mySqlMetadataService.listDatabasesPaged(id, page, size, sort, order);
+        Page<DatabaseInfo> paged = mySqlMetadataService.listDatabasesPaged(id, page, size, sort, order);
         ControllerModelHelper.addPagination(model, paged, "items");
         ControllerModelHelper.addOrderToggles(model, paged.getSort(), paged.getOrder(),
                 Map.of("name", "orderName", "size", "orderSize"));
@@ -101,7 +101,7 @@ public class MySqlController {
         model.put("connectionId", id);
         model.put("dbName", dbName);
 
-        Page<MySqlTableInfo> paged = mySqlMetadataService.listTablesPaged(id, dbName, page, size, sort, order);
+        Page<TableInfo> paged = mySqlMetadataService.listTablesPaged(id, dbName, page, size, sort, order);
         ControllerModelHelper.addPagination(model, paged, "tables");
         ControllerModelHelper.addOrderToggles(model, paged.getSort(), paged.getOrder(),
                 Map.of("name", "orderName", "type", "orderType", "rows", "orderRows", "size", "orderSize"));

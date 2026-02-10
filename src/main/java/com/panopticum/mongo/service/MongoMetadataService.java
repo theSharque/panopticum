@@ -6,7 +6,7 @@ import com.panopticum.core.model.Page;
 import com.panopticum.core.model.QueryResult;
 import com.panopticum.core.util.StringUtils;
 import com.panopticum.mongo.model.MongoCollectionInfo;
-import com.panopticum.mongo.model.MongoDatabaseInfo;
+import com.panopticum.core.model.DatabaseInfo;
 import com.panopticum.mongo.repository.MongoMetadataRepository;
 import io.micronaut.context.annotation.Value;
 import jakarta.inject.Singleton;
@@ -51,21 +51,21 @@ public class MongoMetadataService {
 
     public List<String> listDatabases(Long connectionId) {
         return mongoMetadataRepository.listDatabaseInfos(connectionId).stream()
-                .map(MongoDatabaseInfo::getName).collect(Collectors.toList());
+                .map(DatabaseInfo::getName).collect(Collectors.toList());
     }
 
-    public List<MongoDatabaseInfo> listDatabaseInfos(Long connectionId) {
+    public List<DatabaseInfo> listDatabaseInfos(Long connectionId) {
         return mongoMetadataRepository.listDatabaseInfos(connectionId);
     }
 
-    public Page<MongoDatabaseInfo> listDatabasesPaged(Long connectionId, int page, int size, String sort, String order) {
-        List<MongoDatabaseInfo> all = new ArrayList<>(listDatabaseInfos(connectionId));
+    public Page<DatabaseInfo> listDatabasesPaged(Long connectionId, int page, int size, String sort, String order) {
+        List<DatabaseInfo> all = new ArrayList<>(listDatabaseInfos(connectionId));
         boolean desc = "desc".equalsIgnoreCase(order);
         String sortBy = sort != null ? sort : "name";
-        java.util.Comparator<MongoDatabaseInfo> comparator = "size".equals(sortBy)
+        java.util.Comparator<DatabaseInfo> comparator = "size".equals(sortBy)
                 ? (desc ? (a, b) -> Long.compare(b.getSizeOnDisk(), a.getSizeOnDisk()) : (a, b) -> Long.compare(a.getSizeOnDisk(), b.getSizeOnDisk()))
                 : (desc ? (a, b) -> b.getName().compareToIgnoreCase(a.getName()) : (a, b) -> a.getName().compareToIgnoreCase(b.getName()));
-        List<MongoDatabaseInfo> sorted = all.stream().sorted(comparator).toList();
+        List<DatabaseInfo> sorted = all.stream().sorted(comparator).toList();
         return Page.of(sorted, page, size, sortBy, order != null ? order : "asc");
     }
 

@@ -14,6 +14,7 @@
             <option value="redis">Redis</option>
             <option value="clickhouse">ClickHouse</option>
             <option value="mysql">MySQL (MariaDB)</option>
+            <option value="sqlserver">MS SQL Server</option>
             <option value="cassandra">Cassandra</option>
         </select>
     </div>
@@ -23,6 +24,7 @@
     <div th:replace="~{settings/fragments/form-redis :: form-redis}"></div>
     <div th:replace="~{settings/fragments/form-clickhouse :: form-clickhouse}"></div>
     <div th:replace="~{settings/fragments/form-mysql :: form-mysql}"></div>
+    <div th:replace="~{settings/fragments/form-mssql :: form-mssql}"></div>
     <div th:replace="~{settings/fragments/form-cassandra :: form-cassandra}"></div>
 
     <script>
@@ -33,6 +35,7 @@
             document.getElementById('form-redis').hidden = type !== 'redis';
             document.getElementById('form-clickhouse').hidden = type !== 'clickhouse';
             document.getElementById('form-mysql').hidden = type !== 'mysql';
+            document.getElementById('form-mssql').hidden = type !== 'sqlserver';
             document.getElementById('form-cassandra').hidden = type !== 'cassandra';
         });
     </script>
