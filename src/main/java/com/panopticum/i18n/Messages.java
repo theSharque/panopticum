@@ -18,6 +18,7 @@ public final class Messages {
             merged.putAll(MessagesRedis.RU);
             merged.putAll(MessagesCh.RU);
             merged.putAll(MessagesCassandra.RU);
+            merged.putAll(MessagesRabbitmq.RU);
         } else {
             merged.putAll(MessagesCommon.EN);
             merged.putAll(MessagesSettings.EN);
@@ -26,6 +27,7 @@ public final class Messages {
             merged.putAll(MessagesRedis.EN);
             merged.putAll(MessagesCh.EN);
             merged.putAll(MessagesCassandra.EN);
+            merged.putAll(MessagesRabbitmq.EN);
         }
         return merged;
     }

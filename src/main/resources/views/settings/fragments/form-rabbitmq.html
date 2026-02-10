@@ -1,0 +1,43 @@
+<div xmlns:th="http://www.thymeleaf.org" id="form-rabbitmq" class="connection-form-block" hidden th:fragment="form-rabbitmq">
+    <form id="connection-form-rabbitmq" action="/settings/add-rabbitmq" method="post" class="add-connection-form"
+          hx-post="/settings/add-rabbitmq"
+          hx-target="#sidebar"
+          hx-swap="outerHTML">
+        <div class="form-group">
+            <label for="name-rabbitmq" th:text="${msg['common.name']}">Name</label>
+            <input type="text" id="name-rabbitmq" name="name" required th:attr="placeholder=${msg['settings.placeholderNameRabbitmq']}">
+        </div>
+        <div class="form-group">
+            <label for="host-rabbitmq" th:text="${msg['settings.host']}">Host</label>
+            <input type="text" id="host-rabbitmq" name="host" required placeholder="localhost" value="localhost">
+        </div>
+        <div class="form-group">
+            <label for="port-rabbitmq" th:text="${msg['settings.port']}">Port (Management API)</label>
+            <input type="number" id="port-rabbitmq" name="port" value="15672" placeholder="15672">
+        </div>
+        <div class="form-group">
+            <label for="database-rabbitmq" th:text="${msg['settings.vhost']}">VHost</label>
+            <input type="text" id="database-rabbitmq" name="database" placeholder="/" value="/">
+        </div>
+        <div class="form-group">
+            <label for="username-rabbitmq" th:text="${msg['settings.username']}">Username</label>
+            <input type="text" id="username-rabbitmq" name="username" placeholder="guest">
+        </div>
+        <div class="form-group">
+            <label for="password-rabbitmq" th:text="${msg['settings.password']}">Password</label>
+            <input type="password" id="password-rabbitmq" name="password" placeholder="guest">
+        </div>
+        <div class="form-actions">
+            <span id="test-indicator-rabbitmq" class="connection-test-indicator" aria-hidden="true" th:text="${msg['settings.testing']}">Checking...</span>
+            <button type="button" class="btn-check"
+                    hx-post="/settings/test-rabbitmq"
+                    hx-include="#connection-form-rabbitmq"
+                    hx-target="#connection-test-result-rabbitmq"
+                    hx-swap="innerHTML show:bottom"
+                    hx-indicator="#test-indicator-rabbitmq"
+                    th:text="${msg['settings.test']}">Test</button>
+            <button type="submit" th:text="${msg['settings.add']}">Add</button>
+        </div>
+        <div id="connection-test-result-rabbitmq" class="connection-test-result"></div>
+    </form>
+</div>

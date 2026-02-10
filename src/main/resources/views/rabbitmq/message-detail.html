@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(~{::main})}">
+<head></head>
+<body>
+<main th:fragment="main" class="main-content">
+    <div th:replace="~{fragments/breadcrumbs :: breadcrumbs(items=${breadcrumbs})}"></div>
+    <h1 th:text="${msg['rabbitmq.messageDetailTitle']}">Message</h1>
+    <div th:if="${message != null}" class="query-result-data">
+        <dl class="detail-dl">
+            <dt><span th:text="${msg['rabbitmq.routingKey']}">Routing key</span> : <span th:text="${message.routingKey != null ? message.routingKey : '—'}" class="query-cell-mono"></span></dt>
+            <dt><span th:text="${msg['common.size']}">Size</span> : <span th:text="${message.payloadBytes != null ? message.payloadBytes + ' bytes' : '—'}" class="query-cell-mono"></span></dt>
+        </dl>
+        <h2 th:text="${msg['rabbitmq.payload']}">Payload</h2>
+        <pre class="detail-value detail-json" th:text="${message.payload}">—</pre>
+        <div th:if="${message.properties != null and !message.properties.isEmpty()}">
+            <h2 th:text="${msg['rabbitmq.properties']}">Properties</h2>
+            <dl class="detail-dl">
+                <th:block th:each="entry : ${message.properties}">
+                    <dt><span th:text="${entry.key}" class="query-cell-mono"></span> : <span th:text="${entry.value != null ? entry.value.toString() : '—'}" class="query-cell-mono"></span></dt>
+                </th:block>
+            </dl>
+        </div>
+        <p>
+            <a th:href="${messagesUrl}" class="query-button" th:text="${msg['rabbitmq.backToMessages']}">Back to messages</a>
+        </p>
+    </div>
+    <p th:if="${message == null}" class="text-dim" th:text="${msg['common.noData']}">No data.</p>
+</main>
+</body>
+</html>

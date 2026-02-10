@@ -15,6 +15,7 @@ public class DbConnectionFactory {
     private static final int PORT_CASSANDRA = 9042;
     private static final int PORT_MSSQL = 1433;
     private static final int PORT_ORACLE = 1521;
+    private static final int PORT_RABBITMQ = 15672;
 
     public DbConnection build(String type, String name, String host, Integer port,
                              String database, String username, String password) {
@@ -64,6 +65,7 @@ public class DbConnectionFactory {
             case "cassandra" -> PORT_CASSANDRA;
             case "sqlserver" -> PORT_MSSQL;
             case "oracle" -> PORT_ORACLE;
+            case "rabbitmq" -> PORT_RABBITMQ;
             default -> PORT_POSTGRESQL;
         };
     }
@@ -77,6 +79,7 @@ public class DbConnectionFactory {
             case "clickhouse" -> "default";
             case "sqlserver" -> "master";
             case "oracle" -> "XEPDB1";
+            case "rabbitmq" -> "/";
             default -> "";
         };
     }

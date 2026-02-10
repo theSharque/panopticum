@@ -29,7 +29,9 @@ public final class MessagesSettings {
             Map.entry("settings.placeholderNameMysql", "e.g. Production MySQL"),
             Map.entry("settings.placeholderNameMssql", "e.g. Production MS SQL"),
             Map.entry("settings.placeholderNameOracle", "e.g. Production Oracle"),
-            Map.entry("settings.placeholderNameCassandra", "e.g. Production Cassandra")
+            Map.entry("settings.placeholderNameCassandra", "e.g. Production Cassandra"),
+            Map.entry("settings.placeholderNameRabbitmq", "e.g. Production RabbitMQ"),
+            Map.entry("settings.vhost", "VHost")
     );
 
     public static final Map<String, String> RU = Map.ofEntries(
@@ -54,6 +56,8 @@ public final class MessagesSettings {
             Map.entry("settings.placeholderNameMysql", "Например: Production MySQL"),
             Map.entry("settings.placeholderNameMssql", "Например: Production MS SQL"),
             Map.entry("settings.placeholderNameOracle", "Например: Production Oracle"),
-            Map.entry("settings.placeholderNameCassandra", "Например: Production Cassandra")
+            Map.entry("settings.placeholderNameCassandra", "Например: Production Cassandra"),
+            Map.entry("settings.placeholderNameRabbitmq", "Например: Production RabbitMQ"),
+            Map.entry("settings.vhost", "VHost")
     );
 }

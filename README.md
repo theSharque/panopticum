@@ -22,6 +22,7 @@ A tool for developers and QA — web interface for viewing and managing database
 | **Redis** | Browse databases and keys; view key types and values |
 | **ClickHouse** | Browse databases and tables; run SQL |
 | **Cassandra** | Browse keyspaces and tables; run CQL; edit rows (when table has primary key) |
+| **RabbitMQ** | Browse queues; peek messages (read-only, no edit/delete) |
 
 Connections are stored in H2. In Settings you can add connections, test them, and delete them.
 
@@ -60,7 +61,7 @@ If the `db_connections` table is **empty** at startup, the app reads the environ
 
 Value: a JSON array of connection objects. Each object can be specified in one of two ways:
 
-1. **Explicit fields:** `name`, `type`, `host`, `port`, `database`, `username`, `password`. Supported `type` values: `postgresql`, `mongodb`, `redis`, `clickhouse`, `mysql`, `sqlserver`, `oracle`, `cassandra`.
+1. **Explicit fields:** `name`, `type`, `host`, `port`, `database`, `username`, `password`. Supported `type` values: `postgresql`, `mongodb`, `redis`, `clickhouse`, `mysql`, `sqlserver`, `oracle`, `cassandra`, `rabbitmq`.
 2. **JDBC URL:** `name` and `jdbcUrl` (or `url`). The URL is parsed to derive type, host, port, database, username, and password. Supported for PostgreSQL, MySQL, MS SQL Server, Oracle, and ClickHouse (e.g. `jdbc:postgresql://user:pass@host:5432/dbname`, `jdbc:sqlserver://host:1433;databaseName=db;user=sa;password=secret`, `jdbc:oracle:thin:@//host:1521/XEPDB1`).
 
 Example:
@@ -128,6 +129,45 @@ docker run -d --name panopticum \
 ```
 
 Open **http://localhost:8080**. For Kubernetes, use the same env vars and mount a volume at `/data` for H2 persistence.
+
+## RabbitMQ (local dev)
+
+RabbitMQ is supported via the **Management HTTP API** (read-only: list queues, peek messages). No AMQP client in the app.
+
+### Start RabbitMQ with Management plugin
+
+From the project root:
+
+```bash
+docker compose up -d rabbitmq
+```
+
+- AMQP: **localhost:43009**
+- Management UI and API: **http://localhost:43010** (default user/password: `guest` / `guest`)
+
+### Create a test queue and send messages
+
+1. Open http://localhost:43010 and log in with `guest` / `guest`.
+2. Go to **Queues** → **Add a new queue** (e.g. name `test-queue`, vhost `/`) → **Add queue**.
+3. Open the queue → **Publish message** and send a few messages (payload and routing key optional).
+
+Or use the Management API (e.g. create queue via **Queues** tab, then publish):
+
+```bash
+curl -u guest:guest -X POST http://localhost:43010/api/exchanges/%2F/amq.default/publish \
+  -H "Content-Type: application/json" \
+  -d '{"properties":{},"routing_key":"test-queue","payload":"{\"hello\":\"world\"}","payload_encoding":"string"}'
+```
+
+(Ensure the queue `test-queue` is bound to the default exchange or the one you use.)
+
+### Add RabbitMQ connection in Panopticum
+
+1. Go to **Settings** → choose **RabbitMQ** → fill **Host** (e.g. `localhost`), **Port** (Management API port, e.g. `43010` or `15672`), **VHost** (e.g. `/`), **Username** and **Password**.
+2. Click **Test**, then **Add**. The connection appears in the sidebar.
+3. Open it → **Queues** (list) → click a queue → **Messages** (peek, read-only) → click a message → **Message** (detail, read-only).
+
+Screens: **Queues** → **Messages** (for one queue) → **Message** (detail). No editing or deleting of messages.
 
 ## CI/CD
 

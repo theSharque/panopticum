@@ -22,6 +22,7 @@
 | **Redis** | Просмотр баз и ключей; типы и значения |
 | **ClickHouse** | Просмотр баз и таблиц; выполнение SQL |
 | **Cassandra** | Просмотр keyspace и таблиц; выполнение CQL; редактирование строк (если у таблицы есть primary key) |
+| **RabbitMQ** | Просмотр очередей; просмотр сообщений (peek, только чтение, без редактирования) |
 
 Подключения хранятся в H2. В настройках можно добавлять подключения, проверять их и удалять.
 
@@ -60,7 +61,7 @@
 
 Значение — JSON-массив объектов подключений. Каждый объект можно задать одним из двух способов:
 
-1. **Явные поля:** `name`, `type`, `host`, `port`, `database`, `username`, `password`. Поддерживаемые значения `type`: `postgresql`, `mongodb`, `redis`, `clickhouse`, `mysql`, `sqlserver`, `oracle`, `cassandra`.
+1. **Явные поля:** `name`, `type`, `host`, `port`, `database`, `username`, `password`. Поддерживаемые значения `type`: `postgresql`, `mongodb`, `redis`, `clickhouse`, `mysql`, `sqlserver`, `oracle`, `cassandra`, `rabbitmq`.
 2. **JDBC-строка:** поля `name` и `jdbcUrl` (или `url`). По URL извлекаются тип, хост, порт, база, пользователь и пароль. Поддерживается для PostgreSQL, MySQL, MS SQL Server, Oracle и ClickHouse (например `jdbc:postgresql://user:pass@host:5432/dbname`, `jdbc:sqlserver://host:1433;databaseName=db;user=sa;password=secret`, `jdbc:oracle:thin:@//host:1521/XEPDB1`).
 
 Пример:
@@ -128,6 +129,45 @@ docker run -d --name panopticum \
 ```
 
 Откройте **http://localhost:8080**. Для Kubernetes используйте те же переменные окружения и смонтируйте том на `/data` для сохранения данных H2.
+
+## RabbitMQ (локальная разработка)
+
+Поддержка RabbitMQ реализована через **Management HTTP API** (только чтение: список очередей, просмотр сообщений через peek). AMQP-клиента в приложении нет.
+
+### Запуск RabbitMQ с Management-плагином
+
+Из корня проекта:
+
+```bash
+docker compose up -d rabbitmq
+```
+
+- AMQP: **localhost:43009**
+- Веб-интерфейс и Management API: **http://localhost:43010** (логин/пароль по умолчанию: `guest` / `guest`)
+
+### Создание тестовой очереди и отправка сообщений
+
+1. Откройте http://localhost:43010 и войдите под `guest` / `guest`.
+2. Перейдите в **Queues** → **Add a new queue** (например имя `test-queue`, vhost `/`) → **Add queue**.
+3. Откройте очередь → **Publish message** и отправьте несколько сообщений (payload и routing key по желанию).
+
+Либо через Management API (очередь создаётся вручную во вкладке Queues, затем публикация):
+
+```bash
+curl -u guest:guest -X POST http://localhost:43010/api/exchanges/%2F/amq.default/publish \
+  -H "Content-Type: application/json" \
+  -d '{"properties":{},"routing_key":"test-queue","payload":"{\"hello\":\"world\"}","payload_encoding":"string"}'
+```
+
+(Нужно, чтобы очередь `test-queue` была привязана к default exchange или к выбранному.)
+
+### Добавление подключения RabbitMQ в Panopticum
+
+1. **Настройки** → выберите **RabbitMQ** → укажите **Хост** (например `localhost`), **Порт** (порт Management API, например `43010` или `15672`), **VHost** (например `/`), **Пользователь** и **Пароль**.
+2. Нажмите **Проверить**, затем **Добавить**. Подключение появится в боковой панели.
+3. Откройте его → **Очереди** (список) → выберите очередь → **Сообщения** (peek, только чтение) → выберите сообщение → **Сообщение** (детальный просмотр, только чтение).
+
+Экраны: **Очереди** → **Сообщения** (по одной очереди) → **Сообщение** (деталь). Редактирование и удаление сообщений недоступны.
 
 ## CI/CD
 

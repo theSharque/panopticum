@@ -17,6 +17,7 @@
             <option value="sqlserver">MS SQL Server</option>
             <option value="oracle">Oracle Database</option>
             <option value="cassandra">Cassandra</option>
+            <option value="rabbitmq">RabbitMQ</option>
         </select>
     </div>
 
@@ -28,6 +29,7 @@
     <div th:replace="~{settings/fragments/form-mssql :: form-mssql}"></div>
     <div th:replace="~{settings/fragments/form-oracle :: form-oracle}"></div>
     <div th:replace="~{settings/fragments/form-cassandra :: form-cassandra}"></div>
+    <div th:replace="~{settings/fragments/form-rabbitmq :: form-rabbitmq}"></div>
 
     <script>
         document.getElementById('connection-type').addEventListener('change', function () {
@@ -40,6 +42,7 @@
             document.getElementById('form-mssql').hidden = type !== 'sqlserver';
             document.getElementById('form-oracle').hidden = type !== 'oracle';
             document.getElementById('form-cassandra').hidden = type !== 'cassandra';
+            document.getElementById('form-rabbitmq').hidden = type !== 'rabbitmq';
         });
     </script>
 

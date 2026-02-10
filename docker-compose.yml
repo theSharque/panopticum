@@ -7,6 +7,7 @@
 # - Cassandra: host=localhost, port=43006, keyspace optional (e.g. create panopticum_dev via cqlsh)
 # - MS SQL: host=localhost, port=43007, db=panopticum_dev, user=sa, password=Pan0pticum!
 # - Oracle: host=localhost, port=43008, service=XEPDB1, user=panopticum, password=panopticum
+# - RabbitMQ: amqp://localhost:43009 (default user/guest), management UI http://localhost:43010
 
 services:
   postgres:
@@ -134,6 +135,20 @@ services:
       retries: 10
       start_period: 180s
 
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "43009:5672"
+      - "43010:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    healthcheck:
+      test: ["CMD-SHELL", "rabbitmq-diagnostics -q ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 volumes:
   postgres_data:
   mongodb_data:
@@ -143,3 +158,4 @@ volumes:
   cassandra_data:
   mssql_data:
   oracle_data:
+  rabbitmq_data:

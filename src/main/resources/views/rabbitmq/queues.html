@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(~{::main})}">
+<head></head>
+<body>
+<main th:fragment="main" class="main-content">
+    <div th:replace="~{fragments/breadcrumbs :: breadcrumbs(items=${breadcrumbs})}"></div>
+    <h1 th:text="${msg['rabbitmq.queuesTitle']}">Queues</h1>
+    <div th:if="${items != null and !items.isEmpty()}" class="query-result-data">
+        <div class="query-table-wrapper">
+            <table class="query-table">
+                <thead>
+                    <tr>
+                        <th class="query-th query-th-detail"></th>
+                        <th class="query-th" th:text="${msg['common.name']}">Name</th>
+                        <th class="query-th" th:text="${msg['rabbitmq.vhost']}">VHost</th>
+                        <th class="query-th" th:text="${msg['rabbitmq.messages']}">Messages</th>
+                        <th class="query-th" th:text="${msg['rabbitmq.messagesReady']}">Ready</th>
+                        <th class="query-th" th:text="${msg['rabbitmq.messagesUnack']}">Unacked</th>
+                        <th class="query-th" th:text="${msg['rabbitmq.consumers']}">Consumers</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="item : ${items}" class="query-data-row">
+                        <td class="query-detail-cell">
+                            <a th:href="@{/rabbitmq/{id}/queues/{vhost}/{q}/messages(id=${connectionId}, vhost=${item.vhostForUrl}, q=${item.name})}" class="query-detail-link" th:attr="aria-label=${msg['common.open']}, title=${msg['common.open']}">
+                                <svg class="icon-link" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
+                            </a>
+                        </td>
+                        <td th:text="${item.name}" class="query-cell-mono"></td>
+                        <td th:text="${item.vhostForUrl}" class="query-cell-mono"></td>
+                        <td th:text="${item.messages != null ? item.messages : 0}" class="query-cell-mono"></td>
+                        <td th:text="${item.messagesReady != null ? item.messagesReady : 0}" class="query-cell-mono"></td>
+                        <td th:text="${item.messagesUnacknowledged != null ? item.messagesUnacknowledged : 0}" class="query-cell-mono"></td>
+                        <td th:text="${item.consumers != null ? item.consumers : 0}" class="query-cell-mono"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <p th:if="${items == null or items.isEmpty()}" class="text-dim" th:text="${msg['rabbitmq.noQueues']}">No queues or connection error.</p>
+</main>
+</body>
+</html>

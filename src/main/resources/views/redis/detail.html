@@ -8,12 +8,9 @@
     <h1 th:text="${msg['redis.keyDetailTitle']}">Key</h1>
     <div th:if="${keyDetail != null}" class="query-result-data">
         <dl class="detail-dl">
-            <dt th:text="${msg['redis.key']}">Key</dt>
-            <dd th:text="${keyDetail.key}" class="query-cell-mono"></dd>
-            <dt th:text="${msg['common.type']}">Type</dt>
-            <dd th:text="${keyDetail.type}"></dd>
-            <dt th:text="${msg['redis.ttl']}">TTL</dt>
-            <dd th:text="${keyDetail.ttl != null ? keyDetail.ttl + ' ms' : msg['redis.noExpiry']}"></dd>
+            <dt><span th:text="${msg['redis.key']}">Key</span> : <span th:text="${keyDetail.key}" class="query-cell-mono"></span></dt>
+            <dt><span th:text="${msg['common.type']}">Type</span> : <span th:text="${keyDetail.type}"></span></dt>
+            <dt><span th:text="${msg['redis.ttl']}">TTL</span> : <span th:text="${keyDetail.ttl != null ? keyDetail.ttl + ' ms' : msg['redis.noExpiry']}"></span></dt>
         </dl>
         <h2 th:text="${msg['common.value']}">Value</h2>
         <div th:if="${keyDetail.type == 'string'}" class="detail-value">

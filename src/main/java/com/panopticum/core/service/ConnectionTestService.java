@@ -7,6 +7,7 @@ import com.panopticum.mssql.service.MssqlMetadataService;
 import com.panopticum.oracle.service.OracleMetadataService;
 import com.panopticum.mysql.service.MySqlMetadataService;
 import com.panopticum.postgres.service.PgMetadataService;
+import com.panopticum.rabbitmq.service.RabbitMqService;
 import com.panopticum.redis.service.RedisMetadataService;
 
 import jakarta.inject.Singleton;
@@ -26,6 +27,7 @@ public class ConnectionTestService {
     private final MssqlMetadataService mssqlMetadataService;
     private final OracleMetadataService oracleMetadataService;
     private final CassandraMetadataService cassandraMetadataService;
+    private final RabbitMqService rabbitMqService;
 
     public Optional<String> test(String type, String host, Integer port, String database,
                                 String username, String password) {
@@ -57,6 +59,7 @@ public class ConnectionTestService {
             case "sqlserver" -> mssqlMetadataService.testConnection(h, p, db, user, pass);
             case "oracle" -> oracleMetadataService.testConnection(h, p, db, user, pass);
             case "cassandra" -> cassandraMetadataService.testConnection(h, p, db, user, pass);
+            case "rabbitmq" -> rabbitMqService.testConnection(h, p, db, user, pass);
             default -> Optional.of("error.specifyHostDbUser");
         };
     }
@@ -74,6 +77,7 @@ public class ConnectionTestService {
             case "sqlserver" -> 1433;
             case "oracle" -> 1521;
             case "cassandra" -> 9042;
+            case "rabbitmq" -> 15672;
             default -> 5432;
         };
     }

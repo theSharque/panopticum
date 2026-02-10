@@ -7,8 +7,7 @@
     <h1 th:text="${msg['pg.rowDetail']}">Row details</h1>
     <div class="detail-block" th:if="${detailRows != null and !detailRows.isEmpty()}">
         <div class="detail-field" th:each="field : ${detailRows}">
-            <div class="detail-field-name" th:text="${field.name + ' : ' + field.type}"></div>
-            <div class="detail-field-value" th:text="${field.value}"></div>
+            <div class="detail-field-name"><span th:text="${field.name + ' : ' + field.type}"></span> : <span class="detail-field-value" th:text="${field.value}"></span></div>
         </div>
     </div>
     <p th:if="${detailRows == null or detailRows.isEmpty()}" class="text-dim" th:text="${msg['common.noData']}">No data.</p>
