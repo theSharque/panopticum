@@ -1,6 +1,6 @@
 plugins {
     id("com.github.johnrengelman.shadow") version "8.1.1"
-    id("io.micronaut.application") version "4.4.2"
+    id("io.micronaut.application") version "4.6.1"
 }
 
 version = "0.1"
@@ -13,16 +13,12 @@ repositories {
 configurations.all {
     resolutionStrategy {
         eachDependency { details ->
-            if (details.requested.group == "io.netty") {
-                details.useVersion("4.1.130.Final")
-                details.because("CVE fixes: 2025-55163, 2025-58057, 2025-67735, 2025-58056")
-            }
             if (details.requested.group == "ch.qos.logback") {
                 details.useVersion("1.5.25")
                 details.because("CVE fixes: 2024-12798, 2025-11226, 2024-12801, 2026-1225")
             }
             if (details.requested.group == "com.microsoft.sqlserver" && details.requested.name == "mssql-jdbc") {
-                details.useVersion("12.6.5.jre11")
+                details.useVersion("12.10.2.jre11")
                 details.because("CVE fix: 2025-59250")
             }
         }
@@ -30,7 +26,7 @@ configurations.all {
 }
 
 dependencies {
-    implementation(platform("io.micronaut.platform:micronaut-platform:4.4.2"))
+    implementation(platform("io.micronaut.platform:micronaut-platform:4.10.7"))
     annotationProcessor("org.projectlombok:lombok")
     annotationProcessor("io.micronaut:micronaut-core-processor")
     compileOnly("io.micronaut:micronaut-core-processor")
