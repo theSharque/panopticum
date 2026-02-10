@@ -33,11 +33,15 @@ public class OracleMetadataRepository {
                     + "WHERE object_type IN ('TABLE','VIEW') GROUP BY owner ORDER BY owner";
 
     private static final String LIST_TABLES_SQL =
-            "SELECT table_name, 'table' AS object_type, NVL(num_rows, 0) AS num_rows, 0 AS size_bytes "
-                    + "FROM all_tables WHERE owner = ? "
+            "SELECT object_name, object_type FROM ("
+                    + "SELECT table_name AS object_name, 'TABLE' AS object_type FROM all_tables WHERE owner = ? "
                     + "UNION ALL "
-                    + "SELECT view_name, 'view' AS object_type, 0 AS num_rows, 0 AS size_bytes "
-                    + "FROM all_views WHERE owner = ? ORDER BY 1";
+                    + "SELECT view_name AS object_name, 'VIEW' AS object_type FROM all_views WHERE owner = ?"
+                    + ") ORDER BY 1";
+
+    private static final String TABLE_SIZE_SQL =
+            "SELECT segment_name, NVL(bytes, 0) AS bytes FROM all_segments "
+                    + "WHERE owner = ? AND segment_type = 'TABLE'";
 
     private static final String COLUMN_TYPES_SQL =
             "SELECT column_name, data_type FROM all_tab_columns "
@@ -116,16 +120,17 @@ public class OracleMetadataRepository {
                 return List.of();
             }
             List<TableInfo> tables = new ArrayList<>();
+            Map<String, Long> sizeByTable = loadTableSizes(conn, schema);
             try (PreparedStatement ps = conn.prepareStatement(LIST_TABLES_SQL)) {
                 ps.setString(1, schema);
                 ps.setString(2, schema);
                 try (ResultSet rs = ps.executeQuery()) {
                     while (rs.next()) {
-                        String name = rs.getString("table_name");
+                        String name = rs.getString("object_name");
                         String type = rs.getString("object_type");
-                        long rows = rs.getLong("num_rows");
-                        long size = rs.getLong("size_bytes");
-                        String typeStr = "table".equalsIgnoreCase(type) ? "table" : "view";
+                        long rows = countRows(conn, schema, name);
+                        long size = sizeByTable.getOrDefault(name, 0L);
+                        String typeStr = "TABLE".equalsIgnoreCase(type) ? "table" : "view";
                         tables.add(new TableInfo(name, typeStr, rows, size, SizeFormatter.formatSize(size)));
                     }
                 }
@@ -134,6 +139,34 @@ public class OracleMetadataRepository {
         } catch (SQLException e) {
             log.warn("listTableInfos failed: {}", e.getMessage());
             return List.of();
+        }
+    }
+
+    private Map<String, Long> loadTableSizes(Connection conn, String schema) {
+        Map<String, Long> sizes = new LinkedHashMap<>();
+        try (PreparedStatement ps = conn.prepareStatement(TABLE_SIZE_SQL)) {
+            ps.setString(1, schema);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    sizes.put(rs.getString("segment_name"), rs.getLong("bytes"));
+                }
+            }
+        } catch (SQLException e) {
+            log.warn("loadTableSizes failed: {}", e.getMessage());
+        }
+        return sizes;
+    }
+
+    private long countRows(Connection conn, String schema, String tableName) {
+        String quotedSchema = "\"" + schema.replace("\"", "\"\"") + "\"";
+        String quotedTable = "\"" + tableName.replace("\"", "\"\"") + "\"";
+        String sql = "SELECT COUNT(*) FROM " + quotedSchema + "." + quotedTable;
+        try (Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            return rs.next() ? rs.getLong(1) : 0;
+        } catch (SQLException e) {
+            log.debug("countRows failed for {}.{}: {}", schema, tableName, e.getMessage());
+            return 0;
         }
     }
 
