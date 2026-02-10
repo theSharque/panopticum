@@ -1,0 +1,43 @@
+<div xmlns:th="http://www.thymeleaf.org" id="form-oracle" class="connection-form-block" hidden th:fragment="form-oracle">
+    <form id="connection-form-oracle" action="/settings/add-oracle" method="post" class="add-connection-form"
+          hx-post="/settings/add-oracle"
+          hx-target="#sidebar"
+          hx-swap="outerHTML">
+        <div class="form-group">
+            <label for="name-oracle" th:text="${msg['common.name']}">Name</label>
+            <input type="text" id="name-oracle" name="name" required th:attr="placeholder=${msg['settings.placeholderNameOracle']}">
+        </div>
+        <div class="form-group">
+            <label for="host-oracle" th:text="${msg['settings.host']}">Host</label>
+            <input type="text" id="host-oracle" name="host" required placeholder="localhost" value="localhost">
+        </div>
+        <div class="form-group">
+            <label for="port-oracle" th:text="${msg['settings.port']}">Port</label>
+            <input type="number" id="port-oracle" name="port" value="1521">
+        </div>
+        <div class="form-group">
+            <label for="database-oracle" th:text="${msg['settings.database']}">Service name / SID</label>
+            <input type="text" id="database-oracle" name="database" required placeholder="XEPDB1">
+        </div>
+        <div class="form-group">
+            <label for="username-oracle" th:text="${msg['settings.username']}">Username</label>
+            <input type="text" id="username-oracle" name="username" required placeholder="panopticum">
+        </div>
+        <div class="form-group">
+            <label for="password-oracle" th:text="${msg['settings.password']}">Password</label>
+            <input type="password" id="password-oracle" name="password" placeholder="password">
+        </div>
+        <div class="form-actions">
+            <span id="test-indicator-oracle" class="connection-test-indicator" aria-hidden="true" th:text="${msg['settings.testing']}">Checking...</span>
+            <button type="button" class="btn-check"
+                    hx-post="/settings/test-oracle"
+                    hx-include="#connection-form-oracle"
+                    hx-target="#connection-test-result-oracle"
+                    hx-swap="innerHTML show:bottom"
+                    hx-indicator="#test-indicator-oracle"
+                    th:text="${msg['settings.test']}">Test</button>
+            <button type="submit" th:text="${msg['settings.add']}">Add</button>
+        </div>
+        <div id="connection-test-result-oracle" class="connection-test-result"></div>
+    </form>
+</div>

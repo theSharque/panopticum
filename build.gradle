@@ -49,6 +49,7 @@ dependencies {
     runtimeOnly("org.postgresql:postgresql")
     runtimeOnly("com.mysql:mysql-connector-j")
     runtimeOnly("com.microsoft.sqlserver:mssql-jdbc")
+    runtimeOnly("com.oracle.database.jdbc:ojdbc11")
     implementation("org.mongodb:mongodb-driver-sync")
     implementation("io.lettuce:lettuce-core:6.5.4.RELEASE")
     runtimeOnly("com.clickhouse:clickhouse-jdbc:0.9.6:all")

@@ -177,6 +177,27 @@ public class SettingsController {
         return testConnectionResult(request, "sqlserver", host, port, database, username, password);
     }
 
+    @Post("/add-oracle")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @Produces(MediaType.TEXT_HTML)
+    public Object addOracle(HttpRequest<?> request,
+                            String name, String host, Integer port, String database, String username, String password) {
+        DbConnection conn = dbConnectionFactory.build("oracle", name, host, port, database, username, password);
+        DbConnection saved = dbConnectionService.save(conn);
+        Map<String, Object> model = new HashMap<>();
+        model.put("connections", dbConnectionService.findAll());
+
+        return responseAfterAdd(request, model, saved.getId(), "/oracle/" + saved.getId());
+    }
+
+    @Post("/test-oracle")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @Produces(MediaType.TEXT_HTML)
+    public ModelAndView<Map<String, Object>> testOracle(HttpRequest<?> request,
+            String host, Integer port, String database, String username, String password) {
+        return testConnectionResult(request, "oracle", host, port, database, username, password);
+    }
+
     @Post("/add-cassandra")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces(MediaType.TEXT_HTML)

@@ -9,7 +9,7 @@ public final class MessagesCommon {
 
     public static final Map<String, String> EN = Map.ofEntries(
             Map.entry("home.title", "Panopticum — a place from which everything is visible"),
-            Map.entry("home.description", "The name derives from Greek pan (all) and optikon (vision) — \"all-seeing\". The idea of the panopticum is a single vantage point from which the entire controlled space is visible. Here it is a tool for viewing and managing database connections — MongoDB, PostgreSQL, Redis, ClickHouse, MySQL, MS SQL Server, Cassandra — from one place."),
+            Map.entry("home.description", "The name derives from Greek pan (all) and optikon (vision) — \"all-seeing\". The idea of the panopticum is a single vantage point from which the entire controlled space is visible. Here it is a tool for viewing and managing database connections — MongoDB, PostgreSQL, Redis, ClickHouse, MySQL, MS SQL Server, Oracle, Cassandra — from one place."),
             Map.entry("home.pickDb", "Select a database from the menu or go to settings to add a connection."),
             Map.entry("nav.settings", "Settings"),
             Map.entry("sidebar.connections", "Connections"),
@@ -64,7 +64,7 @@ public final class MessagesCommon {
 
     public static final Map<String, String> RU = Map.ofEntries(
             Map.entry("home.title", "Panopticum — место, откуда видно всё"),
-            Map.entry("home.description", "Название восходит к греческому pan (всё) и optikon (видение) — «всевидящий». Идея паноптикума — единая точка обзора, с которой всё подконтрольное пространство видно целиком. Здесь это инструмент для просмотра и управления подключениями к базам данных — MongoDB, PostgreSQL, Redis, ClickHouse, MySQL, MS SQL Server, Cassandra — из одного места."),
+            Map.entry("home.description", "Название восходит к греческому pan (всё) и optikon (видение) — «всевидящий». Идея паноптикума — единая точка обзора, с которой всё подконтрольное пространство видно целиком. Здесь это инструмент для просмотра и управления подключениями к базам данных — MongoDB, PostgreSQL, Redis, ClickHouse, MySQL, MS SQL Server, Oracle, Cassandra — из одного места."),
             Map.entry("home.pickDb", "Выберите базу данных в меню или перейдите в настройки для добавления подключения."),
             Map.entry("nav.settings", "Настройки"),
             Map.entry("sidebar.connections", "Подключения"),

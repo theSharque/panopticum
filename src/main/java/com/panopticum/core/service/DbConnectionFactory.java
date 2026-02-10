@@ -14,6 +14,7 @@ public class DbConnectionFactory {
     private static final int PORT_MYSQL = 3306;
     private static final int PORT_CASSANDRA = 9042;
     private static final int PORT_MSSQL = 1433;
+    private static final int PORT_ORACLE = 1521;
 
     public DbConnection build(String type, String name, String host, Integer port,
                              String database, String username, String password) {
@@ -62,6 +63,7 @@ public class DbConnectionFactory {
             case "mysql" -> PORT_MYSQL;
             case "cassandra" -> PORT_CASSANDRA;
             case "sqlserver" -> PORT_MSSQL;
+            case "oracle" -> PORT_ORACLE;
             default -> PORT_POSTGRESQL;
         };
     }
@@ -74,6 +76,7 @@ public class DbConnectionFactory {
             case "redis" -> "0";
             case "clickhouse" -> "default";
             case "sqlserver" -> "master";
+            case "oracle" -> "XEPDB1";
             default -> "";
         };
     }

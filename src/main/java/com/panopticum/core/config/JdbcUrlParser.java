@@ -28,6 +28,9 @@ public final class JdbcUrlParser {
         if ("sqlserver".equals(type)) {
             return parseSqlServerUrl(rest);
         }
+        if ("oracle".equals(type)) {
+            return parseOracleUrl(rest);
+        }
 
         String authority = rest;
         String path = "";
@@ -138,6 +141,53 @@ public final class JdbcUrlParser {
         }
 
         return new JdbcUrlParts("sqlserver", host, port, database, username, password);
+    }
+
+    private static JdbcUrlParts parseOracleUrl(String rest) {
+        String host = "localhost";
+        int port = -1;
+        String database = "";
+        String username = null;
+        String password = null;
+
+        String trimmed = rest.trim();
+        if (trimmed.startsWith("//")) {
+            String withoutSlash = trimmed.substring(2);
+            int slash = withoutSlash.indexOf('/');
+            if (slash >= 0) {
+                database = withoutSlash.substring(slash + 1).trim();
+                String hostPort = withoutSlash.substring(0, slash).trim();
+                int colon = hostPort.indexOf(':');
+                if (colon >= 0) {
+                    host = hostPort.substring(0, colon).trim();
+                    if (host.isBlank()) {
+                        host = "localhost";
+                    }
+                    try {
+                        port = Integer.parseInt(hostPort.substring(colon + 1).trim());
+                    } catch (NumberFormatException ignored) {
+                    }
+                } else {
+                    host = hostPort.isBlank() ? "localhost" : hostPort;
+                }
+            }
+        } else {
+            String[] parts = trimmed.split(":");
+            if (parts.length >= 1 && !parts[0].isBlank()) {
+                host = parts[0].trim();
+            }
+            if (parts.length >= 2) {
+                try {
+                    port = Integer.parseInt(parts[1].trim());
+                } catch (NumberFormatException ignored) {
+                }
+            }
+            if (parts.length >= 3 && !parts[2].isBlank()) {
+                database = parts[2].trim();
+            }
+        }
+
+        return new JdbcUrlParts("oracle", host, port > 0 ? port : 1521, database, username, password);
     }
 
     private static String decode(String s) {

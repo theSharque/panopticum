@@ -6,6 +6,7 @@
 # - MySQL: host=localhost, port=43005, db=panopticum_dev, user=panopticum, password=panopticum
 # - Cassandra: host=localhost, port=43006, keyspace optional (e.g. create panopticum_dev via cqlsh)
 # - MS SQL: host=localhost, port=43007, db=panopticum_dev, user=sa, password=Pan0pticum!
+# - Oracle: host=localhost, port=43008, service=XEPDB1, user=panopticum, password=panopticum
 
 services:
   postgres:
@@ -116,6 +117,23 @@ services:
       - ./docker/mssql-init/init.sql:/init.sql
     entrypoint: ["/opt/mssql-tools18/bin/sqlcmd", "-S", "mssql", "-U", "sa", "-P", "Pan0pticum!", "-C", "-i", "/init.sql"]
 
+  oracle:
+    image: gvenzl/oracle-xe:latest
+    ports:
+      - "43008:1521"
+    environment:
+      ORACLE_PASSWORD: "Pan0pticum!"
+      APP_USER: panopticum
+      APP_USER_PASSWORD: panopticum
+    volumes:
+      - oracle_data:/opt/oracle/oradata
+    healthcheck:
+      test: ["CMD-SHELL", "echo exit | sqlplus -S panopticum/panopticum@//localhost/XEPDB1 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 180s
+
 volumes:
   postgres_data:
   mongodb_data:
@@ -124,3 +142,4 @@ volumes:
   mysql_data:
   cassandra_data:
   mssql_data:
+  oracle_data:

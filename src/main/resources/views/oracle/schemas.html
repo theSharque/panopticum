@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(~{::main})}">
+<head></head>
+<body>
+<main th:fragment="main" class="main-content">
+    <div th:replace="~{fragments/breadcrumbs :: breadcrumbs(items=${breadcrumbs})}"></div>
+    <h1 th:text="${msg['pg.schemas']}">Schemas</h1>
+    <div th:if="${items != null and !items.isEmpty()}" class="query-result-data">
+        <div class="query-pagination-info">
+            <span class="query-pagination-range" th:text="${msg['common.rowsRange'] + fromRow + '–' + toRow}"></span>
+            <span class="query-pagination-nav">
+                <a th:if="${hasPrev}" th:href="@{/oracle/{id}(id=${connectionId})}(page=${page - 1}, size=${size}, sort=${sort}, order=${order})" class="query-pagination-btn" th:text="${'← ' + msg['common.prev']}">← Back</a>
+                <a th:if="${hasMore}" th:href="@{/oracle/{id}(id=${connectionId})}(page=${page + 1}, size=${size}, sort=${sort}, order=${order})" class="query-pagination-btn" th:text="${msg['common.next'] + ' →'}">Next →</a>
+            </span>
+        </div>
+        <div class="query-table-wrapper">
+            <table class="query-table">
+                <thead>
+                    <tr>
+                        <th class="query-th query-th-detail"></th>
+                        <th class="query-th query-th-sortable">
+                            <a th:href="@{/oracle/{id}(id=${connectionId}, page=1, size=${size}, sort='name', order=${orderName})}" class="query-th-link"><span th:text="${msg['common.name']}">Name</span> <span th:if="${sort == 'name' and order == 'asc'}" class="query-sort-ind">▲</span><span th:if="${sort == 'name' and order == 'desc'}" class="query-sort-ind">▼</span></a>
+                        </th>
+                        <th class="query-th query-th-sortable">
+                            <a th:href="@{/oracle/{id}(id=${connectionId}, page=1, size=${size}, sort='owner', order=${orderOwner})}" class="query-th-link"><span th:text="${msg['pg.owner']}">Owner</span> <span th:if="${sort == 'owner' and order == 'asc'}" class="query-sort-ind">▲</span><span th:if="${sort == 'owner' and order == 'desc'}" class="query-sort-ind">▼</span></a>
+                        </th>
+                        <th class="query-th query-th-sortable">
+                            <a th:href="@{/oracle/{id}(id=${connectionId}, page=1, size=${size}, sort='tables', order=${orderTables})}" class="query-th-link"><span th:text="${msg['pg.tableCount']}">Tables</span> <span th:if="${sort == 'tables' and order == 'asc'}" class="query-sort-ind">▲</span><span th:if="${sort == 'tables' and order == 'desc'}" class="query-sort-ind">▼</span></a>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="item : ${items}" class="query-data-row">
+                        <td class="query-detail-cell">
+                            <a th:href="${itemUrlPrefix + item.name}" class="query-detail-link" th:attr="aria-label=${msg['common.open']}, title=${msg['common.open']}">
+                                <svg class="icon-link" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
+                            </a>
+                        </td>
+                        <td th:text="${item.name}"></td>
+                        <td th:text="${item.owner}"></td>
+                        <td th:text="${item.tableCount}" class="query-cell-mono"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <p th:if="${items == null or items.isEmpty()}" class="text-dim" th:text="${msg['common.noSchemasOrError']}">No schemas or connection error.</p>
+</main>
+</body>
+</html>
