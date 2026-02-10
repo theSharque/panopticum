@@ -21,6 +21,10 @@ configurations.all {
                 details.useVersion("1.5.25")
                 details.because("CVE fixes: 2024-12798, 2025-11226, 2024-12801, 2026-1225")
             }
+            if (details.requested.group == "com.microsoft.sqlserver" && details.requested.name == "mssql-jdbc") {
+                details.useVersion("12.6.5.jre11")
+                details.because("CVE fix: 2025-59250")
+            }
         }
     }
 }

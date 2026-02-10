@@ -1,8 +1,6 @@
-FROM eclipse-temurin:17-jdk-alpine AS builder
+FROM eclipse-temurin:17-jdk AS builder
 
 WORKDIR /app
-
-RUN apk update && apk upgrade -a && apk add --no-cache bash
 
 COPY gradle gradle
 COPY gradlew build.gradle settings.gradle gradle.properties ./
@@ -10,20 +8,19 @@ COPY src src/
 
 RUN ./gradlew shadowJar --no-daemon
 
-FROM eclipse-temurin:17-jre-alpine
+FROM eclipse-temurin:17-jre
 
-RUN apk update && apk upgrade -a && apk add --no-cache wget \
-    && addgroup -g 1000 app && adduser -u 1000 -G app -D app
+RUN groupadd -g 1001 app && useradd -u 1001 -g app -s /bin/false app
 
 WORKDIR /app
 
 ENV PANOPTICUM_DB_PATH=/data/panopticum
 
-RUN mkdir -p /data && chown -R app:app /data
+RUN mkdir -p /data && chown -R 1001:1001 /data
 
-COPY --from=builder --chown=app:app /app/build/libs/panopticum-*-all.jar app.jar
+COPY --from=builder --chown=1001:1001 /app/build/libs/panopticum-*-all.jar app.jar
 
-USER app
+USER 1001
 
 EXPOSE 8080
 
