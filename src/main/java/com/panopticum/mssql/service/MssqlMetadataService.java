@@ -167,9 +167,9 @@ public class MssqlMetadataService {
         if (!upper.startsWith("SELECT") || upper.startsWith("SELECT INTO")) {
             return executeQuery(connectionId, dbName, sql, offset, limit, sortBy, sortOrder, true);
         }
-        String innerWithOrder = buildWrappedQueryWithOrder(trimmed, sortBy, sortOrder);
-        Optional<QueryResultData> metaOpt = mssqlMetadataRepository.executeQuery(connectionId, dbName,
-                innerWithOrder + " OFFSET 0 ROWS FETCH NEXT 0 ROWS ONLY");
+        String orderByClauseForMeta = buildOrderBy(sortBy, sortOrder);
+        String metaSql = "SELECT TOP 0 * FROM (" + trimmed + ") AS _paged" + orderByClauseForMeta;
+        Optional<QueryResultData> metaOpt = mssqlMetadataRepository.executeQuery(connectionId, dbName, metaSql);
         if (metaOpt.isEmpty() || metaOpt.get().getColumns() == null || metaOpt.get().getColumns().isEmpty()) {
             return Optional.of(QueryResult.error("Connection not available"));
         }
@@ -179,9 +179,10 @@ public class MssqlMetadataService {
                 .reduce((a, b) -> "CONCAT(" + a + ", N':', " + b + ")")
                 .orElse("N''");
         String orderByClause = buildOrderBy(sortBy, sortOrder);
-        String searchSql = "SELECT * FROM (" + innerWithOrder + ") AS _sub WHERE " + concatExpr + " LIKE ? " + orderByClause + " OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
+        String innerWithoutOrder = "SELECT * FROM (" + trimmed + ") AS _paged";
+        String searchSql = "SELECT * FROM (" + innerWithoutOrder + ") AS _sub WHERE " + concatExpr + " LIKE ? " + orderByClause + " OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
         String likePattern = "%" + escapeForLike(searchTerm) + "%";
-        int maxLimit = Math.min(limit, queryRowsLimit);
+        int maxLimit = Math.max(1, Math.min(limit, queryRowsLimit));
         List<Object> params = List.of(likePattern, Math.max(0, offset), maxLimit);
         Optional<QueryResultData> dataOpt = mssqlMetadataRepository.executeQuery(connectionId, dbName, searchSql, params);
         if (dataOpt.isEmpty()) {
@@ -227,7 +228,7 @@ public class MssqlMetadataService {
         if (!upper.startsWith("SELECT") || upper.startsWith("SELECT INTO")) {
             return sql;
         }
-        int maxLimit = Math.min(limit, queryRowsLimit);
+        int maxLimit = Math.max(1, Math.min(limit, queryRowsLimit));
         return buildWrappedQueryWithOrder(trimmed, sortBy, sortOrder) + " OFFSET " + Math.max(0, offset) + " ROWS FETCH NEXT " + maxLimit + " ROWS ONLY";
     }
 

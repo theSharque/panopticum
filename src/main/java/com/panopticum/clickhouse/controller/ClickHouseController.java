@@ -130,6 +130,27 @@ public class ClickHouseController {
         return buildSqlPageModel(id, dbName, sql, offset, limit, sort, order, search);
     }
 
+    @Produces(MediaType.TEXT_HTML)
+    @Get("/{id}/{dbName}/{table}")
+    @View("clickhouse/table")
+    public Map<String, Object> tablePage(@PathVariable Long id, @PathVariable String dbName, @PathVariable String table,
+                                         @QueryValue(value = "offset", defaultValue = "0") Integer offset,
+                                         @QueryValue(value = "limit", defaultValue = "100") Integer limit,
+                                         @QueryValue(value = "sort", defaultValue = "") String sort,
+                                         @QueryValue(value = "order", defaultValue = "") String order,
+                                         @QueryValue(value = "search", defaultValue = "") String search) {
+        String tableEscaped = table != null ? table.replace("`", "``") : "";
+        String sql = "SELECT * FROM `" + tableEscaped + "`";
+        Map<String, Object> model = buildSqlPageModel(id, dbName, sql, offset, limit, sort, order, search);
+        model.put("tableDetailActionUrl", "/clickhouse/" + id + "/" + dbName + "/" + table + "/detail");
+        @SuppressWarnings("unchecked")
+        List<BreadcrumbItem> breadcrumbs = (List<BreadcrumbItem>) model.get("breadcrumbs");
+        if (breadcrumbs != null && !breadcrumbs.isEmpty()) {
+            breadcrumbs.set(breadcrumbs.size() - 1, new BreadcrumbItem(table, null));
+        }
+        return model;
+    }
+
     private Map<String, Object> buildSqlPageModel(Long id, String dbName, String sql,
                                                   Integer offset, Integer limit, String sort, String order, String search) {
         Map<String, Object> model = ControllerModelHelper.baseModel(id, dbConnectionService);
@@ -249,19 +270,40 @@ public class ClickHouseController {
     @View("clickhouse/detail")
     public Map<String, Object> rowDetail(@PathVariable Long id, @PathVariable String dbName,
                                         String sql, Integer rowNum, String sort, String order, @Nullable String search) {
+        return rowDetail(id, dbName, sql, rowNum, sort, order, search, null);
+    }
+
+    @Produces(MediaType.TEXT_HTML)
+    @Post("/{id}/{dbName}/{table}/detail")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @View("clickhouse/detail")
+    public Map<String, Object> rowDetailWithTable(@PathVariable Long id, @PathVariable String dbName, @PathVariable String table,
+                                                   String sql, Integer rowNum, String sort, String order, @Nullable String search) {
+        return rowDetail(id, dbName, sql, rowNum, sort, order, search, table);
+    }
+
+    private Map<String, Object> rowDetail(Long id, String dbName, String sql, Integer rowNum,
+                                           String sort, String order, String search, @Nullable String tableParam) {
         Map<String, Object> model = ControllerModelHelper.baseModel(id, dbConnectionService);
         Optional<DbConnection> conn = dbConnectionService.findById(id);
         if (conn.isEmpty()) {
             return model;
         }
+
         List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
         breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/clickhouse/" + id));
         breadcrumbs.add(new BreadcrumbItem(dbName != null ? dbName : "", "/clickhouse/" + id + "/" + (dbName != null ? dbName : "")));
+        if (tableParam != null && !tableParam.isBlank()) {
+            breadcrumbs.add(new BreadcrumbItem(tableParam, "/clickhouse/" + id + "/" + dbName + "/" + tableParam));
+        }
         breadcrumbs.add(new BreadcrumbItem("detail", null));
         ControllerModelHelper.addBreadcrumbs(model, breadcrumbs);
         model.put("connectionId", id);
         model.put("dbName", dbName != null ? dbName : "");
         model.put("searchTerm", search != null && !search.isBlank() ? search.trim() : "");
+        if (tableParam != null && !tableParam.isBlank()) {
+            model.put("table", tableParam);
+        }
 
         List<Map<String, String>> detailRows = new ArrayList<>();
         if (sql != null && !sql.isBlank() && rowNum != null && rowNum >= 0) {

@@ -77,4 +77,5 @@ micronaut {
 
 shadowJar {
     mergeServiceFiles()
+    archiveFileName.set("panopticum-all.jar")
 }

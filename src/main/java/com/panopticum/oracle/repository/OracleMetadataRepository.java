@@ -56,6 +56,14 @@ public class OracleMetadataRepository {
         return "jdbc:oracle:thin:@//" + host + ":" + port + "/" + service;
     }
 
+    private static String firstLineOf(String msg) {
+        if (msg == null) {
+            return null;
+        }
+        int idx = msg.indexOf('\n');
+        return idx >= 0 ? msg.substring(0, idx).trim() : msg;
+    }
+
     public Optional<Connection> getConnection(Long connectionId) {
         return dbConnectionService.findById(connectionId).flatMap(this::createConnection);
     }
@@ -81,7 +89,7 @@ public class OracleMetadataRepository {
             }
             return Optional.of(c);
         } catch (SQLException e) {
-            log.warn("Failed to connect to {} schema {}: {}", conn.getName(), schema, e.getMessage());
+            log.warn("Failed to connect to {} schema {}: {}", conn.getName(), schema, firstLineOf(e.getMessage()));
             return Optional.empty();
         }
     }
@@ -109,7 +117,7 @@ public class OracleMetadataRepository {
             }
             return infos;
         } catch (SQLException e) {
-            log.warn("listSchemaInfos failed: {}", e.getMessage());
+            log.warn("listSchemaInfos failed: {}", firstLineOf(e.getMessage()));
             return List.of();
         }
     }
@@ -137,7 +145,7 @@ public class OracleMetadataRepository {
             }
             return tables;
         } catch (SQLException e) {
-            log.warn("listTableInfos failed: {}", e.getMessage());
+            log.warn("listTableInfos failed: {}", firstLineOf(e.getMessage()));
             return List.of();
         }
     }
@@ -152,7 +160,7 @@ public class OracleMetadataRepository {
                 }
             }
         } catch (SQLException e) {
-            log.warn("loadTableSizes failed: {}", e.getMessage());
+            log.debug("loadTableSizes failed: {}", firstLineOf(e.getMessage()));
         }
         return sizes;
     }
@@ -165,7 +173,7 @@ public class OracleMetadataRepository {
              ResultSet rs = stmt.executeQuery(sql)) {
             return rs.next() ? rs.getLong(1) : 0;
         } catch (SQLException e) {
-            log.debug("countRows failed for {}.{}: {}", schema, tableName, e.getMessage());
+            log.debug("countRows failed for {}.{}: {}", schema, tableName, firstLineOf(e.getMessage()));
             return 0;
         }
     }
@@ -200,8 +208,8 @@ public class OracleMetadataRepository {
                 return Optional.of(new QueryResultData(columns, columnTypes, rows));
             }
         } catch (SQLException e) {
-            log.warn("executeQuery failed: {}", e.getMessage());
-            throw new RuntimeException("Query failed: " + e.getMessage(), e);
+            log.warn("executeQuery failed: {}", firstLineOf(e.getMessage()));
+            throw new RuntimeException("Query failed: " + firstLineOf(e.getMessage()), e);
         }
     }
 
@@ -242,8 +250,8 @@ public class OracleMetadataRepository {
                 }
             }
         } catch (SQLException e) {
-            log.warn("executeQuery with params failed: {}", e.getMessage());
-            throw new RuntimeException("Query failed: " + e.getMessage(), e);
+            log.warn("executeQuery with params failed: {}", firstLineOf(e.getMessage()));
+            throw new RuntimeException("Query failed: " + firstLineOf(e.getMessage()), e);
         }
     }
 
@@ -267,7 +275,7 @@ public class OracleMetadataRepository {
             }
             return types;
         } catch (SQLException e) {
-            log.warn("getColumnTypes failed: {}", e.getMessage());
+            log.warn("getColumnTypes failed: {}", firstLineOf(e.getMessage()));
             return Map.of();
         }
     }
@@ -291,8 +299,8 @@ public class OracleMetadataRepository {
                 return Optional.of(row);
             }
         } catch (SQLException e) {
-            log.warn("executeQuerySingleRow failed: {}", e.getMessage());
-            throw new RuntimeException("Query failed: " + e.getMessage(), e);
+            log.warn("executeQuerySingleRow failed: {}", firstLineOf(e.getMessage()));
+            throw new RuntimeException("Query failed: " + firstLineOf(e.getMessage()), e);
         }
     }
 
@@ -315,8 +323,9 @@ public class OracleMetadataRepository {
                 return Optional.empty();
             }
         } catch (SQLException e) {
-            log.warn("executeUpdate failed: {}", e.getMessage());
-            return Optional.of(e.getMessage());
+            log.warn("executeUpdate failed: {}", firstLineOf(e.getMessage()));
+            String err = firstLineOf(e.getMessage());
+            return Optional.of(err != null ? err : "Error");
         }
     }
 }

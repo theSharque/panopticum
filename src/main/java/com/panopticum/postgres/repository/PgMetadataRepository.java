@@ -143,6 +143,18 @@ public class PgMetadataRepository {
         }
     }
 
+    private long getExactRowCount(Connection conn, String schema, String tableName) {
+        String quotedSchema = "\"" + (schema != null ? schema.replace("\"", "\"\"") : "") + "\"";
+        String quotedTable = "\"" + (tableName != null ? tableName.replace("\"", "\"\"") : "") + "\"";
+        String sql = "SELECT count(*) FROM " + quotedSchema + "." + quotedTable;
+        try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(sql)) {
+            return rs.next() ? rs.getLong(1) : 0;
+        } catch (SQLException e) {
+            log.debug("getExactRowCount failed for {}.{}: {}", schema, tableName, e.getMessage());
+            return -1;
+        }
+    }
+
     public List<TableInfo> listTableInfos(Long connectionId, String dbName, String schema) {
         try (Connection conn = getConnection(connectionId, dbName).orElse(null)) {
             if (conn == null || schema == null || schema.isBlank()) {
@@ -159,6 +171,9 @@ public class PgMetadataRepository {
                         String type = rs.getString("reltype");
                         long rowEst = rs.getLong("row_estimate");
                         long size = rs.getLong("size");
+                        if (rowEst < 0) {
+                            rowEst = getExactRowCount(conn, schema, name);
+                        }
                         tables.add(new TableInfo(name, type != null ? type : "table", rowEst, size, SizeFormatter.formatSize(size)));
                     }
                 }

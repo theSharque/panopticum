@@ -6,7 +6,7 @@
     <div th:replace="~{fragments/breadcrumbs :: breadcrumbs(items=${breadcrumbs})}"></div>
     <p th:if="${error}" th:text="${msg != null and msg[error] != null ? msg[error] : error}" class="query-error"></p>
     <h1 th:text="${msg['pg.rowDetail']}">Row details</h1>
-    <form th:if="${detailRows != null and !detailRows.isEmpty() and rowRowid != null and !rowRowid.isEmpty()}" th:action="@{/oracle/{id}/{schema}/detail/update(id=${connectionId}, schema=${schema})}" method="post" class="detail-form">
+    <form th:if="${detailRows != null and !detailRows.isEmpty() and rowRowid != null and !rowRowid.isEmpty()}" th:action="${table != null and !#strings.isEmpty(table)} ? @{/oracle/{id}/{schema}/{table}/detail/update(id=${connectionId}, schema=${schema}, table=${table})} : @{/oracle/{id}/{schema}/detail/update(id=${connectionId}, schema=${schema})}" method="post" class="detail-form">
         <input type="hidden" name="sql" th:value="${sql}"/>
         <input type="hidden" name="rowNum" th:value="${rowNum}"/>
         <input type="hidden" name="sort" th:value="${sort}"/>
