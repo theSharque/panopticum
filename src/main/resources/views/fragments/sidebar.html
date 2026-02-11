@@ -15,7 +15,7 @@
                 <a th:if="${conn.type == 'postgresql'}" th:href="@{/pg/{id}(id=${conn.id})}" th:text="${conn.name}" class="sidebar-link">PG</a>
                 <a th:if="${conn.type == 'mongodb'}" th:href="@{/mongo/{id}(id=${conn.id})}" th:text="${conn.name}" class="sidebar-link">Mongo</a>
                 <a th:if="${conn.type == 'redis'}" th:href="@{/redis/{id}(id=${conn.id})}" th:text="${conn.name}" class="sidebar-link">Redis</a>
-                <a th:if="${conn.type == 'clickhouse'}" th:href="@{/ch/{id}(id=${conn.id})}" th:text="${conn.name}" class="sidebar-link">ClickHouse</a>
+                <a th:if="${conn.type == 'clickhouse'}" th:href="@{/clickhouse/{id}(id=${conn.id})}" th:text="${conn.name}" class="sidebar-link">ClickHouse</a>
                 <a th:if="${conn.type == 'mysql'}" th:href="@{/mysql/{id}(id=${conn.id})}" th:text="${conn.name}" class="sidebar-link">MySQL</a>
                 <a th:if="${conn.type == 'sqlserver'}" th:href="@{/mssql/{id}(id=${conn.id})}" th:text="${conn.name}" class="sidebar-link">MS SQL</a>
                 <a th:if="${conn.type == 'oracle'}" th:href="@{/oracle/{id}(id=${conn.id})}" th:text="${conn.name}" class="sidebar-link">Oracle</a>

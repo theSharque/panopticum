@@ -16,7 +16,7 @@ public final class Messages {
             merged.putAll(MessagesPg.RU);
             merged.putAll(MessagesMongo.RU);
             merged.putAll(MessagesRedis.RU);
-            merged.putAll(MessagesCh.RU);
+            merged.putAll(MessagesClickhouse.RU);
             merged.putAll(MessagesCassandra.RU);
             merged.putAll(MessagesRabbitmq.RU);
         } else {
@@ -25,7 +25,7 @@ public final class Messages {
             merged.putAll(MessagesPg.EN);
             merged.putAll(MessagesMongo.EN);
             merged.putAll(MessagesRedis.EN);
-            merged.putAll(MessagesCh.EN);
+            merged.putAll(MessagesClickhouse.EN);
             merged.putAll(MessagesCassandra.EN);
             merged.putAll(MessagesRabbitmq.EN);
         }

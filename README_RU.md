@@ -69,7 +69,7 @@
 ```json
 [
   {"name": "prod-pg", "jdbcUrl": "jdbc:postgresql://app:secret@pg.svc:5432/mydb"},
-  {"name": "analytics", "jdbcUrl": "jdbc:clickhouse://ch.svc:8123/default"},
+  {"name": "analytics", "jdbcUrl": "jdbc:clickhouse://clickhouse.svc:8123/default"},
   {"name": "cache", "type": "redis", "host": "redis.svc", "port": 6379}
 ]
 ```
