@@ -4,6 +4,7 @@
 <body>
 <main th:fragment="main" class="main-content">
     <div th:replace="~{fragments/breadcrumbs :: breadcrumbs(items=${breadcrumbs})}"></div>
+    <p th:if="${error}" th:text="${msg != null and msg[error] != null ? msg[error] : error}" class="query-error"></p>
     <h1 th:text="${msg['rabbitmq.messageDetailTitle']}">Message</h1>
     <div th:if="${message != null}" class="query-result-data">
         <dl class="detail-dl">
@@ -20,9 +21,6 @@
                 </th:block>
             </dl>
         </div>
-        <p>
-            <a th:href="${messagesUrl}" class="query-button" th:text="${msg['rabbitmq.backToMessages']}">Back to messages</a>
-        </p>
     </div>
     <p th:if="${message == null}" class="text-dim" th:text="${msg['common.noData']}">No data.</p>
 </main>

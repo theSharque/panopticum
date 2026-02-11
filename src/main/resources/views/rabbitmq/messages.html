@@ -4,6 +4,7 @@
 <body>
 <main th:fragment="main" class="main-content">
     <div th:replace="~{fragments/breadcrumbs :: breadcrumbs(items=${breadcrumbs})}"></div>
+    <p th:if="${error}" th:text="${msg != null and msg[error] != null ? msg[error] : error}" class="query-error"></p>
     <h1 th:text="${msg['rabbitmq.messagesTitle']}">Messages</h1>
     <div th:if="${queueDetails != null}" class="query-result-data">
         <dl class="detail-dl">
@@ -13,18 +14,26 @@
             <dt><span th:text="${msg['rabbitmq.consumers']}">Consumers</span> : <span th:text="${queueDetails.consumers != null ? queueDetails.consumers : 0}"></span></dt>
         </dl>
     </div>
-    <p>
-        <a th:href="@{/rabbitmq/{id}/queues/{vhost}/{q}/messages(id=${connectionId}, vhost=${vhostForUrl}, q=${queue}, count=${peekCount})}" class="query-button" th:text="${msg['rabbitmq.refresh']}">Refresh</a>
-    </p>
+    <div class="detail-actions">
+        <a th:href="@{/rabbitmq/{id}/queues/{vhost}/{q}/messages(id=${connectionId}, vhost=${vhostForUrl}, q=${queue}, count=${peekCount})}" class="query-execute" th:attr="aria-label=${msg['rabbitmq.refresh']}, title=${msg['rabbitmq.refresh']}">
+            <svg class="icon-refresh" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        </a>
+    </div>
     <div class="query-result-data">
         <div class="query-table-wrapper">
             <table class="query-table">
                 <thead>
                     <tr>
                         <th class="query-th query-th-detail"></th>
-                        <th class="query-th">#</th>
-                        <th class="query-th" th:text="${msg['rabbitmq.routingKey']}">Routing key</th>
-                        <th class="query-th" th:text="${msg['rabbitmq.payload']}">Payload</th>
+                        <th class="query-th query-th-sortable">
+                            <a th:href="@{/rabbitmq/{id}/queues/{vhost}/{q}/messages(id=${connectionId}, vhost=${vhostForUrl}, q=${queue}, count=${peekCount}, sort='index', order=${orderIndex})}" class="query-th-link"><span>#</span> <span th:if="${sort == 'index' and order == 'asc'}" class="query-sort-ind">▲</span><span th:if="${sort == 'index' and order == 'desc'}" class="query-sort-ind">▼</span></a>
+                        </th>
+                        <th class="query-th query-th-sortable">
+                            <a th:href="@{/rabbitmq/{id}/queues/{vhost}/{q}/messages(id=${connectionId}, vhost=${vhostForUrl}, q=${queue}, count=${peekCount}, sort='routingKey', order=${orderRoutingKey})}" class="query-th-link"><span th:text="${msg['rabbitmq.routingKey']}">Routing key</span> <span th:if="${sort == 'routingKey' and order == 'asc'}" class="query-sort-ind">▲</span><span th:if="${sort == 'routingKey' and order == 'desc'}" class="query-sort-ind">▼</span></a>
+                        </th>
+                        <th class="query-th query-th-sortable">
+                            <a th:href="@{/rabbitmq/{id}/queues/{vhost}/{q}/messages(id=${connectionId}, vhost=${vhostForUrl}, q=${queue}, count=${peekCount}, sort='payload', order=${orderPayload})}" class="query-th-link"><span th:text="${msg['rabbitmq.payload']}">Payload</span> <span th:if="${sort == 'payload' and order == 'asc'}" class="query-sort-ind">▲</span><span th:if="${sort == 'payload' and order == 'desc'}" class="query-sort-ind">▼</span></a>
+                        </th>
                     </tr>
                 </thead>
                 <tbody>
@@ -36,7 +45,7 @@
                         </td>
                         <td th:text="${stat.index + 1}" class="query-cell-mono"></td>
                         <td th:text="${msgItem.routingKey != null ? msgItem.routingKey : '—'}" class="query-cell-mono"></td>
-                        <td class="query-cell-mono" th:title="${msgItem.payload}"><span th:text="${msgItem.payload != null and msgItem.payload.length() > 200 ? msgItem.payload.substring(0, 200) + '…' : msgItem.payload}">—</span></td>
+                        <td class="query-cell-mono" th:text="${msgItem.payload != null ? msgItem.payload : '—'}">—</td>
                     </tr>
                     <tr th:if="${messages == null or messages.isEmpty()}" class="query-data-row">
                         <td colspan="4" class="query-cell-mono text-dim" th:text="${msg['rabbitmq.noMessages']}">No messages or connection error.</td>

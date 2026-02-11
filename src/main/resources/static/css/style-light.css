@@ -21,3 +21,20 @@
 
     --table-row-stripe: rgba(0, 0, 0, 0.03);
 }
+
+.sidebar-footer {
+    margin-top: auto;
+    padding: var(--space-md) var(--space-lg);
+    border-top: 1px solid var(--border);
+}
+
+.sidebar-footer-link {
+    font-size: 12px;
+    color: var(--text-dim);
+    text-decoration: none;
+    transition: color var(--duration);
+}
+
+.sidebar-footer-link:hover {
+    color: var(--accent);
+}

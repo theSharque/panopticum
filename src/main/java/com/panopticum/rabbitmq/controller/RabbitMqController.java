@@ -2,6 +2,7 @@ package com.panopticum.rabbitmq.controller;
 
 import com.panopticum.core.model.BreadcrumbItem;
 import com.panopticum.core.model.DbConnection;
+import com.panopticum.core.model.Page;
 import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.core.util.ControllerModelHelper;
 import com.panopticum.rabbitmq.model.RabbitMqMessage;
@@ -45,7 +46,11 @@ public class RabbitMqController {
     @Produces(MediaType.TEXT_HTML)
     @Get("/{id}/queues")
     @io.micronaut.views.View("rabbitmq/queues")
-    public Map<String, Object> queues(@PathVariable Long id) {
+    public Map<String, Object> queues(@PathVariable Long id,
+                                     @QueryValue(value = "page", defaultValue = "1") int page,
+                                     @QueryValue(value = "size", defaultValue = "50") int size,
+                                     @QueryValue(value = "sort", defaultValue = "name") String sort,
+                                     @QueryValue(value = "order", defaultValue = "asc") String order) {
         Map<String, Object> model = ControllerModelHelper.baseModel(id, dbConnectionService);
         Optional<DbConnection> conn = dbConnectionService.findById(id);
         if (conn.isEmpty()) {
@@ -57,8 +62,12 @@ public class RabbitMqController {
         ControllerModelHelper.addBreadcrumbs(model, breadcrumbs);
         model.put("connectionId", id);
 
-        List<RabbitMqQueueInfo> items = rabbitMqService.listQueues(id);
-        model.put("items", items);
+        Page<RabbitMqQueueInfo> paged = rabbitMqService.listQueuesPaged(id, page, size, sort, order);
+        ControllerModelHelper.addPagination(model, paged, "items");
+        ControllerModelHelper.addOrderToggles(model, paged.getSort(), paged.getOrder(),
+                Map.of("name", "orderName", "vhost", "orderVhost", "messages", "orderMessages",
+                        "messagesReady", "orderMessagesReady", "messagesUnacknowledged", "orderMessagesUnack",
+                        "consumers", "orderConsumers"));
 
         return model;
     }
@@ -69,7 +78,9 @@ public class RabbitMqController {
     public Map<String, Object> messages(@PathVariable Long id,
                                        @PathVariable String vhost,
                                        @PathVariable String queue,
-                                       @QueryValue(value = "count", defaultValue = "20") int count) {
+                                       @QueryValue(value = "count", defaultValue = "20") int count,
+                                       @QueryValue(value = "sort", defaultValue = "index") String sort,
+                                       @QueryValue(value = "order", defaultValue = "asc") String order) {
         Map<String, Object> model = ControllerModelHelper.baseModel(id, dbConnectionService);
         Optional<DbConnection> conn = dbConnectionService.findById(id);
         if (conn.isEmpty()) {
@@ -90,9 +101,17 @@ public class RabbitMqController {
 
         int peekCount = count > 0 ? Math.min(count, 50) : DEFAULT_PEEK_COUNT;
         List<RabbitMqMessage> messages = rabbitMqService.peekMessages(id, vhostDecoded, queueName, peekCount);
-        model.put("messages", messages);
+        List<RabbitMqMessage> sorted = rabbitMqService.sortMessages(messages, sort != null ? sort : "index", order != null ? order : "asc");
+        model.put("messages", rabbitMqService.truncatePayloadsForList(sorted));
         model.put("peekCount", peekCount);
         model.put("vhostForUrl", vhostForUrl(vhostDecoded));
+        model.put("sort", sort != null ? sort : "index");
+        model.put("order", order != null ? order : "asc");
+        boolean asc = "asc".equalsIgnoreCase(order != null ? order : "asc");
+        String sortBy = sort != null ? sort : "index";
+        model.put("orderIndex", "index".equals(sortBy) && asc ? "desc" : "asc");
+        model.put("orderRoutingKey", "routingKey".equals(sortBy) && asc ? "desc" : "asc");
+        model.put("orderPayload", "payload".equals(sortBy) && asc ? "desc" : "asc");
 
         return model;
     }
@@ -126,8 +145,10 @@ public class RabbitMqController {
 
         Optional<RabbitMqMessage> message = rabbitMqService.peekOneByIndex(id, vhostDecoded, queueName, index);
         model.put("message", message.orElse(null));
-        model.put("messagesUrl", "/rabbitmq/" + id + "/queues/" + vhostForUrl(vhostDecoded) + "/" + queueName + "/messages");
         model.put("vhostForUrl", vhostForUrl(vhostDecoded));
+        if (message.isEmpty()) {
+            model.put("error", "rabbitmq.messageNotFound");
+        }
 
         return model;
     }
