@@ -80,7 +80,7 @@ public class RedisController {
     @View("redis/keys")
     public Map<String, Object> keys(@PathVariable Long id, @PathVariable int dbIndex,
                                     @QueryValue(value = "cursor", defaultValue = "0") String cursor,
-                                    @QueryValue(value = "pattern", defaultValue = "*") String pattern,
+                                    @QueryValue("search") Optional<String> search,
                                     @QueryValue(value = "size", defaultValue = "100") int size,
                                     @QueryValue(value = "sort", defaultValue = "key") String sort,
                                     @QueryValue(value = "order", defaultValue = "asc") String order) {
@@ -90,13 +90,16 @@ public class RedisController {
             return model;
         }
 
+        String pattern = search.filter(s -> !s.isBlank()).map(s -> "*" + s.trim() + "*").orElse("*");
+        String searchTerm = search.orElse("");
+
         List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
         breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/redis/" + id));
         breadcrumbs.add(new BreadcrumbItem("DB " + dbIndex, null));
         ControllerModelHelper.addBreadcrumbs(model, breadcrumbs);
         model.put("connectionId", id);
         model.put("dbIndex", dbIndex);
-        model.put("pattern", pattern != null ? pattern : "*");
+        model.put("searchTerm", searchTerm);
 
         RedisKeysPage page = redisMetadataService.listKeys(id, dbIndex, pattern, cursor, size);
         java.util.List<RedisKeyInfo> items = redisMetadataService.sortKeys(page.getKeys(), sort, order);

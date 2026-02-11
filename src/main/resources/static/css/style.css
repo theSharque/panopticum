@@ -224,9 +224,28 @@ body {
     width: 280px;
     min-width: 280px;
     flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
     background: var(--bg-sidebar);
     border-right: 1px solid var(--border);
     padding: var(--space-lg) 0;
+}
+
+.sidebar-footer {
+    margin-top: auto;
+    padding: var(--space-md) var(--space-lg);
+    border-top: 1px solid var(--border);
+}
+
+.sidebar-footer-link {
+    font-size: 12px;
+    color: var(--text-dim);
+    text-decoration: none;
+    transition: color var(--duration);
+}
+
+.sidebar-footer-link:hover {
+    color: var(--accent);
 }
 
 .sidebar-section-title {
@@ -746,6 +765,27 @@ button[type="submit"]:not(.sidebar-delete):not(.query-th-link):hover {
     flex-direction: column;
     gap: var(--space-md);
     max-width: 800px;
+}
+
+.query-form input[type="text"] {
+    width: 100%;
+    max-width: 400px;
+    padding: var(--space-md);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    background: var(--bg-input);
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+    font-size: 13px;
+}
+
+.query-form input[type="text"]:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2);
+}
+
+.query-form input[type="text"]::placeholder {
+    color: var(--text-dim);
 }
 
 .query-textarea {

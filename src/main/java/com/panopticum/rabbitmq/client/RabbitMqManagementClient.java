@@ -10,6 +10,7 @@ import io.micronaut.http.MediaType;
 import io.micronaut.http.MutableHttpRequest;
 import io.micronaut.http.client.HttpClient;
 import io.micronaut.http.client.annotation.Client;
+import io.micronaut.http.client.exceptions.HttpClientException;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.http.client.exceptions.ReadTimeoutException;
 import io.micronaut.http.client.BlockingHttpClient;
@@ -46,6 +47,9 @@ public class RabbitMqManagementClient {
         } catch (HttpClientResponseException | ReadTimeoutException e) {
             log.debug("RabbitMQ listQueues failed for {}: {}", url, e.getMessage());
             return Collections.emptyList();
+        } catch (HttpClientException e) {
+            log.warn("Failed to connect to RabbitMQ {}: {}", url, e.getMessage());
+            return Collections.emptyList();
         }
     }
 
@@ -63,6 +67,9 @@ public class RabbitMqManagementClient {
             return response.getBody().orElse(null);
         } catch (HttpClientResponseException | ReadTimeoutException e) {
             log.debug("RabbitMQ getQueue failed for {}: {}", url, e.getMessage());
+            return null;
+        } catch (HttpClientException e) {
+            log.warn("Failed to connect to RabbitMQ {}: {}", url, e.getMessage());
             return null;
         }
     }
@@ -91,6 +98,9 @@ public class RabbitMqManagementClient {
         } catch (HttpClientResponseException | ReadTimeoutException e) {
             log.debug("RabbitMQ getMessages failed for {}: {}", url, e.getMessage());
             return Collections.emptyList();
+        } catch (HttpClientException e) {
+            log.warn("Failed to connect to RabbitMQ {}: {}", url, e.getMessage());
+            return Collections.emptyList();
         }
     }
 
@@ -105,6 +115,9 @@ public class RabbitMqManagementClient {
             return true;
         } catch (HttpClientResponseException | ReadTimeoutException e) {
             log.debug("RabbitMQ checkConnection failed for {}: {}", url, e.getMessage());
+            return false;
+        } catch (HttpClientException e) {
+            log.warn("Failed to connect to RabbitMQ {}: {}", url, e.getMessage());
             return false;
         }
     }
