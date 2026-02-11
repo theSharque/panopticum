@@ -117,8 +117,9 @@ public class MySqlController {
                                           @QueryValue(value = "offset", defaultValue = "0") Integer offset,
                                           @QueryValue(value = "limit", defaultValue = "100") Integer limit,
                                           @QueryValue(value = "sort", defaultValue = "") String sort,
-                                          @QueryValue(value = "order", defaultValue = "") String order) {
-        return buildSqlPageModel(id, dbName, sql, offset, limit, sort, order);
+                                          @QueryValue(value = "order", defaultValue = "") String order,
+                                          @QueryValue(value = "search", defaultValue = "") String search) {
+        return buildSqlPageModel(id, dbName, sql, offset, limit, sort, order, search);
     }
 
     @Produces(MediaType.TEXT_HTML)
@@ -127,17 +128,20 @@ public class MySqlController {
     @View("mysql/sql")
     public Map<String, Object> sqlPagePost(@PathVariable Long id, @PathVariable String dbName,
                                            String sql, @Nullable Integer offset, @Nullable Integer limit,
-                                           @Nullable String sort, @Nullable String order) {
-        return buildSqlPageModel(id, dbName, sql, offset, limit, sort, order);
+                                           @Nullable String sort, @Nullable String order, @Nullable String search) {
+        return buildSqlPageModel(id, dbName, sql, offset, limit, sort, order, search);
     }
 
     private Map<String, Object> buildSqlPageModel(Long id, String dbName, String sql,
-                                                  Integer offset, Integer limit, String sort, String order) {
+                                                  Integer offset, Integer limit, String sort, String order, String search) {
         Map<String, Object> model = ControllerModelHelper.baseModel(id, dbConnectionService);
         Optional<DbConnection> conn = dbConnectionService.findById(id);
         if (conn.isEmpty()) {
             return model;
         }
+
+        String searchTerm = search != null && !search.isBlank() ? search.trim() : "";
+        model.put("searchTerm", searchTerm);
 
         List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
         breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/mysql/" + id));
@@ -170,7 +174,7 @@ public class MySqlController {
             model.put("sort", "");
             model.put("order", "");
         } else {
-            var result = mySqlMetadataService.executeQuery(id, dbName, sql, off, lim, sort, order)
+            var result = mySqlMetadataService.executeQuery(id, dbName, sql, off, lim, sort, order, searchTerm)
                     .orElse(QueryResult.error("error.queryExecutionFailed"));
             model.put("error", result.hasError() ? result.getError() : null);
             model.put("columns", result.getColumns());
@@ -196,10 +200,12 @@ public class MySqlController {
     @Produces(MediaType.TEXT_HTML)
     public Object executeQuery(@PathVariable Long id, String sql, String dbName,
                                @Nullable Integer offset, @Nullable Integer limit,
-                               @Nullable String sort, @Nullable String order, String target) {
+                               @Nullable String sort, @Nullable String order, @Nullable String search, String target) {
         Map<String, Object> model = new HashMap<>();
         model.put("connectionId", id);
         model.put("dbName", dbName);
+        String searchTerm = search != null && !search.isBlank() ? search.trim() : "";
+        model.put("searchTerm", searchTerm);
         if (sql == null || sql.isBlank()) {
             model.put("error", "Empty query");
             model.put("queryActionUrl", "/mysql/" + id + "/query");
@@ -216,7 +222,7 @@ public class MySqlController {
 
         int off = offset != null ? Math.max(0, offset) : 0;
         int lim = limit != null && limit > 0 ? limit : 100;
-        var result = mySqlMetadataService.executeQuery(id, dbName, sql, off, lim, sort, order)
+        var result = mySqlMetadataService.executeQuery(id, dbName, sql, off, lim, sort, order, searchTerm)
                 .orElse(QueryResult.error("Execution failed"));
         model.put("error", result.hasError() ? result.getError() : null);
         model.put("columns", result.getColumns());
@@ -244,7 +250,7 @@ public class MySqlController {
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @View("mysql/detail")
     public Map<String, Object> rowDetail(@PathVariable Long id, @PathVariable String dbName,
-                                         String sql, Integer rowNum, String sort, String order) {
+                                         String sql, Integer rowNum, String sort, String order, @Nullable String search) {
         Map<String, Object> model = ControllerModelHelper.baseModel(id, dbConnectionService);
         Optional<DbConnection> conn = dbConnectionService.findById(id);
         if (conn.isEmpty()) {
@@ -262,6 +268,7 @@ public class MySqlController {
         model.put("rowNum", rowNum != null ? rowNum : 0);
         model.put("sort", sort != null ? sort : "");
         model.put("order", order != null ? order : "");
+        model.put("searchTerm", search != null && !search.isBlank() ? search.trim() : "");
 
         if (sql != null && !sql.isBlank() && rowNum != null && rowNum >= 0) {
             Map<String, Object> detailResult = mySqlMetadataService.getDetailRow(id, dbName, sql, Math.max(0, rowNum), sort, order);
@@ -314,9 +321,10 @@ public class MySqlController {
             }
         }
 
+        String searchParam = form != null ? form.get("search") : null;
         Optional<String> parsedTable = mySqlMetadataService.parseTableFromSql(sql);
         if (parsedTable.isEmpty()) {
-            Map<String, Object> model = rowDetail(id, dbName, sql, rowNum, sort, order);
+            Map<String, Object> model = rowDetail(id, dbName, sql, rowNum, sort, order, searchParam);
             model.put("error", "Could not determine table from SQL.");
             return new ModelAndView<>("mysql/detail", model);
         }
@@ -324,12 +332,12 @@ public class MySqlController {
         String tableRef = qualifiedTable != null && !qualifiedTable.isBlank() ? qualifiedTable : parsedTable.get();
         Optional<String> err = mySqlMetadataService.executeUpdateByKey(id, dbName, tableRef, uniqueKeyColumns, keyValues, columnValues);
         if (err.isPresent()) {
-            Map<String, Object> model = rowDetail(id, dbName, sql, rowNum, sort, order);
+            Map<String, Object> model = rowDetail(id, dbName, sql, rowNum, sort, order, searchParam);
             model.put("error", err.get());
             return new ModelAndView<>("mysql/detail", model);
         }
 
-        return new ModelAndView<>("mysql/detail", rowDetail(id, dbName, sql, rowNum, sort, order));
+        return new ModelAndView<>("mysql/detail", rowDetail(id, dbName, sql, rowNum, sort, order, searchParam));
     }
 
     private static Integer parseInteger(String s) {

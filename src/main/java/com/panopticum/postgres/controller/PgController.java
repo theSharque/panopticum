@@ -158,8 +158,9 @@ public class PgController {
                                          @QueryValue(value = "offset", defaultValue = "0") Integer offset,
                                          @QueryValue(value = "limit", defaultValue = "100") Integer limit,
                                          @QueryValue(value = "sort", defaultValue = "") String sort,
-                                         @QueryValue(value = "order", defaultValue = "") String order) {
-        return buildSqlPageModel(id, dbName, schema, sql, offset, limit, sort, order);
+                                         @QueryValue(value = "order", defaultValue = "") String order,
+                                         @QueryValue(value = "search", defaultValue = "") String search) {
+        return buildSqlPageModel(id, dbName, schema, sql, offset, limit, sort, order, search);
     }
 
     @Produces(MediaType.TEXT_HTML)
@@ -168,17 +169,20 @@ public class PgController {
     @View("pg/sql")
     public Map<String, Object> sqlPagePost(@PathVariable Long id, @PathVariable String dbName, @PathVariable String schema,
                                           String sql, @Nullable Integer offset, @Nullable Integer limit,
-                                          @Nullable String sort, @Nullable String order) {
-        return buildSqlPageModel(id, dbName, schema, sql, offset, limit, sort, order);
+                                          @Nullable String sort, @Nullable String order, @Nullable String search) {
+        return buildSqlPageModel(id, dbName, schema, sql, offset, limit, sort, order, search);
     }
 
     private Map<String, Object> buildSqlPageModel(Long id, String dbName, String schema, String sql,
-                                                  Integer offset, Integer limit, String sort, String order) {
+                                                  Integer offset, Integer limit, String sort, String order, String search) {
         Map<String, Object> model = ControllerModelHelper.baseModel(id, dbConnectionService);
         Optional<DbConnection> conn = dbConnectionService.findById(id);
         if (conn.isEmpty()) {
             return model;
         }
+
+        String searchTerm = search != null && !search.isBlank() ? search.trim() : "";
+        model.put("searchTerm", searchTerm);
 
         List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
         breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/pg/" + id));
@@ -213,7 +217,7 @@ public class PgController {
             model.put("sort", "");
             model.put("order", "");
         } else {
-            var result = pgMetadataService.executeQuery(id, dbName, sql, off, lim, sort, order)
+            var result = pgMetadataService.executeQuery(id, dbName, sql, off, lim, sort, order, searchTerm)
                     .orElse(QueryResult.error("error.queryExecutionFailed"));
             putQueryResultIntoModel(model, result, sql != null ? sql : "", sort, order);
         }
@@ -237,6 +241,9 @@ public class PgController {
         model.put("toRow", result.toRow());
         model.put("sort", sort != null ? sort : "");
         model.put("order", order != null ? order : "");
+        if (!model.containsKey("searchTerm")) {
+            model.put("searchTerm", "");
+        }
     }
 
     @Post("/{id}/query")
@@ -244,11 +251,13 @@ public class PgController {
     @Produces(MediaType.TEXT_HTML)
     public Object executeQuery(@PathVariable Long id, String sql, String dbName, String schema,
                               @Nullable Integer offset, @Nullable Integer limit,
-                              @Nullable String sort, @Nullable String order, String target) {
+                              @Nullable String sort, @Nullable String order, @Nullable String search, String target) {
         Map<String, Object> model = new HashMap<>();
         model.put("connectionId", id);
         model.put("dbName", dbName);
         model.put("schema", schema);
+        String searchTerm = search != null && !search.isBlank() ? search.trim() : "";
+        model.put("searchTerm", searchTerm);
 
         if (sql == null || sql.isBlank()) {
             model.put("error", "Empty query");
@@ -266,7 +275,7 @@ public class PgController {
 
         int off = offset != null ? Math.max(0, offset) : 0;
         int lim = limit != null && limit > 0 ? limit : 100;
-        var result = pgMetadataService.executeQuery(id, dbName, sql, off, lim, sort, order)
+        var result = pgMetadataService.executeQuery(id, dbName, sql, off, lim, sort, order, searchTerm)
                 .orElse(QueryResult.error("Execution failed"));
         putQueryResultIntoModel(model, result, sql, sort, order);
         model.put("sql", sql);
@@ -281,7 +290,7 @@ public class PgController {
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @View("pg/detail")
     public Map<String, Object> rowDetail(@PathVariable Long id, @PathVariable String dbName, @PathVariable String schema,
-                                         String sql, Integer rowNum, String sort, String order) {
+                                         String sql, Integer rowNum, String sort, String order, @Nullable String search) {
         Map<String, Object> model = ControllerModelHelper.baseModel(id, dbConnectionService);
         Optional<DbConnection> conn = dbConnectionService.findById(id);
         if (conn.isEmpty()) {
@@ -304,6 +313,7 @@ public class PgController {
         model.put("rowNum", rowNum != null ? rowNum : 0);
         model.put("sort", sort != null ? sort : "");
         model.put("order", order != null ? order : "");
+        model.put("searchTerm", search != null && !search.isBlank() ? search.trim() : "");
 
         List<Map<String, String>> detailRows = new ArrayList<>();
         String rowCtid = null;
@@ -346,9 +356,10 @@ public class PgController {
             }
         }
 
+        String searchParam = form != null ? form.get("search") : null;
         Optional<String> qualifiedTable = pgMetadataService.parseTableFromSql(sql);
         if (qualifiedTable.isEmpty()) {
-            Map<String, Object> model = rowDetail(id, dbName, schema, sql, rowNum, sort, order);
+            Map<String, Object> model = rowDetail(id, dbName, schema, sql, rowNum, sort, order, searchParam);
             model.put("error", "Could not determine table from SQL.");
 
             return new ModelAndView<>("pg/detail", model);
@@ -356,13 +367,13 @@ public class PgController {
 
         Optional<String> err = pgMetadataService.executeUpdateByCtid(id, dbName, qualifiedTable.get(), ctid, columnValues);
         if (err.isPresent()) {
-            Map<String, Object> model = rowDetail(id, dbName, schema, sql, rowNum, sort, order);
+            Map<String, Object> model = rowDetail(id, dbName, schema, sql, rowNum, sort, order, searchParam);
             model.put("error", err.get());
 
             return new ModelAndView<>("pg/detail", model);
         }
 
-        return new ModelAndView<>("pg/detail", rowDetail(id, dbName, schema, sql, rowNum, sort, order));
+        return new ModelAndView<>("pg/detail", rowDetail(id, dbName, schema, sql, rowNum, sort, order, searchParam));
     }
 
     private static Integer parseInteger(String s) {
