@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(~{::main})}">
+<head></head>
+<body>
+<main th:fragment="main" class="main-content">
+    <div th:replace="~{fragments/breadcrumbs :: breadcrumbs(items=${breadcrumbs})}"></div>
+    <h1 th:text="${msg['sql.title']}">SQL</h1>
+
+    <section class="query-panel query-panel-table">
+        <h3 class="query-panel-title" th:text="${msg['query.title']}">Query</h3>
+        <form th:action="@{/mysql/{id}/query(id=${connectionId})}"
+              method="post"
+              th:attr="hx-post=@{/mysql/{id}/query(id=${connectionId})}"
+              hx-target="#table-data"
+              hx-swap="outerHTML"
+              class="query-form">
+            <input type="hidden" name="dbName" th:value="${dbName}"/>
+            <input type="hidden" name="offset" value="0"/>
+            <input type="hidden" name="limit" th:value="${size}"/>
+            <input type="hidden" name="target" value="table"/>
+            <input type="text" name="search" th:value="${searchTerm}" th:placeholder="${msg['sql.searchPlaceholder']}"/>
+            <textarea name="sql" class="query-textarea" rows="4" th:text="${sql}">SELECT * FROM ...</textarea>
+            <button type="submit" class="query-execute" th:attr="aria-label=${msg['query.refresh']}, title=${msg['query.refresh']}">
+                <svg class="icon-refresh" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            </button>
+        </form>
+    </section>
+
+    <div th:replace="~{partials/table-view-result}"></div>
+</main>
+</body>
+</html>

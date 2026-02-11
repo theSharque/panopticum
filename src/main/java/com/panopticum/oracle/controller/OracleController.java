@@ -132,6 +132,27 @@ public class OracleController {
         return buildSqlPageModel(id, schema, sql, offset, limit, sort, order, search);
     }
 
+    @Produces(MediaType.TEXT_HTML)
+    @Get("/{id}/{schema}/{table}")
+    @View("oracle/table")
+    public Map<String, Object> tablePage(@PathVariable Long id, @PathVariable String schema, @PathVariable String table,
+                                         @QueryValue(value = "offset", defaultValue = "0") Integer offset,
+                                         @QueryValue(value = "limit", defaultValue = "100") Integer limit,
+                                         @QueryValue(value = "sort", defaultValue = "") String sort,
+                                         @QueryValue(value = "order", defaultValue = "") String order,
+                                         @QueryValue(value = "search", defaultValue = "") String search) {
+        String schemaEscaped = schema != null ? schema.replace("\"", "\"\"") : "";
+        String tableEscaped = table != null ? table.replace("\"", "\"\"") : "";
+        String sql = "SELECT * FROM \"" + schemaEscaped + "\".\"" + tableEscaped + "\"";
+        Map<String, Object> model = buildSqlPageModel(id, schema, sql, offset, limit, sort, order, search);
+        @SuppressWarnings("unchecked")
+        List<BreadcrumbItem> breadcrumbs = (List<BreadcrumbItem>) model.get("breadcrumbs");
+        if (breadcrumbs != null && !breadcrumbs.isEmpty()) {
+            breadcrumbs.set(breadcrumbs.size() - 1, new BreadcrumbItem(table, null));
+        }
+        return model;
+    }
+
     private Map<String, Object> buildSqlPageModel(Long id, String schema, String sql,
                                                   Integer offset, Integer limit, String sort, String order, String search) {
         Map<String, Object> model = ControllerModelHelper.baseModel(id, dbConnectionService);
@@ -152,7 +173,10 @@ public class OracleController {
         model.put("schema", schema);
         model.put("sql", sql != null ? sql : "");
         model.put("tableQueryActionUrl", "/oracle/" + id + "/query");
-        model.put("tableDetailActionUrl", "/oracle/" + id + "/" + schema + "/detail");
+        String tableSegment = oracleMetadataService.parseTableFromSql(sql != null ? sql : "").map(OracleController::simpleTableName).orElse(null);
+        model.put("tableDetailActionUrl", tableSegment != null && !tableSegment.isBlank()
+                ? "/oracle/" + id + "/" + schema + "/" + tableSegment + "/detail"
+                : "/oracle/" + id + "/" + schema + "/detail");
 
         int off = offset != null ? Math.max(0, offset) : 0;
         int lim = limit != null && limit > 0 ? Math.min(limit, 1000) : 100;
@@ -229,7 +253,10 @@ public class OracleController {
         }
         model.put("queryActionUrl", "/oracle/" + id + "/query");
         model.put("tableQueryActionUrl", "/oracle/" + id + "/query");
-        model.put("tableDetailActionUrl", "/oracle/" + id + "/" + (schemaParam != null ? schemaParam : "") + "/detail");
+        String tableSegment = oracleMetadataService.parseTableFromSql(sql).map(OracleController::simpleTableName).orElse(null);
+        model.put("tableDetailActionUrl", tableSegment != null && !tableSegment.isBlank()
+                ? "/oracle/" + id + "/" + (schemaParam != null ? schemaParam : "") + "/" + tableSegment + "/detail"
+                : "/oracle/" + id + "/" + (schemaParam != null ? schemaParam : "") + "/detail");
 
         int off = offset != null ? Math.max(0, offset) : 0;
         int lim = limit != null && limit > 0 ? limit : 100;
@@ -249,15 +276,37 @@ public class OracleController {
     @View("oracle/detail")
     public Map<String, Object> rowDetail(@PathVariable Long id, @PathVariable String schema,
                                          String sql, Integer rowNum, String sort, String order, @Nullable String search) {
+        return rowDetail(id, schema, sql, rowNum, sort, order, search, null);
+    }
+
+    @Produces(MediaType.TEXT_HTML)
+    @Post("/{id}/{schema}/{table}/detail")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @View("oracle/detail")
+    public Map<String, Object> rowDetailWithTable(@PathVariable Long id, @PathVariable String schema, @PathVariable String table,
+                                                   String sql, Integer rowNum, String sort, String order, @Nullable String search) {
+        return rowDetail(id, schema, sql, rowNum, sort, order, search, table);
+    }
+
+    private Map<String, Object> rowDetail(Long id, String schema, String sql, Integer rowNum,
+                                         String sort, String order, String search, @Nullable String tableParam) {
         Map<String, Object> model = ControllerModelHelper.baseModel(id, dbConnectionService);
         Optional<DbConnection> conn = dbConnectionService.findById(id);
         if (conn.isEmpty()) {
             return model;
         }
 
+        String tableLabel = tableParam;
+        if (tableLabel == null || tableLabel.isBlank()) {
+            tableLabel = oracleMetadataService.parseTableFromSql(sql != null ? sql : "").map(OracleController::simpleTableName).orElse(null);
+        }
+
         List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
         breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/oracle/" + id));
         breadcrumbs.add(new BreadcrumbItem(schema != null ? schema : "", "/oracle/" + id + "/" + (schema != null ? schema : "")));
+        if (tableLabel != null && !tableLabel.isBlank()) {
+            breadcrumbs.add(new BreadcrumbItem(tableLabel, "/oracle/" + id + "/" + schema + "/" + tableLabel));
+        }
         breadcrumbs.add(new BreadcrumbItem("detail", null));
         ControllerModelHelper.addBreadcrumbs(model, breadcrumbs);
         model.put("connectionId", id);
@@ -267,6 +316,9 @@ public class OracleController {
         model.put("sort", sort != null ? sort : "");
         model.put("order", order != null ? order : "");
         model.put("searchTerm", search != null && !search.isBlank() ? search.trim() : "");
+        if (tableLabel != null && !tableLabel.isBlank()) {
+            model.put("table", tableLabel);
+        }
 
         if (sql != null && !sql.isBlank() && rowNum != null && rowNum >= 0) {
             Map<String, Object> detailResult = oracleMetadataService.getDetailRowWithRowid(id, schema, sql,
@@ -285,6 +337,18 @@ public class OracleController {
     @Produces(MediaType.TEXT_HTML)
     public Object saveRow(@PathVariable Long id, @PathVariable String schema,
                          @Body Map<String, String> form) {
+        return saveRow(id, schema, form, null);
+    }
+
+    @Post("/{id}/{schema}/{table}/detail/update")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @Produces(MediaType.TEXT_HTML)
+    public Object saveRowWithTable(@PathVariable Long id, @PathVariable String schema, @PathVariable String table,
+                                   @Body Map<String, String> form) {
+        return saveRow(id, schema, form, table);
+    }
+
+    private Object saveRow(Long id, String schema, Map<String, String> form, @Nullable String tableParam) {
         String sql = form != null ? form.get("sql") : null;
         Integer rowNum = form != null && form.containsKey("rowNum") ? parseInteger(form.get("rowNum")) : null;
         String sort = form != null ? form.get("sort") : null;
@@ -302,19 +366,32 @@ public class OracleController {
         String searchParam = form != null ? form.get("search") : null;
         Optional<String> qualifiedTable = oracleMetadataService.parseTableFromSql(sql);
         if (qualifiedTable.isEmpty()) {
-            Map<String, Object> model = rowDetail(id, schema, sql, rowNum, sort, order, searchParam);
+            Map<String, Object> model = rowDetail(id, schema, sql, rowNum, sort, order, searchParam, tableParam);
             model.put("error", "Could not determine table from SQL.");
             return new ModelAndView<>("oracle/detail", model);
         }
 
         Optional<String> err = oracleMetadataService.executeUpdateByRowid(id, schema, qualifiedTable.get(), rowid, columnValues);
         if (err.isPresent()) {
-            Map<String, Object> model = rowDetail(id, schema, sql, rowNum, sort, order, searchParam);
+            Map<String, Object> model = rowDetail(id, schema, sql, rowNum, sort, order, searchParam, tableParam);
             model.put("error", err.get());
             return new ModelAndView<>("oracle/detail", model);
         }
 
-        return new ModelAndView<>("oracle/detail", rowDetail(id, schema, sql, rowNum, sort, order, searchParam));
+        return new ModelAndView<>("oracle/detail", rowDetail(id, schema, sql, rowNum, sort, order, searchParam, tableParam));
+    }
+
+    private static String simpleTableName(String qualified) {
+        if (qualified == null || qualified.isBlank()) {
+            return "";
+        }
+        String trimmed = qualified.trim();
+        int dot = trimmed.lastIndexOf('.');
+        if (dot >= 0 && dot + 1 < trimmed.length()) {
+            String part = trimmed.substring(dot + 1).replace("\"", "").trim();
+            return part.isEmpty() ? trimmed.replace("\"", "").trim() : part;
+        }
+        return trimmed.replace("\"", "").trim();
     }
 
     private static Integer parseInteger(String s) {

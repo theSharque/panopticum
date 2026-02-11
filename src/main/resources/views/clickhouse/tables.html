@@ -35,15 +35,10 @@
                 <tbody>
                     <tr th:each="t : ${tables}" class="query-data-row">
                         <td class="query-detail-cell">
-                            <form th:action="@{/clickhouse/{id}/{dbName}/sql(id=${connectionId}, dbName=${dbName})}"
-                                  method="post" class="query-row-open-form">
-                                <input type="hidden" name="sql" th:value="${'SELECT * FROM `' + t.name + '`'}"/>
-                                <input type="hidden" name="offset" value="0"/>
-                                <input type="hidden" name="limit" value="100"/>
-                                <button type="submit" class="query-detail-link" th:attr="aria-label=${msg['common.open']}, title=${msg['common.open']}">
-                                    <svg class="icon-link" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
-                                </button>
-                            </form>
+                            <a th:href="@{/clickhouse/{id}/{dbName}/{table}(id=${connectionId}, dbName=${dbName}, table=${t.name})}"
+                               class="query-detail-link" th:attr="aria-label=${msg['common.open']}, title=${msg['common.open']}">
+                                <svg class="icon-link" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
+                            </a>
                         </td>
                         <td th:text="${t.name}"></td>
                         <td th:text="${t.type}"></td>

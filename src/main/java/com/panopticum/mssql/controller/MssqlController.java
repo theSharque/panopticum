@@ -173,6 +173,28 @@ public class MssqlController {
         return buildSqlPageModel(id, dbName, schema, sql, offset, limit, sort, order, search);
     }
 
+    @Produces(MediaType.TEXT_HTML)
+    @Get("/{id}/{dbName}/{schema}/{table}")
+    @View("mssql/table")
+    public Map<String, Object> tablePage(@PathVariable Long id, @PathVariable String dbName, @PathVariable String schema,
+                                        @PathVariable String table,
+                                        @QueryValue(value = "offset", defaultValue = "0") Integer offset,
+                                        @QueryValue(value = "limit", defaultValue = "100") Integer limit,
+                                        @QueryValue(value = "sort", defaultValue = "") String sort,
+                                        @QueryValue(value = "order", defaultValue = "") String order,
+                                        @QueryValue(value = "search", defaultValue = "") String search) {
+        String schemaEscaped = schema != null ? schema.replace("]", "]]") : "";
+        String tableEscaped = table != null ? table.replace("]", "]]") : "";
+        String sql = "SELECT * FROM [" + schemaEscaped + "].[" + tableEscaped + "]";
+        Map<String, Object> model = buildSqlPageModel(id, dbName, schema, sql, offset, limit, sort, order, search);
+        @SuppressWarnings("unchecked")
+        List<BreadcrumbItem> breadcrumbs = (List<BreadcrumbItem>) model.get("breadcrumbs");
+        if (breadcrumbs != null && !breadcrumbs.isEmpty()) {
+            breadcrumbs.set(breadcrumbs.size() - 1, new BreadcrumbItem(table, null));
+        }
+        return model;
+    }
+
     private Map<String, Object> buildSqlPageModel(Long id, String dbName, String schema, String sql,
                                                   Integer offset, Integer limit, String sort, String order, String search) {
         Map<String, Object> model = ControllerModelHelper.baseModel(id, dbConnectionService);
@@ -195,7 +217,10 @@ public class MssqlController {
         model.put("schema", schema);
         model.put("sql", sql != null ? sql : "");
         model.put("tableQueryActionUrl", "/mssql/" + id + "/query");
-        model.put("tableDetailActionUrl", "/mssql/" + id + "/" + dbName + "/" + schema + "/detail");
+        String tableSegment = mssqlMetadataService.parseTableFromSql(sql != null ? sql : "").map(MssqlController::simpleTableName).orElse(null);
+        model.put("tableDetailActionUrl", tableSegment != null && !tableSegment.isBlank()
+                ? "/mssql/" + id + "/" + dbName + "/" + schema + "/" + tableSegment + "/detail"
+                : "/mssql/" + id + "/" + dbName + "/" + schema + "/detail");
 
         int off = offset != null ? Math.max(0, offset) : 0;
         int lim = limit != null && limit > 0 ? Math.min(limit, 1000) : 100;
@@ -270,7 +295,10 @@ public class MssqlController {
         }
         model.put("queryActionUrl", "/mssql/" + id + "/query");
         model.put("tableQueryActionUrl", "/mssql/" + id + "/query");
-        model.put("tableDetailActionUrl", "/mssql/" + id + "/" + dbName + "/" + schema + "/detail");
+        String tableSegment = mssqlMetadataService.parseTableFromSql(sql).map(MssqlController::simpleTableName).orElse(null);
+        model.put("tableDetailActionUrl", tableSegment != null && !tableSegment.isBlank()
+                ? "/mssql/" + id + "/" + dbName + "/" + schema + "/" + tableSegment + "/detail"
+                : "/mssql/" + id + "/" + dbName + "/" + schema + "/detail");
 
         int off = offset != null ? Math.max(0, offset) : 0;
         int lim = limit != null && limit > 0 ? limit : 100;
@@ -290,10 +318,30 @@ public class MssqlController {
     @View("mssql/detail")
     public Map<String, Object> rowDetail(@PathVariable Long id, @PathVariable String dbName, @PathVariable String schema,
                                         String sql, Integer rowNum, String sort, String order, @Nullable String search) {
+        return rowDetail(id, dbName, schema, sql, rowNum, sort, order, search, null);
+    }
+
+    @Produces(MediaType.TEXT_HTML)
+    @Post("/{id}/{dbName}/{schema}/{table}/detail")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @View("mssql/detail")
+    public Map<String, Object> rowDetailWithTable(@PathVariable Long id, @PathVariable String dbName, @PathVariable String schema,
+                                                   @PathVariable String table, String sql, Integer rowNum, String sort, String order,
+                                                   @Nullable String search) {
+        return rowDetail(id, dbName, schema, sql, rowNum, sort, order, search, table);
+    }
+
+    private Map<String, Object> rowDetail(Long id, String dbName, String schema, String sql, Integer rowNum,
+                                          String sort, String order, String search, @Nullable String tableParam) {
         Map<String, Object> model = ControllerModelHelper.baseModel(id, dbConnectionService);
         Optional<DbConnection> conn = dbConnectionService.findById(id);
         if (conn.isEmpty()) {
             return model;
+        }
+
+        String tableLabel = tableParam;
+        if (tableLabel == null || tableLabel.isBlank()) {
+            tableLabel = mssqlMetadataService.parseTableFromSql(sql != null ? sql : "").map(MssqlController::simpleTableName).orElse(null);
         }
 
         List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
@@ -303,6 +351,9 @@ public class MssqlController {
                 ? "/mssql/" + id + "/" + dbName + "/" + schema
                 : null;
         breadcrumbs.add(new BreadcrumbItem(schema != null ? schema : "", schemaUrl));
+        if (tableLabel != null && !tableLabel.isBlank()) {
+            breadcrumbs.add(new BreadcrumbItem(tableLabel, "/mssql/" + id + "/" + dbName + "/" + schema + "/" + tableLabel));
+        }
         breadcrumbs.add(new BreadcrumbItem("detail", null));
         ControllerModelHelper.addBreadcrumbs(model, breadcrumbs);
         model.put("connectionId", id);
@@ -313,6 +364,9 @@ public class MssqlController {
         model.put("sort", sort != null ? sort : "");
         model.put("order", order != null ? order : "");
         model.put("searchTerm", search != null && !search.isBlank() ? search.trim() : "");
+        if (tableLabel != null && !tableLabel.isBlank()) {
+            model.put("table", tableLabel);
+        }
 
         if (sql != null && !sql.isBlank() && rowNum != null && rowNum >= 0) {
             Map<String, Object> detailResult = mssqlMetadataService.getDetailRow(id, dbName, schema, sql, Math.max(0, rowNum), sort, order);
@@ -330,6 +384,18 @@ public class MssqlController {
     @Produces(MediaType.TEXT_HTML)
     public Object saveRow(@PathVariable Long id, @PathVariable String dbName, @PathVariable String schema,
                          @Body Map<String, String> form) {
+        return saveRow(id, dbName, schema, form, null);
+    }
+
+    @Post("/{id}/{dbName}/{schema}/{table}/detail/update")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @Produces(MediaType.TEXT_HTML)
+    public Object saveRowWithTable(@PathVariable Long id, @PathVariable String dbName, @PathVariable String schema,
+                                   @PathVariable String table, @Body Map<String, String> form) {
+        return saveRow(id, dbName, schema, form, table);
+    }
+
+    private Object saveRow(Long id, String dbName, String schema, Map<String, String> form, @Nullable String tableParam) {
         String sql = form != null ? form.get("sql") : null;
         Integer rowNum = form != null && form.containsKey("rowNum") ? parseInteger(form.get("rowNum")) : null;
         String sort = form != null ? form.get("sort") : null;
@@ -368,7 +434,7 @@ public class MssqlController {
         String searchParam = form != null ? form.get("search") : null;
         Optional<String> parsedTable = mssqlMetadataService.parseTableFromSql(sql);
         if (parsedTable.isEmpty()) {
-            Map<String, Object> model = rowDetail(id, dbName, schema, sql, rowNum, sort, order, searchParam);
+            Map<String, Object> model = rowDetail(id, dbName, schema, sql, rowNum, sort, order, searchParam, tableParam);
             model.put("error", "Could not determine table from SQL.");
             return new ModelAndView<>("mssql/detail", model);
         }
@@ -376,12 +442,25 @@ public class MssqlController {
         String tableRef = qualifiedTable != null && !qualifiedTable.isBlank() ? qualifiedTable : parsedTable.get();
         Optional<String> err = mssqlMetadataService.executeUpdateByKey(id, dbName, schema, tableRef, uniqueKeyColumns, keyValues, columnValues);
         if (err.isPresent()) {
-            Map<String, Object> model = rowDetail(id, dbName, schema, sql, rowNum, sort, order, searchParam);
+            Map<String, Object> model = rowDetail(id, dbName, schema, sql, rowNum, sort, order, searchParam, tableParam);
             model.put("error", err.get());
             return new ModelAndView<>("mssql/detail", model);
         }
 
-        return new ModelAndView<>("mssql/detail", rowDetail(id, dbName, schema, sql, rowNum, sort, order, searchParam));
+        return new ModelAndView<>("mssql/detail", rowDetail(id, dbName, schema, sql, rowNum, sort, order, searchParam, tableParam));
+    }
+
+    private static String simpleTableName(String qualified) {
+        if (qualified == null || qualified.isBlank()) {
+            return "";
+        }
+        String trimmed = qualified.trim();
+        int dotBracket = trimmed.lastIndexOf("].[");
+        if (dotBracket >= 0 && dotBracket + 3 < trimmed.length()) {
+            String part = trimmed.substring(dotBracket + 3);
+            return part.endsWith("]") ? part.substring(0, part.length() - 1) : part;
+        }
+        return trimmed.replace("[", "").replace("]", "").trim();
     }
 
     private static Integer parseInteger(String s) {

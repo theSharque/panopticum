@@ -161,10 +161,11 @@ public class OracleMetadataService {
         if (!upper.startsWith("SELECT") || upper.startsWith("SELECT INTO")) {
             return executeQuery(connectionId, schema, sql, offset, limit, sortBy, sortOrder, true);
         }
-        String innerWithOrder = buildWrappedQueryWithOrder(trimmed, sortBy, sortOrder);
+        String innerWithoutOrder = "SELECT * FROM (" + trimmed + ") inner_rowlimit";
         Optional<QueryResultData> metaOpt;
         try {
-            metaOpt = oracleMetadataRepository.executeQuery(connectionId, schema, innerWithOrder + " OFFSET 0 ROWS FETCH NEXT 0 ROWS ONLY");
+            String metaSql = "SELECT * FROM (" + trimmed + ") inner_rowlimit WHERE ROWNUM < 1";
+            metaOpt = oracleMetadataRepository.executeQuery(connectionId, schema, metaSql);
         } catch (RuntimeException e) {
             return Optional.of(QueryResult.error(e.getCause() != null ? e.getCause().getMessage() : e.getMessage()));
         }
@@ -173,13 +174,13 @@ public class OracleMetadataService {
         }
         List<String> columns = metaOpt.get().getColumns();
         String concatExpr = columns.stream()
-                .map(c -> "TO_CHAR(\"_sub\".\"" + c.replace("\"", "\"\"") + "\")")
+                .map(c -> "NVL(TO_CHAR(SUB.\"" + c.replace("\"", "\"\"") + "\"), '')")
                 .reduce((a, b) -> a + " || ':' || " + b)
                 .orElse("''");
         String orderByClause = buildOrderByClause(sortBy, sortOrder);
-        String searchSql = "SELECT * FROM (" + innerWithOrder + ") _sub WHERE (" + concatExpr + ") LIKE ? " + orderByClause.trim() + " OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
+        String searchSql = "SELECT * FROM (" + innerWithoutOrder + ") SUB WHERE (" + concatExpr + ") LIKE ? " + orderByClause.trim() + " OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
         String likePattern = "%" + escapeForLike(searchTerm) + "%";
-        int maxLimit = Math.min(limit, queryRowsLimit);
+        int maxLimit = Math.max(1, Math.min(limit, queryRowsLimit));
         List<Object> params = List.of(likePattern, Math.max(0, offset), maxLimit);
         Optional<QueryResultData> dataOpt;
         try {

@@ -6,7 +6,7 @@
     <div th:replace="~{fragments/breadcrumbs :: breadcrumbs(items=${breadcrumbs})}"></div>
     <p th:if="${error}" th:text="${msg != null && msg[error] != null ? msg[error] : error}" class="query-error"></p>
     <h1 th:text="${msg['pg.rowDetail']}">Row details</h1>
-    <form th:if="${detailRows != null and !detailRows.isEmpty()}" th:action="@{/pg/{id}/{dbName}/{schema}/detail/update(id=${connectionId}, dbName=${dbName}, schema=${schema})}" method="post" class="detail-form">
+    <form th:if="${detailRows != null and !detailRows.isEmpty()}" th:action="${table != null and !#strings.isEmpty(table)} ? @{/pg/{id}/{dbName}/{schema}/{table}/detail/update(id=${connectionId}, dbName=${dbName}, schema=${schema}, table=${table})} : @{/pg/{id}/{dbName}/{schema}/detail/update(id=${connectionId}, dbName=${dbName}, schema=${schema})}" method="post" class="detail-form">
         <input type="hidden" name="sql" th:value="${sql}"/>
         <input type="hidden" name="rowNum" th:value="${rowNum}"/>
         <input type="hidden" name="sort" th:value="${sort}"/>

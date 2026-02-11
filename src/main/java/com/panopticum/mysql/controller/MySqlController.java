@@ -132,6 +132,26 @@ public class MySqlController {
         return buildSqlPageModel(id, dbName, sql, offset, limit, sort, order, search);
     }
 
+    @Produces(MediaType.TEXT_HTML)
+    @Get("/{id}/{dbName}/{table}")
+    @View("mysql/table")
+    public Map<String, Object> tablePage(@PathVariable Long id, @PathVariable String dbName, @PathVariable String table,
+                                         @QueryValue(value = "offset", defaultValue = "0") Integer offset,
+                                         @QueryValue(value = "limit", defaultValue = "100") Integer limit,
+                                         @QueryValue(value = "sort", defaultValue = "") String sort,
+                                         @QueryValue(value = "order", defaultValue = "") String order,
+                                         @QueryValue(value = "search", defaultValue = "") String search) {
+        String tableEscaped = table != null ? table.replace("`", "``") : "";
+        String sql = "SELECT * FROM `" + tableEscaped + "`";
+        Map<String, Object> model = buildSqlPageModel(id, dbName, sql, offset, limit, sort, order, search);
+        @SuppressWarnings("unchecked")
+        List<BreadcrumbItem> breadcrumbs = (List<BreadcrumbItem>) model.get("breadcrumbs");
+        if (breadcrumbs != null && !breadcrumbs.isEmpty()) {
+            breadcrumbs.set(breadcrumbs.size() - 1, new BreadcrumbItem(table, null));
+        }
+        return model;
+    }
+
     private Map<String, Object> buildSqlPageModel(Long id, String dbName, String sql,
                                                   Integer offset, Integer limit, String sort, String order, String search) {
         Map<String, Object> model = ControllerModelHelper.baseModel(id, dbConnectionService);
@@ -152,7 +172,10 @@ public class MySqlController {
         model.put("dbName", dbName);
         model.put("sql", sql != null ? sql : "");
         model.put("tableQueryActionUrl", "/mysql/" + id + "/query");
-        model.put("tableDetailActionUrl", "/mysql/" + id + "/" + dbName + "/detail");
+        String tableSegment = mySqlMetadataService.parseTableFromSql(sql != null ? sql : "").map(MySqlController::simpleTableName).orElse(null);
+        model.put("tableDetailActionUrl", tableSegment != null && !tableSegment.isBlank()
+                ? "/mysql/" + id + "/" + dbName + "/" + tableSegment + "/detail"
+                : "/mysql/" + id + "/" + dbName + "/detail");
 
         int off = offset != null ? Math.max(0, offset) : 0;
         int lim = limit != null && limit > 0 ? Math.min(limit, 1000) : 100;
@@ -218,7 +241,10 @@ public class MySqlController {
         }
         model.put("queryActionUrl", "/mysql/" + id + "/query");
         model.put("tableQueryActionUrl", "/mysql/" + id + "/query");
-        model.put("tableDetailActionUrl", "/mysql/" + id + "/" + dbName + "/detail");
+        String tableSegment = mySqlMetadataService.parseTableFromSql(sql).map(MySqlController::simpleTableName).orElse(null);
+        model.put("tableDetailActionUrl", tableSegment != null && !tableSegment.isBlank()
+                ? "/mysql/" + id + "/" + dbName + "/" + tableSegment + "/detail"
+                : "/mysql/" + id + "/" + dbName + "/detail");
 
         int off = offset != null ? Math.max(0, offset) : 0;
         int lim = limit != null && limit > 0 ? limit : 100;
@@ -251,15 +277,37 @@ public class MySqlController {
     @View("mysql/detail")
     public Map<String, Object> rowDetail(@PathVariable Long id, @PathVariable String dbName,
                                          String sql, Integer rowNum, String sort, String order, @Nullable String search) {
+        return rowDetail(id, dbName, sql, rowNum, sort, order, search, null);
+    }
+
+    @Produces(MediaType.TEXT_HTML)
+    @Post("/{id}/{dbName}/{table}/detail")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @View("mysql/detail")
+    public Map<String, Object> rowDetailWithTable(@PathVariable Long id, @PathVariable String dbName, @PathVariable String table,
+                                                   String sql, Integer rowNum, String sort, String order, @Nullable String search) {
+        return rowDetail(id, dbName, sql, rowNum, sort, order, search, table);
+    }
+
+    private Map<String, Object> rowDetail(Long id, String dbName, String sql, Integer rowNum,
+                                          String sort, String order, String search, @Nullable String tableParam) {
         Map<String, Object> model = ControllerModelHelper.baseModel(id, dbConnectionService);
         Optional<DbConnection> conn = dbConnectionService.findById(id);
         if (conn.isEmpty()) {
             return model;
         }
 
+        String tableLabel = tableParam;
+        if (tableLabel == null || tableLabel.isBlank()) {
+            tableLabel = mySqlMetadataService.parseTableFromSql(sql != null ? sql : "").map(MySqlController::simpleTableName).orElse(null);
+        }
+
         List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
         breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/mysql/" + id));
         breadcrumbs.add(new BreadcrumbItem(dbName != null ? dbName : "", "/mysql/" + id + "/" + (dbName != null ? dbName : "")));
+        if (tableLabel != null && !tableLabel.isBlank()) {
+            breadcrumbs.add(new BreadcrumbItem(tableLabel, "/mysql/" + id + "/" + dbName + "/" + tableLabel));
+        }
         breadcrumbs.add(new BreadcrumbItem("detail", null));
         ControllerModelHelper.addBreadcrumbs(model, breadcrumbs);
         model.put("connectionId", id);
@@ -269,6 +317,9 @@ public class MySqlController {
         model.put("sort", sort != null ? sort : "");
         model.put("order", order != null ? order : "");
         model.put("searchTerm", search != null && !search.isBlank() ? search.trim() : "");
+        if (tableLabel != null && !tableLabel.isBlank()) {
+            model.put("table", tableLabel);
+        }
 
         if (sql != null && !sql.isBlank() && rowNum != null && rowNum >= 0) {
             Map<String, Object> detailResult = mySqlMetadataService.getDetailRow(id, dbName, sql, Math.max(0, rowNum), sort, order);
@@ -286,6 +337,18 @@ public class MySqlController {
     @Produces(MediaType.TEXT_HTML)
     public Object saveRow(@PathVariable Long id, @PathVariable String dbName,
                          @Body Map<String, String> form) {
+        return saveRow(id, dbName, form, null);
+    }
+
+    @Post("/{id}/{dbName}/{table}/detail/update")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @Produces(MediaType.TEXT_HTML)
+    public Object saveRowWithTable(@PathVariable Long id, @PathVariable String dbName, @PathVariable String table,
+                                   @Body Map<String, String> form) {
+        return saveRow(id, dbName, form, table);
+    }
+
+    private Object saveRow(Long id, String dbName, Map<String, String> form, @Nullable String tableParam) {
         String sql = form != null ? form.get("sql") : null;
         Integer rowNum = form != null && form.containsKey("rowNum") ? parseInteger(form.get("rowNum")) : null;
         String sort = form != null ? form.get("sort") : null;
@@ -324,7 +387,7 @@ public class MySqlController {
         String searchParam = form != null ? form.get("search") : null;
         Optional<String> parsedTable = mySqlMetadataService.parseTableFromSql(sql);
         if (parsedTable.isEmpty()) {
-            Map<String, Object> model = rowDetail(id, dbName, sql, rowNum, sort, order, searchParam);
+            Map<String, Object> model = rowDetail(id, dbName, sql, rowNum, sort, order, searchParam, tableParam);
             model.put("error", "Could not determine table from SQL.");
             return new ModelAndView<>("mysql/detail", model);
         }
@@ -332,12 +395,25 @@ public class MySqlController {
         String tableRef = qualifiedTable != null && !qualifiedTable.isBlank() ? qualifiedTable : parsedTable.get();
         Optional<String> err = mySqlMetadataService.executeUpdateByKey(id, dbName, tableRef, uniqueKeyColumns, keyValues, columnValues);
         if (err.isPresent()) {
-            Map<String, Object> model = rowDetail(id, dbName, sql, rowNum, sort, order, searchParam);
+            Map<String, Object> model = rowDetail(id, dbName, sql, rowNum, sort, order, searchParam, tableParam);
             model.put("error", err.get());
             return new ModelAndView<>("mysql/detail", model);
         }
 
-        return new ModelAndView<>("mysql/detail", rowDetail(id, dbName, sql, rowNum, sort, order, searchParam));
+        return new ModelAndView<>("mysql/detail", rowDetail(id, dbName, sql, rowNum, sort, order, searchParam, tableParam));
+    }
+
+    private static String simpleTableName(String qualified) {
+        if (qualified == null || qualified.isBlank()) {
+            return "";
+        }
+        String trimmed = qualified.trim();
+        int dot = trimmed.lastIndexOf('.');
+        if (dot >= 0 && dot + 1 < trimmed.length()) {
+            String part = trimmed.substring(dot + 1).replace("`", "").trim();
+            return part.isEmpty() ? trimmed.replace("`", "").trim() : part;
+        }
+        return trimmed.replace("`", "").trim();
     }
 
     private static Integer parseInteger(String s) {

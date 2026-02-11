@@ -164,6 +164,20 @@ public class PgController {
     }
 
     @Produces(MediaType.TEXT_HTML)
+    @Get("/{id}/{dbName}/{schema}/{table}")
+    @View("pg/table")
+    public Map<String, Object> tablePage(@PathVariable Long id, @PathVariable String dbName, @PathVariable String schema,
+                                         @PathVariable String table,
+                                         @QueryValue(value = "offset", defaultValue = "0") Integer offset,
+                                         @QueryValue(value = "limit", defaultValue = "100") Integer limit,
+                                         @QueryValue(value = "sort", defaultValue = "") String sort,
+                                         @QueryValue(value = "order", defaultValue = "") String order,
+                                         @QueryValue(value = "search", defaultValue = "") String search) {
+        String sql = "SELECT * FROM \"" + schema.replace("\"", "\"\"") + "\".\"" + table.replace("\"", "\"\"") + "\"";
+        return buildSqlPageModel(id, dbName, schema, sql, offset, limit, sort, order, search);
+    }
+
+    @Produces(MediaType.TEXT_HTML)
     @Post("/{id}/{dbName}/{schema}/sql")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @View("pg/sql")
@@ -184,18 +198,26 @@ public class PgController {
         String searchTerm = search != null && !search.isBlank() ? search.trim() : "";
         model.put("searchTerm", searchTerm);
 
+        Optional<String> qualifiedTable = pgMetadataService.parseTableFromSql(sql);
+        String tableLabel = qualifiedTable
+                .map(PgController::simpleTableName)
+                .orElse("sql");
+
         List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
         breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/pg/" + id));
         breadcrumbs.add(new BreadcrumbItem(dbName, "/pg/" + id + "/" + dbName));
         breadcrumbs.add(new BreadcrumbItem(schema, "/pg/" + id + "/" + dbName + "/" + schema));
-        breadcrumbs.add(new BreadcrumbItem("sql", null));
+        breadcrumbs.add(new BreadcrumbItem(tableLabel, null));
         ControllerModelHelper.addBreadcrumbs(model, breadcrumbs);
         model.put("connectionId", id);
         model.put("dbName", dbName);
         model.put("schema", schema);
         model.put("sql", sql != null ? sql : "");
         model.put("tableQueryActionUrl", "/pg/" + id + "/query");
-        model.put("tableDetailActionUrl", "/pg/" + id + "/" + dbName + "/" + schema + "/detail");
+        String tableSegment = qualifiedTable
+                .map(PgController::simpleTableName)
+                .orElse("sql");
+        model.put("tableDetailActionUrl", "/pg/" + id + "/" + dbName + "/" + schema + "/" + tableSegment + "/detail");
 
         int off = offset != null ? Math.max(0, offset) : 0;
         int lim = limit != null && limit > 0 ? Math.min(limit, 1000) : 100;
@@ -271,7 +293,10 @@ public class PgController {
         }
         model.put("queryActionUrl", "/pg/" + id + "/query");
         model.put("tableQueryActionUrl", "/pg/" + id + "/query");
-        model.put("tableDetailActionUrl", "/pg/" + id + "/" + dbName + "/" + schema + "/detail");
+        String tableSegment = pgMetadataService.parseTableFromSql(sql).map(PgController::simpleTableName).orElse(null);
+        model.put("tableDetailActionUrl", tableSegment != null && !tableSegment.isBlank()
+                ? "/pg/" + id + "/" + dbName + "/" + schema + "/" + tableSegment + "/detail"
+                : "/pg/" + id + "/" + dbName + "/" + schema + "/detail");
 
         int off = offset != null ? Math.max(0, offset) : 0;
         int lim = limit != null && limit > 0 ? limit : 100;
@@ -291,10 +316,30 @@ public class PgController {
     @View("pg/detail")
     public Map<String, Object> rowDetail(@PathVariable Long id, @PathVariable String dbName, @PathVariable String schema,
                                          String sql, Integer rowNum, String sort, String order, @Nullable String search) {
+        return rowDetail(id, dbName, schema, sql, rowNum, sort, order, search, null);
+    }
+
+    @Produces(MediaType.TEXT_HTML)
+    @Post("/{id}/{dbName}/{schema}/{table}/detail")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @View("pg/detail")
+    public Map<String, Object> rowDetailWithTable(@PathVariable Long id, @PathVariable String dbName, @PathVariable String schema,
+                                                  @PathVariable String table, String sql, Integer rowNum, String sort, String order,
+                                                  @Nullable String search) {
+        return rowDetail(id, dbName, schema, sql, rowNum, sort, order, search, table);
+    }
+
+    private Map<String, Object> rowDetail(Long id, String dbName, String schema, String sql, Integer rowNum,
+                                          String sort, String order, String search, @Nullable String tableParam) {
         Map<String, Object> model = ControllerModelHelper.baseModel(id, dbConnectionService);
         Optional<DbConnection> conn = dbConnectionService.findById(id);
         if (conn.isEmpty()) {
             return model;
+        }
+
+        String tableLabel = tableParam;
+        if (tableLabel == null || tableLabel.isBlank()) {
+            tableLabel = pgMetadataService.parseTableFromSql(sql != null ? sql : "").map(PgController::simpleTableName).orElse(null);
         }
 
         List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
@@ -304,6 +349,9 @@ public class PgController {
                 ? "/pg/" + id + "/" + dbName + "/" + schema
                 : null;
         breadcrumbs.add(new BreadcrumbItem(schema != null ? schema : "", schemaUrl));
+        if (tableLabel != null && !tableLabel.isBlank()) {
+            breadcrumbs.add(new BreadcrumbItem(tableLabel, "/pg/" + id + "/" + dbName + "/" + schema + "/" + tableLabel));
+        }
         breadcrumbs.add(new BreadcrumbItem("detail", null));
         ControllerModelHelper.addBreadcrumbs(model, breadcrumbs);
         model.put("connectionId", id);
@@ -314,6 +362,9 @@ public class PgController {
         model.put("sort", sort != null ? sort : "");
         model.put("order", order != null ? order : "");
         model.put("searchTerm", search != null && !search.isBlank() ? search.trim() : "");
+        if (tableLabel != null && !tableLabel.isBlank()) {
+            model.put("table", tableLabel);
+        }
 
         List<Map<String, String>> detailRows = new ArrayList<>();
         String rowCtid = null;
@@ -342,6 +393,18 @@ public class PgController {
     @Produces(MediaType.TEXT_HTML)
     public Object saveRow(@PathVariable Long id, @PathVariable String dbName, @PathVariable String schema,
                          @Body Map<String, String> form) {
+        return saveRow(id, dbName, schema, form, null);
+    }
+
+    @Post("/{id}/{dbName}/{schema}/{table}/detail/update")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @Produces(MediaType.TEXT_HTML)
+    public Object saveRowWithTable(@PathVariable Long id, @PathVariable String dbName, @PathVariable String schema,
+                                   @PathVariable String table, @Body Map<String, String> form) {
+        return saveRow(id, dbName, schema, form, table);
+    }
+
+    private Object saveRow(Long id, String dbName, String schema, Map<String, String> form, @Nullable String tableParam) {
         String sql = form != null ? form.get("sql") : null;
         Integer rowNum = form != null && form.containsKey("rowNum") ? parseInteger(form.get("rowNum")) : null;
         String sort = form != null ? form.get("sort") : null;
@@ -359,7 +422,7 @@ public class PgController {
         String searchParam = form != null ? form.get("search") : null;
         Optional<String> qualifiedTable = pgMetadataService.parseTableFromSql(sql);
         if (qualifiedTable.isEmpty()) {
-            Map<String, Object> model = rowDetail(id, dbName, schema, sql, rowNum, sort, order, searchParam);
+            Map<String, Object> model = rowDetail(id, dbName, schema, sql, rowNum, sort, order, searchParam, tableParam);
             model.put("error", "Could not determine table from SQL.");
 
             return new ModelAndView<>("pg/detail", model);
@@ -367,13 +430,13 @@ public class PgController {
 
         Optional<String> err = pgMetadataService.executeUpdateByCtid(id, dbName, qualifiedTable.get(), ctid, columnValues);
         if (err.isPresent()) {
-            Map<String, Object> model = rowDetail(id, dbName, schema, sql, rowNum, sort, order, searchParam);
+            Map<String, Object> model = rowDetail(id, dbName, schema, sql, rowNum, sort, order, searchParam, tableParam);
             model.put("error", err.get());
 
             return new ModelAndView<>("pg/detail", model);
         }
 
-        return new ModelAndView<>("pg/detail", rowDetail(id, dbName, schema, sql, rowNum, sort, order, searchParam));
+        return new ModelAndView<>("pg/detail", rowDetail(id, dbName, schema, sql, rowNum, sort, order, searchParam, tableParam));
     }
 
     private static Integer parseInteger(String s) {
@@ -385,5 +448,14 @@ public class PgController {
         } catch (NumberFormatException e) {
             return null;
         }
+    }
+
+    private static String simpleTableName(String qualified) {
+        if (qualified == null || qualified.isBlank()) {
+            return "";
+        }
+        String trimmed = qualified.trim();
+        int dot = trimmed.lastIndexOf('.');
+        return dot >= 0 && dot + 1 < trimmed.length() ? trimmed.substring(dot + 1) : trimmed;
     }
 }
