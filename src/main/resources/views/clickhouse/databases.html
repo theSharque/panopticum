@@ -9,8 +9,8 @@
         <div class="query-pagination-info">
             <span class="query-pagination-range" th:text="${msg['common.rowsRange'] + fromRow + '–' + toRow}"></span>
             <span class="query-pagination-nav">
-                <a th:if="${hasPrev}" th:href="@{/ch/{id}(id=${connectionId})}(page=${page - 1}, size=${size}, sort=${sort}, order=${order})" class="query-pagination-btn" th:text="${'← ' + msg['common.prev']}">← Back</a>
-                <a th:if="${hasMore}" th:href="@{/ch/{id}(id=${connectionId})}(page=${page + 1}, size=${size}, sort=${sort}, order=${order})" class="query-pagination-btn" th:text="${msg['common.next'] + ' →'}">Next →</a>
+                <a th:if="${hasPrev}" th:href="@{/clickhouse/{id}(id=${connectionId})}(page=${page - 1}, size=${size}, sort=${sort}, order=${order})" class="query-pagination-btn" th:text="${'← ' + msg['common.prev']}">← Back</a>
+                <a th:if="${hasMore}" th:href="@{/clickhouse/{id}(id=${connectionId})}(page=${page + 1}, size=${size}, sort=${sort}, order=${order})" class="query-pagination-btn" th:text="${msg['common.next'] + ' →'}">Next →</a>
             </span>
         </div>
         <div class="query-table-wrapper">
@@ -19,10 +19,10 @@
                     <tr>
                         <th class="query-th query-th-detail"></th>
                         <th class="query-th query-th-sortable">
-                            <a th:href="@{/ch/{id}(id=${connectionId}, page=1, size=${size}, sort='name', order=${orderName})}" class="query-th-link"><span th:text="${msg['common.name']}">Name</span> <span th:if="${sort == 'name' and order == 'asc'}" class="query-sort-ind">▲</span><span th:if="${sort == 'name' and order == 'desc'}" class="query-sort-ind">▼</span></a>
+                            <a th:href="@{/clickhouse/{id}(id=${connectionId}, page=1, size=${size}, sort='name', order=${orderName})}" class="query-th-link"><span th:text="${msg['common.name']}">Name</span> <span th:if="${sort == 'name' and order == 'asc'}" class="query-sort-ind">▲</span><span th:if="${sort == 'name' and order == 'desc'}" class="query-sort-ind">▼</span></a>
                         </th>
                         <th class="query-th query-th-sortable">
-                            <a th:href="@{/ch/{id}(id=${connectionId}, page=1, size=${size}, sort='size', order=${orderSize})}" class="query-th-link"><span th:text="${msg['common.size']}">Size</span> <span th:if="${sort == 'size' and order == 'asc'}" class="query-sort-ind">▲</span><span th:if="${sort == 'size' and order == 'desc'}" class="query-sort-ind">▼</span></a>
+                            <a th:href="@{/clickhouse/{id}(id=${connectionId}, page=1, size=${size}, sort='size', order=${orderSize})}" class="query-th-link"><span th:text="${msg['common.size']}">Size</span> <span th:if="${sort == 'size' and order == 'asc'}" class="query-sort-ind">▲</span><span th:if="${sort == 'size' and order == 'desc'}" class="query-sort-ind">▼</span></a>
                         </th>
                     </tr>
                 </thead>

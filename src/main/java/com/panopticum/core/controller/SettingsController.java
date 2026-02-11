@@ -124,7 +124,7 @@ public class SettingsController {
         Map<String, Object> model = new HashMap<>();
         model.put("connections", dbConnectionService.findAll());
 
-        return responseAfterAdd(request, model, saved.getId(), "/ch/" + saved.getId());
+        return responseAfterAdd(request, model, saved.getId(), "/clickhouse/" + saved.getId());
     }
 
     @Post("/test-clickhouse")

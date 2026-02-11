@@ -34,7 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-@Controller("/ch")
+@Controller("/clickhouse")
 @Secured(SecurityRule.IS_AUTHENTICATED)
 @ExecuteOn(TaskExecutors.BLOCKING)
 @RequiredArgsConstructor
@@ -45,7 +45,7 @@ public class ClickHouseController {
 
     @Produces(MediaType.TEXT_HTML)
     @Get("/{id}")
-    @View("ch/databases")
+    @View("clickhouse/databases")
     public Map<String, Object> databases(@PathVariable Long id,
                                          @QueryValue(value = "page", defaultValue = "1") int page,
                                          @QueryValue(value = "size", defaultValue = "50") int size,
@@ -63,7 +63,7 @@ public class ClickHouseController {
         model.put("connectionId", id);
         model.put("dbName", null);
         model.put("itemType", "database");
-        model.put("itemUrlPrefix", "/ch/" + id + "/");
+        model.put("itemUrlPrefix", "/clickhouse/" + id + "/");
 
         Page<DatabaseInfo> paged = clickHouseMetadataService.listDatabasesPaged(id, page, size, sort, order);
         ControllerModelHelper.addPagination(model, paged, "items");
@@ -75,12 +75,12 @@ public class ClickHouseController {
 
     @Get("/{id}/detail")
     public HttpResponse<?> detailRedirect(@PathVariable Long id) {
-        return HttpResponse.redirect(URI.create("/ch/" + id));
+        return HttpResponse.redirect(URI.create("/clickhouse/" + id));
     }
 
     @Produces(MediaType.TEXT_HTML)
     @Get("/{id}/{dbName}")
-    @View("ch/tables")
+    @View("clickhouse/tables")
     public Map<String, Object> tables(@PathVariable Long id, @PathVariable String dbName,
                                       @QueryValue(value = "page", defaultValue = "1") int page,
                                       @QueryValue(value = "size", defaultValue = "50") int size,
@@ -93,7 +93,7 @@ public class ClickHouseController {
         }
 
         List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
-        breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/ch/" + id));
+        breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/clickhouse/" + id));
         breadcrumbs.add(new BreadcrumbItem(dbName, null));
         ControllerModelHelper.addBreadcrumbs(model, breadcrumbs);
         model.put("connectionId", id);
@@ -109,7 +109,7 @@ public class ClickHouseController {
 
     @Produces(MediaType.TEXT_HTML)
     @Get("/{id}/{dbName}/sql")
-    @View("ch/sql")
+    @View("clickhouse/sql")
     public Map<String, Object> sqlPageGet(@PathVariable Long id, @PathVariable String dbName,
                                          @QueryValue(value = "sql", defaultValue = "") String sql,
                                          @QueryValue(value = "offset", defaultValue = "0") Integer offset,
@@ -122,7 +122,7 @@ public class ClickHouseController {
     @Produces(MediaType.TEXT_HTML)
     @Post("/{id}/{dbName}/sql")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
-    @View("ch/sql")
+    @View("clickhouse/sql")
     public Map<String, Object> sqlPagePost(@PathVariable Long id, @PathVariable String dbName,
                                            String sql, @Nullable Integer offset, @Nullable Integer limit,
                                            @Nullable String sort, @Nullable String order) {
@@ -138,15 +138,15 @@ public class ClickHouseController {
         }
 
         List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
-        breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/ch/" + id));
-        breadcrumbs.add(new BreadcrumbItem(dbName, "/ch/" + id + "/" + dbName));
+        breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/clickhouse/" + id));
+        breadcrumbs.add(new BreadcrumbItem(dbName, "/clickhouse/" + id + "/" + dbName));
         breadcrumbs.add(new BreadcrumbItem("sql", null));
         ControllerModelHelper.addBreadcrumbs(model, breadcrumbs);
         model.put("connectionId", id);
         model.put("dbName", dbName);
         model.put("sql", sql != null ? sql : "");
-        model.put("tableQueryActionUrl", "/ch/" + id + "/query");
-        model.put("tableDetailActionUrl", "/ch/" + id + "/" + dbName + "/detail");
+        model.put("tableQueryActionUrl", "/clickhouse/" + id + "/query");
+        model.put("tableDetailActionUrl", "/clickhouse/" + id + "/" + dbName + "/detail");
 
         int off = offset != null ? Math.max(0, offset) : 0;
         int lim = limit != null && limit > 0 ? Math.min(limit, 1000) : 100;
@@ -200,17 +200,17 @@ public class ClickHouseController {
         model.put("dbName", dbName);
         if (sql == null || sql.isBlank()) {
             model.put("error", "Empty query");
-            model.put("queryActionUrl", "/ch/" + id + "/query");
-            model.put("tableQueryActionUrl", "/ch/" + id + "/query");
-            model.put("tableDetailActionUrl", "/ch/" + id + "/" + dbName + "/detail");
+            model.put("queryActionUrl", "/clickhouse/" + id + "/query");
+            model.put("tableQueryActionUrl", "/clickhouse/" + id + "/query");
+            model.put("tableDetailActionUrl", "/clickhouse/" + id + "/" + dbName + "/detail");
 
             return "table".equals(target)
                     ? new ModelAndView<>("partials/table-view-result", model)
                     : new ModelAndView<>("partials/query-result", model);
         }
-        model.put("queryActionUrl", "/ch/" + id + "/query");
-        model.put("tableQueryActionUrl", "/ch/" + id + "/query");
-        model.put("tableDetailActionUrl", "/ch/" + id + "/" + dbName + "/detail");
+        model.put("queryActionUrl", "/clickhouse/" + id + "/query");
+        model.put("tableQueryActionUrl", "/clickhouse/" + id + "/query");
+        model.put("tableDetailActionUrl", "/clickhouse/" + id + "/" + dbName + "/detail");
 
         int off = offset != null ? Math.max(0, offset) : 0;
         int lim = limit != null && limit > 0 ? limit : 100;
@@ -240,7 +240,7 @@ public class ClickHouseController {
     @Produces(MediaType.TEXT_HTML)
     @Post("/{id}/{dbName}/detail")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
-    @View("ch/detail")
+    @View("clickhouse/detail")
     public Map<String, Object> rowDetail(@PathVariable Long id, @PathVariable String dbName,
                                         String sql, Integer rowNum, String sort, String order) {
         Map<String, Object> model = ControllerModelHelper.baseModel(id, dbConnectionService);
@@ -249,8 +249,8 @@ public class ClickHouseController {
             return model;
         }
         List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
-        breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/ch/" + id));
-        breadcrumbs.add(new BreadcrumbItem(dbName != null ? dbName : "", "/ch/" + id + "/" + (dbName != null ? dbName : "")));
+        breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/clickhouse/" + id));
+        breadcrumbs.add(new BreadcrumbItem(dbName != null ? dbName : "", "/clickhouse/" + id + "/" + (dbName != null ? dbName : "")));
         breadcrumbs.add(new BreadcrumbItem("detail", null));
         ControllerModelHelper.addBreadcrumbs(model, breadcrumbs);
         model.put("connectionId", id);
