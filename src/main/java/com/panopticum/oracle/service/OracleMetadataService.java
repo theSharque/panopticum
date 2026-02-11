@@ -112,6 +112,14 @@ public class OracleMetadataService {
     }
 
     public Optional<QueryResult> executeQuery(Long connectionId, String schema, String sql, int offset, int limit,
+                                             String sortBy, String sortOrder, String search) {
+        if (search != null && !search.isBlank()) {
+            return executeQueryWithSearch(connectionId, schema, sql, offset, limit, sortBy, sortOrder, search.trim());
+        }
+        return executeQuery(connectionId, schema, sql, offset, limit, sortBy, sortOrder, true);
+    }
+
+    public Optional<QueryResult> executeQuery(Long connectionId, String schema, String sql, int offset, int limit,
                                              String sortBy, String sortOrder, boolean truncateCells) {
         if (oracleMetadataRepository.getConnection(connectionId, schema).isEmpty()) {
             return Optional.of(QueryResult.error("Connection not available"));
@@ -143,13 +151,77 @@ public class OracleMetadataService {
         return Optional.of(new QueryResult(data.getColumns(), data.getColumnTypes(), rows, null, null, offset, limit, hasMore));
     }
 
+    private Optional<QueryResult> executeQueryWithSearch(Long connectionId, String schema, String sql, int offset, int limit,
+                                                         String sortBy, String sortOrder, String searchTerm) {
+        if (oracleMetadataRepository.getConnection(connectionId, schema).isEmpty()) {
+            return Optional.of(QueryResult.error("Connection not available"));
+        }
+        String trimmed = sql.strip().replaceFirst(";+\\s*$", "");
+        String upper = trimmed.toUpperCase().stripLeading();
+        if (!upper.startsWith("SELECT") || upper.startsWith("SELECT INTO")) {
+            return executeQuery(connectionId, schema, sql, offset, limit, sortBy, sortOrder, true);
+        }
+        String innerWithOrder = buildWrappedQueryWithOrder(trimmed, sortBy, sortOrder);
+        Optional<QueryResultData> metaOpt;
+        try {
+            metaOpt = oracleMetadataRepository.executeQuery(connectionId, schema, innerWithOrder + " OFFSET 0 ROWS FETCH NEXT 0 ROWS ONLY");
+        } catch (RuntimeException e) {
+            return Optional.of(QueryResult.error(e.getCause() != null ? e.getCause().getMessage() : e.getMessage()));
+        }
+        if (metaOpt.isEmpty() || metaOpt.get().getColumns() == null || metaOpt.get().getColumns().isEmpty()) {
+            return Optional.of(QueryResult.error("Connection not available"));
+        }
+        List<String> columns = metaOpt.get().getColumns();
+        String concatExpr = columns.stream()
+                .map(c -> "TO_CHAR(\"_sub\".\"" + c.replace("\"", "\"\"") + "\")")
+                .reduce((a, b) -> a + " || ':' || " + b)
+                .orElse("''");
+        String orderByClause = buildOrderByClause(sortBy, sortOrder);
+        String searchSql = "SELECT * FROM (" + innerWithOrder + ") _sub WHERE (" + concatExpr + ") LIKE ? " + orderByClause.trim() + " OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
+        String likePattern = "%" + escapeForLike(searchTerm) + "%";
+        int maxLimit = Math.min(limit, queryRowsLimit);
+        List<Object> params = List.of(likePattern, Math.max(0, offset), maxLimit);
+        Optional<QueryResultData> dataOpt;
+        try {
+            dataOpt = oracleMetadataRepository.executeQuery(connectionId, schema, searchSql, params);
+        } catch (RuntimeException e) {
+            return Optional.of(QueryResult.error(e.getCause() != null ? e.getCause().getMessage() : e.getMessage()));
+        }
+        if (dataOpt.isEmpty()) {
+            return Optional.of(QueryResult.error("Connection not available"));
+        }
+        QueryResultData data = dataOpt.get();
+        boolean hasMore = data.getRows().size() == limit;
+        List<List<Object>> rows = data.getRows().size() > limit ? data.getRows().subList(0, limit) : data.getRows();
+        List<List<Object>> truncated = new ArrayList<>();
+        for (List<Object> row : rows) {
+            List<Object> t = new ArrayList<>();
+            for (Object cell : row) {
+                t.add(StringUtils.truncateCell(cell));
+            }
+            truncated.add(t);
+        }
+        return Optional.of(new QueryResult(data.getColumns(), data.getColumnTypes(), truncated, null, null, offset, limit, hasMore));
+    }
+
+    private static String escapeForLike(String term) {
+        if (term == null) {
+            return "";
+        }
+        return term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
+    }
+
+    private String buildWrappedQueryWithOrder(String trimmed, String sortBy, String sortOrder) {
+        return "SELECT * FROM (" + trimmed + ") inner_rowlimit " + buildOrderByClause(sortBy, sortOrder);
+    }
+
     private String buildOrderByClause(String sortBy, String sortOrder) {
         if (sortBy != null && !sortBy.isBlank() && sortOrder != null && !sortOrder.isBlank()
                 && ("asc".equalsIgnoreCase(sortOrder) || "desc".equalsIgnoreCase(sortOrder))) {
             String quotedCol = "\"" + sortBy.replace("\"", "\"\"") + "\"";
-            return "ORDER BY " + quotedCol + " " + sortOrder.toUpperCase();
+            return " ORDER BY " + quotedCol + " " + sortOrder.toUpperCase();
         }
-        return "ORDER BY 1 ASC";
+        return " ORDER BY 1 ASC";
     }
 
     private String wrapWithLimitOffset(String sql, int limit, int offset, String sortBy, String sortOrder) {
@@ -159,15 +231,7 @@ public class OracleMetadataService {
             return sql;
         }
         int maxLimit = Math.min(limit, queryRowsLimit);
-        String orderBy;
-        if (sortBy != null && !sortBy.isBlank() && sortOrder != null && !sortOrder.isBlank()
-                && ("asc".equalsIgnoreCase(sortOrder) || "desc".equalsIgnoreCase(sortOrder))) {
-            String quotedCol = "\"" + sortBy.replace("\"", "\"\"") + "\"";
-            orderBy = " ORDER BY " + quotedCol + " " + sortOrder.toUpperCase();
-        } else {
-            orderBy = " ORDER BY 1 ASC";
-        }
-        return "SELECT * FROM (" + trimmed + ") inner_rowlimit" + orderBy
+        return buildWrappedQueryWithOrder(trimmed, sortBy, sortOrder)
                 + " OFFSET " + Math.max(0, offset) + " ROWS FETCH NEXT " + maxLimit + " ROWS ONLY";
     }
 

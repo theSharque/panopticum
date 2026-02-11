@@ -137,6 +137,14 @@ public class PgMetadataService {
     }
 
     public Optional<QueryResult> executeQuery(Long connectionId, String dbName, String sql, int offset, int limit,
+                                              String sortBy, String sortOrder, String search) {
+        if (search != null && !search.isBlank()) {
+            return executeQueryWithSearch(connectionId, dbName, sql, offset, limit, sortBy, sortOrder, search.trim());
+        }
+        return executeQuery(connectionId, dbName, sql, offset, limit, sortBy, sortOrder, true);
+    }
+
+    public Optional<QueryResult> executeQuery(Long connectionId, String dbName, String sql, int offset, int limit,
                                               String sortBy, String sortOrder, boolean truncateCells) {
         if (pgMetadataRepository.getConnection(connectionId, dbName).isEmpty()) {
             return Optional.of(QueryResult.error("Connection not available"));
@@ -163,6 +171,70 @@ public class PgMetadataService {
         return Optional.of(new QueryResult(data.getColumns(), data.getColumnTypes(), rows, null, null, offset, limit, hasMore));
     }
 
+    private Optional<QueryResult> executeQueryWithSearch(Long connectionId, String dbName, String sql, int offset, int limit,
+                                                         String sortBy, String sortOrder, String searchTerm) {
+        if (pgMetadataRepository.getConnection(connectionId, dbName).isEmpty()) {
+            return Optional.of(QueryResult.error("Connection not available"));
+        }
+        String trimmed = sql.strip().replaceFirst(";+\\s*$", "");
+        String upper = trimmed.toUpperCase().stripLeading();
+        if (!upper.startsWith("SELECT") || upper.startsWith("SELECT INTO")) {
+            return executeQuery(connectionId, dbName, sql, offset, limit, sortBy, sortOrder, true);
+        }
+        String innerWithOrder = buildWrappedQueryWithOrder(trimmed, sortBy, sortOrder);
+        Optional<QueryResultData> metaOpt = pgMetadataRepository.executeQuery(connectionId, dbName, innerWithOrder + " LIMIT 0");
+        if (metaOpt.isEmpty() || metaOpt.get().getColumns() == null || metaOpt.get().getColumns().isEmpty()) {
+            return Optional.of(QueryResult.error("Connection not available"));
+        }
+        List<String> columns = metaOpt.get().getColumns();
+        String concatExpr = columns.stream()
+                .map(c -> "\"_sub\".\"" + c.replace("\"", "\"\"") + "\"::text")
+                .reduce((a, b) -> a + " || ':' || " + b)
+                .orElse("''");
+        String orderByClause = buildOrderBy(sortBy, sortOrder);
+        String searchSql = "SELECT * FROM (" + innerWithOrder + ") AS _sub WHERE (" + concatExpr + ") LIKE ? " + orderByClause + " LIMIT ? OFFSET ?";
+        String likePattern = "%" + escapeForLike(searchTerm) + "%";
+        int maxLimit = Math.min(limit, queryRowsLimit);
+        List<Object> params = List.of(likePattern, maxLimit, Math.max(0, offset));
+        Optional<QueryResultData> dataOpt = pgMetadataRepository.executeQuery(connectionId, dbName, searchSql, params);
+        if (dataOpt.isEmpty()) {
+            return Optional.of(QueryResult.error("Connection not available"));
+        }
+        QueryResultData data = dataOpt.get();
+        boolean hasMore = data.getRows().size() == limit;
+        List<List<Object>> rows = data.getRows().size() > limit ? data.getRows().subList(0, limit) : data.getRows();
+        List<List<Object>> truncated = new ArrayList<>();
+        for (List<Object> row : rows) {
+            List<Object> t = new ArrayList<>();
+            for (Object cell : row) {
+                t.add(StringUtils.truncateCell(cell));
+            }
+            truncated.add(t);
+        }
+        return Optional.of(new QueryResult(data.getColumns(), data.getColumnTypes(), truncated, null, null, offset, limit, hasMore));
+    }
+
+    private static String escapeForLike(String term) {
+        if (term == null) {
+            return "";
+        }
+        return term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
+    }
+
+    private String buildWrappedQueryWithOrder(String trimmed, String sortBy, String sortOrder) {
+        String orderBy = buildOrderBy(sortBy, sortOrder);
+        return "SELECT * FROM (" + trimmed + ") AS _paged" + orderBy;
+    }
+
+    private static String buildOrderBy(String sortBy, String sortOrder) {
+        if (sortBy != null && !sortBy.isBlank() && sortOrder != null && !sortOrder.isBlank()
+                && ("asc".equalsIgnoreCase(sortOrder) || "desc".equalsIgnoreCase(sortOrder))) {
+            String quotedCol = "\"" + sortBy.replace("\"", "\"\"") + "\"";
+            return " ORDER BY " + quotedCol + " " + sortOrder.toUpperCase();
+        }
+        return " ORDER BY 1 ASC";
+    }
+
     private String wrapWithLimitOffset(String sql, int limit, int offset, String sortBy, String sortOrder) {
         String trimmed = sql.strip().replaceFirst(";+\\s*$", "");
         String upper = trimmed.toUpperCase().stripLeading();
@@ -170,15 +242,7 @@ public class PgMetadataService {
             return sql;
         }
         int maxLimit = Math.min(limit, queryRowsLimit);
-        String orderBy;
-        if (sortBy != null && !sortBy.isBlank() && sortOrder != null && !sortOrder.isBlank()
-                && ("asc".equalsIgnoreCase(sortOrder) || "desc".equalsIgnoreCase(sortOrder))) {
-            String quotedCol = "\"" + sortBy.replace("\"", "\"\"") + "\"";
-            orderBy = " ORDER BY " + quotedCol + " " + sortOrder.toUpperCase();
-        } else {
-            orderBy = " ORDER BY 1 ASC";
-        }
-        return "SELECT * FROM (" + trimmed + ") AS _paged" + orderBy + " LIMIT " + maxLimit + " OFFSET " + Math.max(0, offset);
+        return buildWrappedQueryWithOrder(trimmed, sortBy, sortOrder) + " LIMIT " + maxLimit + " OFFSET " + Math.max(0, offset);
     }
 
     private static final Pattern FROM_TABLE = Pattern.compile("(?i)FROM\\s+([^\\s,;()]+)(?:\\s+[Aa][Ss]\\s+[^\\s,;()]+)?(?=[\\s,;(]|$)");

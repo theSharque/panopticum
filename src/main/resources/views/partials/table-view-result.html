@@ -14,6 +14,7 @@
                     <input th:if="${schema != null}" type="hidden" name="schema" th:value="${schema}"/>
                     <input type="hidden" name="limit" th:value="${limit}"/>
                     <input type="hidden" name="target" value="table"/>
+                    <input type="hidden" name="search" th:value="${searchTerm != null ? searchTerm : ''}"/>
                     <input type="hidden" name="offset" th:value="${prevOffset}"/>
                     <button type="submit" class="query-pagination-btn" th:classappend="${!hasPrev} ? 'query-pagination-btn-disabled' : ''" th:disabled="${!hasPrev}" th:text="${'← ' + msg['common.prev']}">← Back</button>
                 </form>
@@ -27,6 +28,7 @@
                     <input th:if="${schema != null}" type="hidden" name="schema" th:value="${schema}"/>
                     <input type="hidden" name="limit" th:value="${limit}"/>
                     <input type="hidden" name="target" value="table"/>
+                    <input type="hidden" name="search" th:value="${searchTerm != null ? searchTerm : ''}"/>
                     <input type="hidden" name="offset" th:value="${nextOffset}"/>
                     <button type="submit" class="query-pagination-btn" th:classappend="${!hasMore} ? 'query-pagination-btn-disabled' : ''" th:disabled="${!hasMore}" th:text="${msg['common.next'] + ' →'}">Next →</button>
                 </form>
@@ -52,6 +54,7 @@
                                 <input type="hidden" name="sort" th:value="${col}"/>
                                 <input type="hidden" name="order" value="asc"/>
                                 <input type="hidden" name="target" value="table"/>
+                                <input type="hidden" name="search" th:value="${searchTerm != null ? searchTerm : ''}"/>
                                 <button type="submit" class="query-th-link" th:text="${col}"></button>
                             </form>
                             <form th:if="${sort == col and order == 'asc'}"
@@ -68,6 +71,7 @@
                                 <input type="hidden" name="sort" th:value="${col}"/>
                                 <input type="hidden" name="order" value="desc"/>
                                 <input type="hidden" name="target" value="table"/>
+                                <input type="hidden" name="search" th:value="${searchTerm != null ? searchTerm : ''}"/>
                                 <button type="submit" class="query-th-link" th:text="${col}"></button>
                             </form>
                             <form th:if="${sort == col and order == 'desc'}"
@@ -82,6 +86,7 @@
                                 <input type="hidden" name="offset" value="0"/>
                                 <input type="hidden" name="limit" th:value="${limit}"/>
                                 <input type="hidden" name="target" value="table"/>
+                                <input type="hidden" name="search" th:value="${searchTerm != null ? searchTerm : ''}"/>
                                 <button type="submit" class="query-th-link" th:text="${col}"></button>
                             </form>
                             <span th:if="${sort == col and order == 'asc'}" class="query-sort-ind" title="ASC"> ▲</span>
@@ -96,6 +101,7 @@
                                 <input type="hidden" name="sql" th:value="${sql}"/>
                                 <input type="hidden" name="sort" th:value="${sort}"/>
                                 <input type="hidden" name="order" th:value="${order}"/>
+                                <input type="hidden" name="search" th:value="${searchTerm != null ? searchTerm : ''}"/>
                                 <input type="hidden" name="rowNum" th:value="${offset + rowStat.index}"/>
                                 <button type="submit" class="query-detail-link" th:attr="aria-label=${msg['common.open']}, title=${msg['common.open']}">
                                     <svg class="icon-link" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>

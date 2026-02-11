@@ -115,8 +115,9 @@ public class ClickHouseController {
                                          @QueryValue(value = "offset", defaultValue = "0") Integer offset,
                                          @QueryValue(value = "limit", defaultValue = "100") Integer limit,
                                          @QueryValue(value = "sort", defaultValue = "") String sort,
-                                         @QueryValue(value = "order", defaultValue = "") String order) {
-        return buildSqlPageModel(id, dbName, sql, offset, limit, sort, order);
+                                         @QueryValue(value = "order", defaultValue = "") String order,
+                                         @QueryValue(value = "search", defaultValue = "") String search) {
+        return buildSqlPageModel(id, dbName, sql, offset, limit, sort, order, search);
     }
 
     @Produces(MediaType.TEXT_HTML)
@@ -125,17 +126,20 @@ public class ClickHouseController {
     @View("clickhouse/sql")
     public Map<String, Object> sqlPagePost(@PathVariable Long id, @PathVariable String dbName,
                                            String sql, @Nullable Integer offset, @Nullable Integer limit,
-                                           @Nullable String sort, @Nullable String order) {
-        return buildSqlPageModel(id, dbName, sql, offset, limit, sort, order);
+                                           @Nullable String sort, @Nullable String order, @Nullable String search) {
+        return buildSqlPageModel(id, dbName, sql, offset, limit, sort, order, search);
     }
 
     private Map<String, Object> buildSqlPageModel(Long id, String dbName, String sql,
-                                                  Integer offset, Integer limit, String sort, String order) {
+                                                  Integer offset, Integer limit, String sort, String order, String search) {
         Map<String, Object> model = ControllerModelHelper.baseModel(id, dbConnectionService);
         Optional<DbConnection> conn = dbConnectionService.findById(id);
         if (conn.isEmpty()) {
             return model;
         }
+
+        String searchTerm = search != null && !search.isBlank() ? search.trim() : "";
+        model.put("searchTerm", searchTerm);
 
         List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
         breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/clickhouse/" + id));
@@ -168,7 +172,7 @@ public class ClickHouseController {
             model.put("sort", "");
             model.put("order", "");
         } else {
-            var result = clickHouseMetadataService.executeQuery(id, dbName, sql, off, lim, sort, order)
+            var result = clickHouseMetadataService.executeQuery(id, dbName, sql, off, lim, sort, order, searchTerm)
                     .orElse(QueryResult.error("error.queryExecutionFailed"));
             model.put("error", result.hasError() ? result.getError() : null);
             model.put("columns", result.getColumns());
@@ -194,10 +198,12 @@ public class ClickHouseController {
     @Produces(MediaType.TEXT_HTML)
     public Object executeQuery(@PathVariable Long id, String sql, String dbName,
                               @Nullable Integer offset, @Nullable Integer limit,
-                              @Nullable String sort, @Nullable String order, String target) {
+                              @Nullable String sort, @Nullable String order, @Nullable String search, String target) {
         Map<String, Object> model = new HashMap<>();
         model.put("connectionId", id);
         model.put("dbName", dbName);
+        String searchTerm = search != null && !search.isBlank() ? search.trim() : "";
+        model.put("searchTerm", searchTerm);
         if (sql == null || sql.isBlank()) {
             model.put("error", "Empty query");
             model.put("queryActionUrl", "/clickhouse/" + id + "/query");
@@ -214,7 +220,7 @@ public class ClickHouseController {
 
         int off = offset != null ? Math.max(0, offset) : 0;
         int lim = limit != null && limit > 0 ? limit : 100;
-        var result = clickHouseMetadataService.executeQuery(id, dbName, sql, off, lim, sort, order)
+        var result = clickHouseMetadataService.executeQuery(id, dbName, sql, off, lim, sort, order, searchTerm)
                 .orElse(QueryResult.error("Execution failed"));
         model.put("error", result.hasError() ? result.getError() : null);
         model.put("columns", result.getColumns());
@@ -242,7 +248,7 @@ public class ClickHouseController {
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @View("clickhouse/detail")
     public Map<String, Object> rowDetail(@PathVariable Long id, @PathVariable String dbName,
-                                        String sql, Integer rowNum, String sort, String order) {
+                                        String sql, Integer rowNum, String sort, String order, @Nullable String search) {
         Map<String, Object> model = ControllerModelHelper.baseModel(id, dbConnectionService);
         Optional<DbConnection> conn = dbConnectionService.findById(id);
         if (conn.isEmpty()) {
@@ -255,6 +261,7 @@ public class ClickHouseController {
         ControllerModelHelper.addBreadcrumbs(model, breadcrumbs);
         model.put("connectionId", id);
         model.put("dbName", dbName != null ? dbName : "");
+        model.put("searchTerm", search != null && !search.isBlank() ? search.trim() : "");
 
         List<Map<String, String>> detailRows = new ArrayList<>();
         if (sql != null && !sql.isBlank() && rowNum != null && rowNum >= 0) {

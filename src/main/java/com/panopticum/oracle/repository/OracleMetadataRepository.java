@@ -205,6 +205,48 @@ public class OracleMetadataRepository {
         }
     }
 
+    public Optional<QueryResultData> executeQuery(Long connectionId, String schema, String sql, List<Object> params) {
+        if (params == null || params.isEmpty()) {
+            return executeQuery(connectionId, schema, sql);
+        }
+        try (Connection conn = getConnection(connectionId, schema).orElse(null)) {
+            if (conn == null) {
+                return Optional.empty();
+            }
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                for (int i = 0; i < params.size(); i++) {
+                    ps.setObject(i + 1, params.get(i));
+                }
+                try (ResultSet rs = ps.executeQuery()) {
+                    ResultSetMetaData meta = rs.getMetaData();
+                    int colCount = meta.getColumnCount();
+                    List<String> columns = new ArrayList<>();
+                    List<String> columnTypes = new ArrayList<>();
+                    for (int i = 1; i <= colCount; i++) {
+                        columns.add(meta.getColumnLabel(i));
+                        String typeName = meta.getColumnTypeName(i);
+                        int nullable = meta.isNullable(i);
+                        String nullability = nullable == ResultSetMetaData.columnNoNulls ? " NOT NULL"
+                                : (nullable == ResultSetMetaData.columnNullable ? " NULL" : "");
+                        columnTypes.add(typeName + nullability);
+                    }
+                    List<List<Object>> rows = new ArrayList<>();
+                    while (rs.next()) {
+                        List<Object> row = new ArrayList<>();
+                        for (int i = 1; i <= colCount; i++) {
+                            row.add(rs.getObject(i));
+                        }
+                        rows.add(row);
+                    }
+                    return Optional.of(new QueryResultData(columns, columnTypes, rows));
+                }
+            }
+        } catch (SQLException e) {
+            log.warn("executeQuery with params failed: {}", e.getMessage());
+            throw new RuntimeException("Query failed: " + e.getMessage(), e);
+        }
+    }
+
     public Map<String, String> getColumnTypes(Long connectionId, String schema, String table) {
         if (schema == null || schema.isBlank() || table == null || table.isBlank()) {
             return Map.of();
