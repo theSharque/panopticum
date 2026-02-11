@@ -9,7 +9,7 @@ import io.micronaut.http.filter.ServerFilterChain;
 import org.reactivestreams.Publisher;
 
 @Filter(Filter.MATCH_ALL_PATTERN)
-public class LocaleFilter implements HttpServerFilter, Ordered {
+public class LocaleFilter implements HttpServerFilter {
 
     public static final String LOCALE_ATTR = "locale";
     private static final String COOKIE_NAME = "locale";
