@@ -83,7 +83,7 @@
 ./gradlew build
 ```
 
-JAR: `build/libs/panopticum-0.1-all.jar`
+JAR: `build/libs/panopticum-all.jar`
 
 ## Docker
 
