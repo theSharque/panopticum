@@ -50,6 +50,7 @@
     outline-offset: 2px;
 }
 
+html,
 body {
     margin: 0;
     font-family: var(--font-sans);
@@ -57,7 +58,8 @@ body {
     line-height: 1.6;
     background: var(--bg-main);
     color: var(--text-primary);
-    min-height: 100vh;
+    height: 100%;
+    overflow: hidden;
 }
 
 .layout {
@@ -218,6 +220,7 @@ body {
     display: flex;
     flex-direction: column;
     min-width: 0;
+    height: 100vh;
 }
 
 .sidebar {
@@ -342,6 +345,7 @@ body {
     flex: 1;
     padding: var(--space-3xl) var(--space-3xl);
     max-width: 100%;
+    overflow: auto;
 }
 
 .main-content h1 {
