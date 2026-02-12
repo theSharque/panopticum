@@ -10,8 +10,11 @@ import com.panopticum.core.model.DatabaseInfo;
 import com.panopticum.core.model.SchemaInfo;
 import com.panopticum.core.model.TableInfo;
 import com.panopticum.mssql.service.MssqlMetadataService;
+import io.micronaut.context.annotation.Value;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.http.HttpResponse;
+import io.micronaut.http.HttpStatus;
+import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Consumes;
@@ -45,6 +48,8 @@ public class MssqlController {
 
     private final DbConnectionService dbConnectionService;
     private final MssqlMetadataService mssqlMetadataService;
+    @Value("${panopticum.read-only:false}")
+    private boolean readOnly;
 
     @Produces(MediaType.TEXT_HTML)
     @Get("/{id}")
@@ -388,8 +393,15 @@ public class MssqlController {
             model.put("detailRows", List.<Map<String, String>>of());
             model.put("editable", false);
         }
+        model.put("readOnly", readOnly);
 
         return model;
+    }
+
+    private void assertNotReadOnly() {
+        if (readOnly) {
+            throw new HttpStatusException(HttpStatus.FORBIDDEN, "read.only.enabled");
+        }
     }
 
     @Post("/{id}/{dbName}/{schema}/detail/update")
@@ -409,6 +421,7 @@ public class MssqlController {
     }
 
     private Object saveRow(Long id, String dbName, String schema, Map<String, String> form, @Nullable String tableParam) {
+        assertNotReadOnly();
         String sql = form != null ? form.get("sql") : null;
         Integer rowNum = form != null && form.containsKey("rowNum") ? parseInteger(form.get("rowNum")) : null;
         String sort = form != null ? form.get("sort") : null;

@@ -6,7 +6,7 @@
     <div th:replace="~{fragments/breadcrumbs :: breadcrumbs(items=${breadcrumbs})}"></div>
     <p th:if="${error}" th:text="${msg != null and msg[error] != null ? msg[error] : error}" class="query-error"></p>
     <h1 th:text="${msg['pg.rowDetail']}">Row details</h1>
-    <form th:if="${detailRows != null and !detailRows.isEmpty() and editable}" th:action="${table != null and !#strings.isEmpty(table)} ? @{/mysql/{id}/{dbName}/{table}/detail/update(id=${connectionId}, dbName=${dbName}, table=${table})} : @{/mysql/{id}/{dbName}/detail/update(id=${connectionId}, dbName=${dbName})}" method="post" class="detail-form">
+    <form th:if="${detailRows != null and !detailRows.isEmpty() and editable and !readOnly}" th:action="${table != null and !#strings.isEmpty(table)} ? @{/mysql/{id}/{dbName}/{table}/detail/update(id=${connectionId}, dbName=${dbName}, table=${table})} : @{/mysql/{id}/{dbName}/detail/update(id=${connectionId}, dbName=${dbName})}" method="post" class="detail-form">
         <input type="hidden" name="sql" th:value="${sql}"/>
         <input type="hidden" name="rowNum" th:value="${rowNum}"/>
         <input type="hidden" name="sort" th:value="${sort}"/>
@@ -30,7 +30,7 @@
             <button type="submit" class="query-button" th:text="${msg['common.save']}">Save</button>
         </div>
     </form>
-    <div th:if="${detailRows != null and !detailRows.isEmpty() and !editable}" class="detail-block">
+    <div th:if="${detailRows != null and !detailRows.isEmpty() and (!editable or readOnly)}" class="detail-block">
         <div class="detail-field" th:each="field : ${detailRows}">
             <div class="detail-field-name"><span th:text="${field.name + ' : ' + field.type}"></span> : <span class="detail-field-value" th:text="${field.value}"></span></div>
         </div>
