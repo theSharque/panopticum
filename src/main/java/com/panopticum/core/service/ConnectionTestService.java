@@ -7,16 +7,19 @@ import com.panopticum.mssql.service.MssqlMetadataService;
 import com.panopticum.oracle.service.OracleMetadataService;
 import com.panopticum.mysql.service.MySqlMetadataService;
 import com.panopticum.postgres.service.PgMetadataService;
+import com.panopticum.kafka.service.KafkaService;
 import com.panopticum.rabbitmq.service.RabbitMqService;
 import com.panopticum.redis.service.RedisMetadataService;
 
 import jakarta.inject.Singleton;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.Optional;
 
 @Singleton
 @RequiredArgsConstructor
+@Slf4j
 public class ConnectionTestService {
 
     private final PgMetadataService pgMetadataService;
@@ -28,6 +31,7 @@ public class ConnectionTestService {
     private final OracleMetadataService oracleMetadataService;
     private final CassandraMetadataService cassandraMetadataService;
     private final RabbitMqService rabbitMqService;
+    private final KafkaService kafkaService;
 
     public Optional<String> test(String type, String host, Integer port, String database,
                                 String username, String password) {
@@ -60,6 +64,16 @@ public class ConnectionTestService {
             case "oracle" -> oracleMetadataService.testConnection(h, p, db, user, pass);
             case "cassandra" -> cassandraMetadataService.testConnection(h, p, db, user, pass);
             case "rabbitmq" -> rabbitMqService.testConnection(h, p, db, user, pass);
+            case "kafka" -> {
+                log.info("Testing Kafka connection: host={}, port={}", h, p);
+                Optional<String> err = kafkaService.testConnection(h, p, db, user, pass);
+                if (err.isPresent()) {
+                    log.warn("Kafka connection test failed: host={}, port={}, errorKey={}", h, p, err.get());
+                } else {
+                    log.info("Kafka connection test OK: host={}, port={}", h, p);
+                }
+                yield err;
+            }
             default -> Optional.of("error.specifyHostDbUser");
         };
     }
@@ -78,6 +92,7 @@ public class ConnectionTestService {
             case "oracle" -> 1521;
             case "cassandra" -> 9042;
             case "rabbitmq" -> 15672;
+            case "kafka" -> 9092;
             default -> 5432;
         };
     }

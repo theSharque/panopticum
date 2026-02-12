@@ -12,6 +12,10 @@ repositories {
 
 configurations.all {
     resolutionStrategy {
+        dependencySubstitution {
+            substitute(module("at.yawk.lz4:lz4-java")).using(module("org.lz4:lz4-java:1.8.0"))
+                .because("kafka-clients and clickhouse-jdbc lz4 capability conflict")
+        }
         eachDependency { details ->
             if (details.requested.group == "ch.qos.logback") {
                 details.useVersion("1.5.25")
@@ -54,6 +58,7 @@ dependencies {
     implementation("io.lettuce:lettuce-core:6.5.4.RELEASE")
     runtimeOnly("com.clickhouse:clickhouse-jdbc:0.9.6:all")
     implementation("com.datastax.oss:java-driver-core:4.17.0")
+    implementation("org.apache.kafka:kafka-clients:3.7.0")
     runtimeOnly("org.yaml:snakeyaml")
 }
 

@@ -28,6 +28,7 @@ import lombok.RequiredArgsConstructor;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 @Controller("/settings")
 @Secured(SecurityRule.IS_AUTHENTICATED)
@@ -232,6 +233,31 @@ public class SettingsController {
         return testConnectionResult(request, "rabbitmq", host, port, database, username, password);
     }
 
+    @Post("/add-kafka")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @Produces(MediaType.TEXT_HTML)
+    public Object addKafka(HttpRequest<?> request,
+                           String name, String host, Integer port, String database,
+                           Optional<String> username, Optional<String> password) {
+        DbConnection conn = dbConnectionFactory.build("kafka", name, host, port, database,
+                username.orElse(null), password.orElse(null));
+        DbConnection saved = dbConnectionService.save(conn);
+        Map<String, Object> model = new HashMap<>();
+        model.put("connections", dbConnectionService.findAll());
+
+        return responseAfterAdd(request, model, saved.getId(), "/kafka/" + saved.getId() + "/topics");
+    }
+
+    @Post("/test-kafka")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @Produces(MediaType.TEXT_HTML)
+    public ModelAndView<Map<String, Object>> testKafka(HttpRequest<?> request,
+            String host, Integer port, String database,
+            Optional<String> username, Optional<String> password) {
+        return testConnectionResult(request, "kafka", host, port, database,
+                username.orElse(null), password.orElse(null));
+    }
+
     @Post("/test-cassandra")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces(MediaType.TEXT_HTML)
@@ -248,7 +274,7 @@ public class SettingsController {
         Map<String, Object> model = new HashMap<>();
         model.put("connections", dbConnectionService.findAll());
 
-        boolean hxRequest = "true".equalsIgnoreCase(request.getHeaders().get(HX_REQUEST));
+        boolean hxRequest = "true".equalsIgnoreCase(request.getHeaders().getFirst(HX_REQUEST).orElse(""));
 
         if (hxRequest) {
             return new ModelAndView<>("partials/sidebar", model);
@@ -259,7 +285,7 @@ public class SettingsController {
 
     private Object responseAfterAdd(HttpRequest<?> request, Map<String, Object> model,
                                     Long savedId, String redirectPath) {
-        boolean hxRequest = "true".equalsIgnoreCase(request.getHeaders().get(HX_REQUEST));
+         boolean hxRequest = "true".equalsIgnoreCase(request.getHeaders().getFirst(HX_REQUEST).orElse(""));
         if (hxRequest) {
             if (savedId != null) {
                 request.setAttribute(HxRedirectFilter.HX_REDIRECT_ATTR, redirectPath);

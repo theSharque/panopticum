@@ -19,6 +19,7 @@ import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.annotation.ExecuteOn;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
+import io.micronaut.views.View;
 import lombok.RequiredArgsConstructor;
 
 import java.net.URI;
@@ -45,7 +46,7 @@ public class RabbitMqController {
 
     @Produces(MediaType.TEXT_HTML)
     @Get("/{id}/queues")
-    @io.micronaut.views.View("rabbitmq/queues")
+    @View("rabbitmq/queues")
     public Map<String, Object> queues(@PathVariable Long id,
                                      @QueryValue(value = "page", defaultValue = "1") int page,
                                      @QueryValue(value = "size", defaultValue = "50") int size,
@@ -74,7 +75,7 @@ public class RabbitMqController {
 
     @Produces(MediaType.TEXT_HTML)
     @Get("/{id}/queues/{vhost}/{queue}/messages")
-    @io.micronaut.views.View("rabbitmq/messages")
+    @View("rabbitmq/messages")
     public Map<String, Object> messages(@PathVariable Long id,
                                        @PathVariable String vhost,
                                        @PathVariable String queue,
@@ -118,7 +119,7 @@ public class RabbitMqController {
 
     @Produces(MediaType.TEXT_HTML)
     @Get("/{id}/queues/{vhost}/{queue}/messages/{index}")
-    @io.micronaut.views.View("rabbitmq/message-detail")
+    @View("rabbitmq/message-detail")
     public Map<String, Object> messageDetail(@PathVariable Long id,
                                             @PathVariable String vhost,
                                             @PathVariable String queue,

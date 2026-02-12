@@ -1,0 +1,32 @@
+<div xmlns:th="http://www.thymeleaf.org" id="form-kafka" class="connection-form-block" hidden th:fragment="form-kafka">
+    <form id="connection-form-kafka" action="/settings/add-kafka" method="post" class="add-connection-form"
+          hx-post="/settings/add-kafka"
+          hx-target="#sidebar"
+          hx-swap="outerHTML">
+        <div class="form-group">
+            <label for="name-kafka" th:text="${msg['common.name']}">Name</label>
+            <input type="text" id="name-kafka" name="name" required th:attr="placeholder=${msg['settings.placeholderNameKafka']}">
+        </div>
+        <div class="form-group">
+            <label for="host-kafka" th:text="${msg['settings.host']}">Host</label>
+            <input type="text" id="host-kafka" name="host" required placeholder="localhost" value="localhost">
+        </div>
+        <div class="form-group">
+            <label for="port-kafka" th:text="${msg['settings.port']}">Port (bootstrap)</label>
+            <input type="number" id="port-kafka" name="port" value="9092" placeholder="9092">
+        </div>
+        <input type="hidden" name="database" value="">
+        <div class="form-actions">
+            <span id="test-indicator-kafka" class="connection-test-indicator" aria-hidden="true" th:text="${msg['settings.testing']}">Checking...</span>
+            <button type="button" class="btn-check"
+                    hx-post="/settings/test-kafka"
+                    hx-include="#connection-form-kafka"
+                    hx-target="#connection-test-result-kafka"
+                    hx-swap="innerHTML show:bottom"
+                    hx-indicator="#test-indicator-kafka"
+                    th:text="${msg['settings.test']}">Test</button>
+            <button type="submit" th:text="${msg['settings.add']}">Add</button>
+        </div>
+        <div id="connection-test-result-kafka" class="connection-test-result"></div>
+    </form>
+</div>

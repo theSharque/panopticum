@@ -23,6 +23,7 @@ A tool for developers and QA — web interface for viewing and managing database
 | **ClickHouse** | Browse databases and tables; run SQL |
 | **Cassandra** | Browse keyspaces and tables; run CQL; edit rows (when table has primary key) |
 | **RabbitMQ** | Browse queues; peek messages (read-only, no edit/delete) |
+| **Kafka** | Browse topics and partitions; peek records (read-only) |
 
 Connections are stored in H2. In Settings you can add connections, test them, and delete them.
 
@@ -61,7 +62,7 @@ If the `db_connections` table is **empty** at startup, the app reads the environ
 
 Value: a JSON array of connection objects. Each object can be specified in one of two ways:
 
-1. **Explicit fields:** `name`, `type`, `host`, `port`, `database`, `username`, `password`. Supported `type` values: `postgresql`, `mongodb`, `redis`, `clickhouse`, `mysql`, `sqlserver`, `oracle`, `cassandra`, `rabbitmq`.
+1. **Explicit fields:** `name`, `type`, `host`, `port`, `database`, `username`, `password`. Supported `type` values: `postgresql`, `mongodb`, `redis`, `clickhouse`, `mysql`, `sqlserver`, `oracle`, `cassandra`, `rabbitmq`, `kafka`.
 2. **JDBC URL:** `name` and `jdbcUrl` (or `url`). The URL is parsed to derive type, host, port, database, username, and password. Supported for PostgreSQL, MySQL, MS SQL Server, Oracle, and ClickHouse (e.g. `jdbc:postgresql://user:pass@host:5432/dbname`, `jdbc:sqlserver://host:1433;databaseName=db;user=sa;password=secret`, `jdbc:oracle:thin:@//host:1521/XEPDB1`).
 
 Example:
@@ -168,6 +169,29 @@ curl -u guest:guest -X POST http://localhost:43010/api/exchanges/%2F/amq.default
 3. Open it → **Queues** (list) → click a queue → **Messages** (peek, read-only) → click a message → **Message** (detail, read-only).
 
 Screens: **Queues** → **Messages** (for one queue) → **Message** (detail). No editing or deleting of messages.
+
+## Kafka (local dev)
+
+Kafka is supported via the **native Java client** (AdminClient + Consumer). Read-only: list topics, list partitions, peek records in a partition. No producing or deleting.
+
+### Start Kafka and load test data
+
+From the project root:
+
+```bash
+docker compose up -d kafka kafka-init
+```
+
+- Bootstrap: **localhost:43011**
+- The `kafka-init` service creates topics `demo-events` (3 partitions) and `demo-metrics` (1 partition) and produces sample JSON messages.
+
+### Add Kafka connection in Panopticum
+
+1. Go to **Settings** → choose **Kafka** → fill **Host** (e.g. `localhost`), **Port** (e.g. `43011`).
+2. Click **Test**, then **Add**. The connection appears in the sidebar.
+3. Open it → **Topics** (list) → click a topic → **Partitions** → click a partition → **Records** (peek) → click a record → **Record** (detail, read-only).
+
+Screens: **Topics** → **Partitions** (for one topic) → **Records** (for one partition) → **Record** (detail). No editing or deleting.
 
 ## CI/CD
 

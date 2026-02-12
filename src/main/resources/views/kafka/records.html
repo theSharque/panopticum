@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(~{::main})}">
+<head></head>
+<body>
+<main th:fragment="main" class="main-content">
+    <div th:replace="~{fragments/breadcrumbs :: breadcrumbs(items=${breadcrumbs})}"></div>
+    <p th:if="${error}" th:text="${msg != null and msg[error] != null ? msg[error] : error}" class="query-error"></p>
+    <h1 th:text="${msg['kafka.recordsTitle']}">Records</h1>
+    <div class="detail-actions">
+        <a th:href="@{/kafka/{id}/topics/{t}/partitions/{p}/records(id=${connectionId}, t=${topicForUrl}, p=${partition}, fromOffset=0, fromEnd=false, count=${peekCount})}" class="query-execute" th:attr="aria-label=${msg['kafka.refresh']}, title=${msg['kafka.refresh']}">
+            <svg class="icon-refresh" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        </a>
+    </div>
+    <p class="query-cell-mono"><span th:text="${msg['kafka.topic']}">Topic</span>: <span th:text="${topic}"></span>, <span th:text="${msg['kafka.partition']}">Partition</span>: <span th:text="${partition}"></span></p>
+    <div class="query-result-data">
+        <div class="query-table-wrapper">
+            <table class="query-table">
+                <thead>
+                    <tr>
+                        <th class="query-th query-th-detail"></th>
+                        <th class="query-th"><span th:text="${msg['kafka.offset']}">Offset</span></th>
+                        <th class="query-th"><span th:text="${msg['kafka.key']}">Key</span></th>
+                        <th class="query-th"><span th:text="${msg['kafka.value']}">Value</span></th>
+                        <th class="query-th"><span th:text="${msg['kafka.timestamp']}">Timestamp</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="rec : ${records}" class="query-data-row">
+                        <td class="query-detail-cell">
+                            <a th:href="@{/kafka/{id}/topics/{t}/partitions/{p}/records/{off}(id=${connectionId}, t=${topicForUrl}, p=${partition}, off=${rec.offset})}" class="query-detail-link" th:attr="aria-label=${msg['common.open']}, title=${msg['common.open']}">
+                                <svg class="icon-link" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
+                            </a>
+                        </td>
+                        <td th:text="${rec.offset}" class="query-cell-mono"></td>
+                        <td th:text="${rec.key != null ? rec.key : '—'}" class="query-cell-mono"></td>
+                        <td class="query-cell-mono" th:text="${rec.value != null ? rec.value : '—'}">—</td>
+                        <td th:text="${rec.timestamp != null ? rec.timestamp : '—'}" class="query-cell-mono"></td>
+                    </tr>
+                    <tr th:if="${records == null or records.isEmpty()}" class="query-data-row">
+                        <td colspan="5" class="query-cell-mono text-dim" th:text="${msg['kafka.noRecords']}">No records or connection error.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+</body>
+</html>

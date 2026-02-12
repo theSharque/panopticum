@@ -8,6 +8,7 @@
 # - MS SQL: host=localhost, port=43007, db=panopticum_dev, user=sa, password=Pan0pticum!
 # - Oracle: host=localhost, port=43008, service=XEPDB1, user=panopticum, password=panopticum
 # - RabbitMQ: amqp://localhost:43009 (default user/guest), management UI http://localhost:43010
+# - Kafka: bootstrap localhost:43011 (add in Settings: host=localhost, port=43011)
 
 services:
   postgres:
@@ -158,6 +159,36 @@ services:
       timeout: 5s
       retries: 5
 
+  kafka:
+    image: apache/kafka:latest
+    ports:
+      - "43011:9092"
+    environment:
+      - KAFKA_NODE_ID=1
+      - KAFKA_PROCESS_ROLES=broker,controller
+      - KAFKA_LISTENERS=CONTROLLER://localhost:9091,HOST://0.0.0.0:9092,DOCKER://0.0.0.0:9093
+      - KAFKA_ADVERTISED_LISTENERS=HOST://localhost:43011,DOCKER://kafka:9093
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,DOCKER:PLAINTEXT,HOST:PLAINTEXT
+      - KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_CONTROLLER_QUORUM_VOTERS=1@localhost:9091
+      - KAFKA_INTER_BROKER_LISTENER_NAME=DOCKER
+      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9093 --list || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  kafka-init:
+    image: apache/kafka:latest
+    depends_on:
+      kafka:
+        condition: service_healthy
+    volumes:
+      - ./docker/kafka-init/init.sh:/init.sh
+    entrypoint: ["sh", "/init.sh"]
+
 volumes:
   postgres_data:
   mongodb_data:
@@ -168,3 +199,4 @@ volumes:
   mssql_data:
   oracle_data:
   rabbitmq_data:
+  kafka_data:
