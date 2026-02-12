@@ -95,6 +95,7 @@ public class MssqlController {
                                       @QueryValue(value = "size", defaultValue = "50") int size,
                                       @QueryValue(value = "sort", defaultValue = "name") String sort,
                                       @QueryValue(value = "order", defaultValue = "asc") String order) {
+        String dbNameClean = unquoteBracket(dbName);
         Map<String, Object> model = ControllerModelHelper.baseModel(id, dbConnectionService);
         Optional<DbConnection> conn = dbConnectionService.findById(id);
         if (conn.isEmpty()) {
@@ -103,15 +104,15 @@ public class MssqlController {
 
         List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
         breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/mssql/" + id));
-        breadcrumbs.add(new BreadcrumbItem(dbName, null));
+        breadcrumbs.add(new BreadcrumbItem(dbNameClean != null ? dbNameClean : "", null));
         ControllerModelHelper.addBreadcrumbs(model, breadcrumbs);
         model.put("connectionId", id);
-        model.put("dbName", dbName);
+        model.put("dbName", dbNameClean != null ? dbNameClean : "");
         model.put("schema", null);
         model.put("itemType", "schema");
-        model.put("itemUrlPrefix", "/mssql/" + id + "/" + dbName + "/");
+        model.put("itemUrlPrefix", "/mssql/" + id + "/" + (dbNameClean != null ? dbNameClean : "") + "/");
 
-        Page<SchemaInfo> paged = mssqlMetadataService.listSchemasPaged(id, dbName, page, size, sort, order);
+        Page<SchemaInfo> paged = mssqlMetadataService.listSchemasPaged(id, dbNameClean != null ? dbNameClean : "", page, size, sort, order);
         ControllerModelHelper.addPagination(model, paged, "items");
         ControllerModelHelper.addOrderToggles(model, paged.getSort(), paged.getOrder(),
                 Map.of("name", "orderName", "owner", "orderOwner", "tables", "orderTables"));
@@ -133,16 +134,18 @@ public class MssqlController {
             return model;
         }
 
+        String dbNameClean = unquoteBracket(dbName);
+        String schemaClean = unquoteBracket(schema);
         List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
         breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/mssql/" + id));
-        breadcrumbs.add(new BreadcrumbItem(dbName, "/mssql/" + id + "/" + dbName));
-        breadcrumbs.add(new BreadcrumbItem(schema, null));
+        breadcrumbs.add(new BreadcrumbItem(dbNameClean != null ? dbNameClean : "", "/mssql/" + id + "/" + (dbNameClean != null ? dbNameClean : "")));
+        breadcrumbs.add(new BreadcrumbItem(schemaClean != null ? schemaClean : "", null));
         ControllerModelHelper.addBreadcrumbs(model, breadcrumbs);
         model.put("connectionId", id);
-        model.put("dbName", dbName);
-        model.put("schema", schema);
+        model.put("dbName", dbNameClean != null ? dbNameClean : "");
+        model.put("schema", schemaClean != null ? schemaClean : "");
 
-        Page<TableInfo> paged = mssqlMetadataService.listTablesPaged(id, dbName, schema, page, size, sort, order);
+        Page<TableInfo> paged = mssqlMetadataService.listTablesPaged(id, dbNameClean != null ? dbNameClean : "", schemaClean != null ? schemaClean : "", page, size, sort, order);
         ControllerModelHelper.addPagination(model, paged, "tables");
         ControllerModelHelper.addOrderToggles(model, paged.getSort(), paged.getOrder(),
                 Map.of("name", "orderName", "type", "orderType", "rows", "orderRows", "size", "orderSize"));
@@ -183,20 +186,26 @@ public class MssqlController {
                                         @QueryValue(value = "sort", defaultValue = "") String sort,
                                         @QueryValue(value = "order", defaultValue = "") String order,
                                         @QueryValue(value = "search", defaultValue = "") String search) {
-        String schemaEscaped = schema != null ? schema.replace("]", "]]") : "";
-        String tableEscaped = table != null ? table.replace("]", "]]") : "";
+        String dbNameClean = unquoteBracket(dbName);
+        String schemaClean = unquoteBracket(schema);
+        String tableClean = unquoteBracket(table);
+        String schemaEscaped = schemaClean != null ? schemaClean.replace("]", "]]") : "";
+        String tableEscaped = tableClean != null ? tableClean.replace("]", "]]") : "";
         String sql = "SELECT * FROM [" + schemaEscaped + "].[" + tableEscaped + "]";
-        Map<String, Object> model = buildSqlPageModel(id, dbName, schema, sql, offset, limit, sort, order, search);
+        Map<String, Object> model = buildSqlPageModel(id, dbNameClean != null ? dbNameClean : "", schemaClean != null ? schemaClean : "", sql, offset, limit, sort, order, search);
+        model.put("tableDetailActionUrl", "/mssql/" + id + "/" + (dbNameClean != null ? dbNameClean : "") + "/" + (schemaClean != null ? schemaClean : "") + "/" + (tableClean != null ? tableClean : "") + "/detail");
         @SuppressWarnings("unchecked")
         List<BreadcrumbItem> breadcrumbs = (List<BreadcrumbItem>) model.get("breadcrumbs");
         if (breadcrumbs != null && !breadcrumbs.isEmpty()) {
-            breadcrumbs.set(breadcrumbs.size() - 1, new BreadcrumbItem(table, null));
+            breadcrumbs.set(breadcrumbs.size() - 1, new BreadcrumbItem(tableClean != null ? tableClean : "", null));
         }
         return model;
     }
 
     private Map<String, Object> buildSqlPageModel(Long id, String dbName, String schema, String sql,
                                                   Integer offset, Integer limit, String sort, String order, String search) {
+        String dbNameClean = unquoteBracket(dbName);
+        String schemaClean = unquoteBracket(schema);
         Map<String, Object> model = ControllerModelHelper.baseModel(id, dbConnectionService);
         Optional<DbConnection> conn = dbConnectionService.findById(id);
         if (conn.isEmpty()) {
@@ -208,19 +217,19 @@ public class MssqlController {
 
         List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
         breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/mssql/" + id));
-        breadcrumbs.add(new BreadcrumbItem(dbName, "/mssql/" + id + "/" + dbName));
-        breadcrumbs.add(new BreadcrumbItem(schema, "/mssql/" + id + "/" + dbName + "/" + schema));
+        breadcrumbs.add(new BreadcrumbItem(dbNameClean != null ? dbNameClean : "", "/mssql/" + id + "/" + (dbNameClean != null ? dbNameClean : "")));
+        breadcrumbs.add(new BreadcrumbItem(schemaClean != null ? schemaClean : "", "/mssql/" + id + "/" + (dbNameClean != null ? dbNameClean : "") + "/" + (schemaClean != null ? schemaClean : "")));
         breadcrumbs.add(new BreadcrumbItem("sql", null));
         ControllerModelHelper.addBreadcrumbs(model, breadcrumbs);
         model.put("connectionId", id);
-        model.put("dbName", dbName);
-        model.put("schema", schema);
+        model.put("dbName", dbNameClean != null ? dbNameClean : "");
+        model.put("schema", schemaClean != null ? schemaClean : "");
         model.put("sql", sql != null ? sql : "");
         model.put("tableQueryActionUrl", "/mssql/" + id + "/query");
         String tableSegment = mssqlMetadataService.parseTableFromSql(sql != null ? sql : "").map(MssqlController::simpleTableName).orElse(null);
         model.put("tableDetailActionUrl", tableSegment != null && !tableSegment.isBlank()
-                ? "/mssql/" + id + "/" + dbName + "/" + schema + "/" + tableSegment + "/detail"
-                : "/mssql/" + id + "/" + dbName + "/" + schema + "/detail");
+                ? "/mssql/" + id + "/" + (dbNameClean != null ? dbNameClean : "") + "/" + (schemaClean != null ? schemaClean : "") + "/" + tableSegment + "/detail"
+                : "/mssql/" + id + "/" + (dbNameClean != null ? dbNameClean : "") + "/" + (schemaClean != null ? schemaClean : "") + "/detail");
 
         int off = offset != null ? Math.max(0, offset) : 0;
         int lim = limit != null && limit > 0 ? Math.min(limit, 1000) : 100;
@@ -242,7 +251,7 @@ public class MssqlController {
             model.put("sort", "");
             model.put("order", "");
         } else {
-            var result = mssqlMetadataService.executeQuery(id, dbName, sql, off, lim, sort, order, searchTerm)
+            var result = mssqlMetadataService.executeQuery(id, dbNameClean != null ? dbNameClean : "", sql, off, lim, sort, order, searchTerm)
                     .orElse(QueryResult.error("error.queryExecutionFailed"));
             putQueryResultIntoModel(model, result, sort, order);
         }
@@ -276,10 +285,12 @@ public class MssqlController {
     public Object executeQuery(@PathVariable Long id, String sql, String dbName, String schema,
                                @Nullable Integer offset, @Nullable Integer limit,
                                @Nullable String sort, @Nullable String order, @Nullable String search, String target) {
+        String dbNameClean = unquoteBracket(dbName);
+        String schemaClean = unquoteBracket(schema);
         Map<String, Object> model = new HashMap<>();
         model.put("connectionId", id);
-        model.put("dbName", dbName);
-        model.put("schema", schema);
+        model.put("dbName", dbNameClean != null ? dbNameClean : "");
+        model.put("schema", schemaClean != null ? schemaClean : "");
         String searchTerm = search != null && !search.isBlank() ? search.trim() : "";
         model.put("searchTerm", searchTerm);
 
@@ -287,7 +298,7 @@ public class MssqlController {
             model.put("error", "Empty query");
             model.put("queryActionUrl", "/mssql/" + id + "/query");
             model.put("tableQueryActionUrl", "/mssql/" + id + "/query");
-            model.put("tableDetailActionUrl", "/mssql/" + id + "/" + dbName + "/" + schema + "/detail");
+            model.put("tableDetailActionUrl", "/mssql/" + id + "/" + (dbNameClean != null ? dbNameClean : "") + "/" + (schemaClean != null ? schemaClean : "") + "/detail");
 
             return "table".equals(target)
                     ? new ModelAndView<>("partials/table-view-result", model)
@@ -297,12 +308,12 @@ public class MssqlController {
         model.put("tableQueryActionUrl", "/mssql/" + id + "/query");
         String tableSegment = mssqlMetadataService.parseTableFromSql(sql).map(MssqlController::simpleTableName).orElse(null);
         model.put("tableDetailActionUrl", tableSegment != null && !tableSegment.isBlank()
-                ? "/mssql/" + id + "/" + dbName + "/" + schema + "/" + tableSegment + "/detail"
-                : "/mssql/" + id + "/" + dbName + "/" + schema + "/detail");
+                ? "/mssql/" + id + "/" + (dbNameClean != null ? dbNameClean : "") + "/" + (schemaClean != null ? schemaClean : "") + "/" + tableSegment + "/detail"
+                : "/mssql/" + id + "/" + (dbNameClean != null ? dbNameClean : "") + "/" + (schemaClean != null ? schemaClean : "") + "/detail");
 
         int off = offset != null ? Math.max(0, offset) : 0;
         int lim = limit != null && limit > 0 ? limit : 100;
-        var result = mssqlMetadataService.executeQuery(id, dbName, sql, off, lim, sort, order, searchTerm)
+        var result = mssqlMetadataService.executeQuery(id, dbNameClean != null ? dbNameClean : "", sql, off, lim, sort, order, searchTerm)
                 .orElse(QueryResult.error("Execution failed"));
         putQueryResultIntoModel(model, result, sort, order);
         model.put("sql", sql);
@@ -333,32 +344,34 @@ public class MssqlController {
 
     private Map<String, Object> rowDetail(Long id, String dbName, String schema, String sql, Integer rowNum,
                                           String sort, String order, String search, @Nullable String tableParam) {
+        String dbNameClean = unquoteBracket(dbName);
+        String schemaClean = unquoteBracket(schema);
         Map<String, Object> model = ControllerModelHelper.baseModel(id, dbConnectionService);
         Optional<DbConnection> conn = dbConnectionService.findById(id);
         if (conn.isEmpty()) {
             return model;
         }
 
-        String tableLabel = tableParam;
+        String tableLabel = tableParam != null && !tableParam.isBlank() ? unquoteBracket(tableParam) : null;
         if (tableLabel == null || tableLabel.isBlank()) {
             tableLabel = mssqlMetadataService.parseTableFromSql(sql != null ? sql : "").map(MssqlController::simpleTableName).orElse(null);
         }
 
         List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
         breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/mssql/" + id));
-        breadcrumbs.add(new BreadcrumbItem(dbName != null ? dbName : "", "/mssql/" + id + "/" + (dbName != null ? dbName : "")));
-        String schemaUrl = (dbName != null && schema != null && !dbName.isBlank() && !schema.isBlank())
-                ? "/mssql/" + id + "/" + dbName + "/" + schema
+        breadcrumbs.add(new BreadcrumbItem(dbNameClean != null ? dbNameClean : "", "/mssql/" + id + "/" + (dbNameClean != null ? dbNameClean : "")));
+        String schemaUrl = (dbNameClean != null && schemaClean != null && !dbNameClean.isBlank() && !schemaClean.isBlank())
+                ? "/mssql/" + id + "/" + dbNameClean + "/" + schemaClean
                 : null;
-        breadcrumbs.add(new BreadcrumbItem(schema != null ? schema : "", schemaUrl));
+        breadcrumbs.add(new BreadcrumbItem(schemaClean != null ? schemaClean : "", schemaUrl));
         if (tableLabel != null && !tableLabel.isBlank()) {
-            breadcrumbs.add(new BreadcrumbItem(tableLabel, "/mssql/" + id + "/" + dbName + "/" + schema + "/" + tableLabel));
+            breadcrumbs.add(new BreadcrumbItem(tableLabel, "/mssql/" + id + "/" + (dbNameClean != null ? dbNameClean : "") + "/" + (schemaClean != null ? schemaClean : "") + "/" + tableLabel));
         }
         breadcrumbs.add(new BreadcrumbItem("detail", null));
         ControllerModelHelper.addBreadcrumbs(model, breadcrumbs);
         model.put("connectionId", id);
-        model.put("dbName", dbName != null ? dbName : "");
-        model.put("schema", schema != null ? schema : "");
+        model.put("dbName", dbNameClean != null ? dbNameClean : "");
+        model.put("schema", schemaClean != null ? schemaClean : "");
         model.put("sql", sql != null ? sql : "");
         model.put("rowNum", rowNum != null ? rowNum : 0);
         model.put("sort", sort != null ? sort : "");
@@ -369,7 +382,7 @@ public class MssqlController {
         }
 
         if (sql != null && !sql.isBlank() && rowNum != null && rowNum >= 0) {
-            Map<String, Object> detailResult = mssqlMetadataService.getDetailRow(id, dbName, schema, sql, Math.max(0, rowNum), sort, order);
+            Map<String, Object> detailResult = mssqlMetadataService.getDetailRow(id, dbNameClean != null ? dbNameClean : "", schemaClean != null ? schemaClean : "", sql, Math.max(0, rowNum), sort, order);
             model.putAll(detailResult);
         } else {
             model.put("detailRows", List.<Map<String, String>>of());
@@ -440,7 +453,7 @@ public class MssqlController {
         }
 
         String tableRef = qualifiedTable != null && !qualifiedTable.isBlank() ? qualifiedTable : parsedTable.get();
-        Optional<String> err = mssqlMetadataService.executeUpdateByKey(id, dbName, schema, tableRef, uniqueKeyColumns, keyValues, columnValues);
+        Optional<String> err = mssqlMetadataService.executeUpdateByKey(id, unquoteBracket(dbName), unquoteBracket(schema), tableRef, uniqueKeyColumns, keyValues, columnValues);
         if (err.isPresent()) {
             Map<String, Object> model = rowDetail(id, dbName, schema, sql, rowNum, sort, order, searchParam, tableParam);
             model.put("error", err.get());
@@ -458,9 +471,20 @@ public class MssqlController {
         int dotBracket = trimmed.lastIndexOf("].[");
         if (dotBracket >= 0 && dotBracket + 3 < trimmed.length()) {
             String part = trimmed.substring(dotBracket + 3);
-            return part.endsWith("]") ? part.substring(0, part.length() - 1) : part;
+            return unquoteBracket(part.endsWith("]") ? part.substring(0, part.length() - 1) : part);
         }
-        return trimmed.replace("[", "").replace("]", "").trim();
+        return unquoteBracket(trimmed);
+    }
+
+    private static String unquoteBracket(String s) {
+        if (s == null || s.isBlank()) {
+            return s != null ? s : "";
+        }
+        String t = s.trim();
+        if (t.length() >= 2 && t.charAt(0) == '[' && t.charAt(t.length() - 1) == ']') {
+            return t.substring(1, t.length() - 1).replace("]]", "]");
+        }
+        return t;
     }
 
     private static Integer parseInteger(String s) {

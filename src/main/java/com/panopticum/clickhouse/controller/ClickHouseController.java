@@ -139,14 +139,15 @@ public class ClickHouseController {
                                          @QueryValue(value = "sort", defaultValue = "") String sort,
                                          @QueryValue(value = "order", defaultValue = "") String order,
                                          @QueryValue(value = "search", defaultValue = "") String search) {
-        String tableEscaped = table != null ? table.replace("`", "``") : "";
+        String tableClean = unquoteBacktick(table);
+        String tableEscaped = tableClean != null ? tableClean.replace("`", "``") : "";
         String sql = "SELECT * FROM `" + tableEscaped + "`";
         Map<String, Object> model = buildSqlPageModel(id, dbName, sql, offset, limit, sort, order, search);
-        model.put("tableDetailActionUrl", "/clickhouse/" + id + "/" + dbName + "/" + table + "/detail");
+        model.put("tableDetailActionUrl", "/clickhouse/" + id + "/" + dbName + "/" + (tableClean != null ? tableClean : "") + "/detail");
         @SuppressWarnings("unchecked")
         List<BreadcrumbItem> breadcrumbs = (List<BreadcrumbItem>) model.get("breadcrumbs");
         if (breadcrumbs != null && !breadcrumbs.isEmpty()) {
-            breadcrumbs.set(breadcrumbs.size() - 1, new BreadcrumbItem(table, null));
+            breadcrumbs.set(breadcrumbs.size() - 1, new BreadcrumbItem(tableClean != null ? tableClean : "", null));
         }
         return model;
     }
@@ -290,19 +291,20 @@ public class ClickHouseController {
             return model;
         }
 
+        String tableClean = tableParam != null && !tableParam.isBlank() ? unquoteBacktick(tableParam) : null;
         List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
         breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/clickhouse/" + id));
         breadcrumbs.add(new BreadcrumbItem(dbName != null ? dbName : "", "/clickhouse/" + id + "/" + (dbName != null ? dbName : "")));
-        if (tableParam != null && !tableParam.isBlank()) {
-            breadcrumbs.add(new BreadcrumbItem(tableParam, "/clickhouse/" + id + "/" + dbName + "/" + tableParam));
+        if (tableClean != null && !tableClean.isBlank()) {
+            breadcrumbs.add(new BreadcrumbItem(tableClean, "/clickhouse/" + id + "/" + dbName + "/" + tableClean));
         }
         breadcrumbs.add(new BreadcrumbItem("detail", null));
         ControllerModelHelper.addBreadcrumbs(model, breadcrumbs);
         model.put("connectionId", id);
         model.put("dbName", dbName != null ? dbName : "");
         model.put("searchTerm", search != null && !search.isBlank() ? search.trim() : "");
-        if (tableParam != null && !tableParam.isBlank()) {
-            model.put("table", tableParam);
+        if (tableClean != null && !tableClean.isBlank()) {
+            model.put("table", tableClean);
         }
 
         List<Map<String, String>> detailRows = new ArrayList<>();
@@ -328,5 +330,16 @@ public class ClickHouseController {
         model.put("detailRows", detailRows);
 
         return model;
+    }
+
+    private static String unquoteBacktick(String s) {
+        if (s == null || s.isBlank()) {
+            return s != null ? s : "";
+        }
+        String t = s.trim();
+        if (t.length() >= 2 && t.charAt(0) == '`' && t.charAt(t.length() - 1) == '`') {
+            return t.substring(1, t.length() - 1).replace("``", "`");
+        }
+        return t;
     }
 }
