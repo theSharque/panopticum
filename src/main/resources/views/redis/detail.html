@@ -13,7 +13,7 @@
             <dt><span th:text="${msg['redis.ttl']}">TTL</span> : <span th:text="${keyDetail.ttl != null ? keyDetail.ttl + ' ms' : msg['redis.noExpiry']}"></span></dt>
         </dl>
         <h2 th:text="${msg['common.value']}">Value</h2>
-        <div th:if="${keyDetail.type == 'string'}" class="detail-value">
+        <div th:if="${keyDetail.type == 'string' and !readOnly}" class="detail-value">
             <form th:action="@{/redis/{id}/{dbIndex}/detail(id=${connectionId}, dbIndex=${dbIndex})}" method="post" class="detail-form">
                 <input type="hidden" name="key" th:value="${keyDetail.key}"/>
                 <input type="hidden" name="type" th:value="${keyDetail.type}"/>
@@ -23,7 +23,10 @@
                 </div>
             </form>
         </div>
-        <div th:if="${keyDetail.type == 'hash' and keyDetail.value != null}" class="detail-value">
+        <div th:if="${keyDetail.type == 'string' and readOnly}" class="detail-value">
+            <pre class="detail-value detail-json" th:text="${keyDetail.value}">—</pre>
+        </div>
+        <div th:if="${keyDetail.type == 'hash' and keyDetail.value != null and !readOnly}" class="detail-value">
             <form th:action="@{/redis/{id}/{dbIndex}/detail(id=${connectionId}, dbIndex=${dbIndex})}" method="post" class="detail-form">
                 <input type="hidden" name="key" th:value="${keyDetail.key}"/>
                 <input type="hidden" name="type" th:value="${keyDetail.type}"/>
@@ -42,6 +45,19 @@
                     <button type="submit" id="redis-save-btn" class="query-button" th:text="${msg['common.save']}">Save</button>
                 </div>
             </form>
+        </div>
+        <div th:if="${keyDetail.type == 'hash' and keyDetail.value != null and readOnly}" class="detail-value">
+            <table class="query-table">
+                <thead>
+                    <tr><th class="query-th" th:text="${msg['common.field']}">Field</th><th class="query-th" th:text="${msg['common.value']}">Value</th></tr>
+                </thead>
+                <tbody>
+                    <tr th:each="entry : ${keyDetail.value}">
+                        <td><span class="query-cell-mono" th:text="${entry.key}"></span></td>
+                        <td><span class="query-cell-mono" th:text="${entry.value}"></span></td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
         <div th:if="${(keyDetail.type == 'list' or keyDetail.type == 'set') and keyDetail.value != null}" class="detail-value">
             <ul class="detail-list">

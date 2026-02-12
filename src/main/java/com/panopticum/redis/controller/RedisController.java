@@ -9,7 +9,10 @@ import com.panopticum.redis.model.RedisKeyDetail;
 import com.panopticum.redis.model.RedisKeyInfo;
 import com.panopticum.redis.model.RedisKeysPage;
 import com.panopticum.redis.service.RedisMetadataService;
+import io.micronaut.context.annotation.Value;
 import io.micronaut.http.HttpResponse;
+import io.micronaut.http.HttpStatus;
+import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.Consumes;
 import io.micronaut.http.annotation.Controller;
@@ -44,6 +47,8 @@ public class RedisController {
 
     private final DbConnectionService dbConnectionService;
     private final RedisMetadataService redisMetadataService;
+    @Value("${panopticum.read-only:false}")
+    private boolean readOnly;
 
     @Produces(MediaType.TEXT_HTML)
     @Get("/{id}")
@@ -140,8 +145,15 @@ public class RedisController {
 
         Optional<RedisKeyDetail> detail = redisMetadataService.getKeyDetail(id, dbIndex, key);
         model.put("keyDetail", detail.orElse(null));
+        model.put("readOnly", readOnly);
 
         return model;
+    }
+
+    private void assertNotReadOnly() {
+        if (readOnly) {
+            throw new HttpStatusException(HttpStatus.FORBIDDEN, "read.only.enabled");
+        }
     }
 
     @Post("/{id}/{dbIndex}/detail")
@@ -149,6 +161,7 @@ public class RedisController {
     @Produces(MediaType.TEXT_HTML)
     public Object saveKey(@PathVariable Long id, @PathVariable int dbIndex, String key, String type,
                           String value, @Nullable List<String> fieldKeys, @Nullable List<String> fieldValues) {
+        assertNotReadOnly();
         Optional<String> err;
         if ("hash".equalsIgnoreCase(type != null ? type : "")) {
             Map<String, String> fields = new LinkedHashMap<>();
@@ -175,6 +188,7 @@ public class RedisController {
                 model.put("dbIndex", dbIndex);
                 model.put("key", key != null ? key : "");
                 model.put("keyDetail", null);
+                model.put("readOnly", readOnly);
 
                 return new ModelAndView<>("redis/detail", model);
             }
@@ -189,6 +203,7 @@ public class RedisController {
             model.put("key", key != null ? key : "");
             model.put("keyDetail", redisMetadataService.getKeyDetail(id, dbIndex, key).orElse(null));
             model.put("error", err.get());
+            model.put("readOnly", readOnly);
             return new ModelAndView<>("redis/detail", model);
         }
         return HttpResponse.redirect(URI.create("/redis/" + id + "/" + dbIndex + "/detail?key=" + URLEncoder.encode(key != null ? key : "", StandardCharsets.UTF_8)));

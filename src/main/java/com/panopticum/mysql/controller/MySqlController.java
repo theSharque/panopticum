@@ -9,8 +9,11 @@ import com.panopticum.core.util.ControllerModelHelper;
 import com.panopticum.core.model.DatabaseInfo;
 import com.panopticum.core.model.TableInfo;
 import com.panopticum.mysql.service.MySqlMetadataService;
+import io.micronaut.context.annotation.Value;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.http.HttpResponse;
+import io.micronaut.http.HttpStatus;
+import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Consumes;
@@ -44,6 +47,8 @@ public class MySqlController {
 
     private final DbConnectionService dbConnectionService;
     private final MySqlMetadataService mySqlMetadataService;
+    @Value("${panopticum.read-only:false}")
+    private boolean readOnly;
 
     @Produces(MediaType.TEXT_HTML)
     @Get("/{id}")
@@ -329,8 +334,15 @@ public class MySqlController {
             model.put("detailRows", List.<Map<String, String>>of());
             model.put("editable", false);
         }
+        model.put("readOnly", readOnly);
 
         return model;
+    }
+
+    private void assertNotReadOnly() {
+        if (readOnly) {
+            throw new HttpStatusException(HttpStatus.FORBIDDEN, "read.only.enabled");
+        }
     }
 
     @Post("/{id}/{dbName}/detail/update")
@@ -350,6 +362,7 @@ public class MySqlController {
     }
 
     private Object saveRow(Long id, String dbName, Map<String, String> form, @Nullable String tableParam) {
+        assertNotReadOnly();
         String sql = form != null ? form.get("sql") : null;
         Integer rowNum = form != null && form.containsKey("rowNum") ? parseInteger(form.get("rowNum")) : null;
         String sort = form != null ? form.get("sort") : null;

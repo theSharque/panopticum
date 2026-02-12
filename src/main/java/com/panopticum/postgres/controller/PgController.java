@@ -10,8 +10,11 @@ import com.panopticum.core.model.TableInfo;
 import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.core.util.ControllerModelHelper;
 import com.panopticum.postgres.service.PgMetadataService;
+import io.micronaut.context.annotation.Value;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.http.HttpResponse;
+import io.micronaut.http.HttpStatus;
+import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Consumes;
@@ -45,6 +48,8 @@ public class PgController {
 
     private final DbConnectionService dbConnectionService;
     private final PgMetadataService pgMetadataService;
+    @Value("${panopticum.read-only:false}")
+    private boolean readOnly;
 
     @Produces(MediaType.TEXT_HTML)
     @Get("/{id}")
@@ -390,8 +395,15 @@ public class PgController {
 
         model.put("detailRows", detailRows);
         model.put("rowCtid", rowCtid != null ? rowCtid : "");
+        model.put("readOnly", readOnly);
 
         return model;
+    }
+
+    private void assertNotReadOnly() {
+        if (readOnly) {
+            throw new HttpStatusException(HttpStatus.FORBIDDEN, "read.only.enabled");
+        }
     }
 
     @Post("/{id}/{dbName}/{schema}/detail/update")
@@ -411,6 +423,7 @@ public class PgController {
     }
 
     private Object saveRow(Long id, String dbName, String schema, Map<String, String> form, @Nullable String tableParam) {
+        assertNotReadOnly();
         String sql = form != null ? form.get("sql") : null;
         Integer rowNum = form != null && form.containsKey("rowNum") ? parseInteger(form.get("rowNum")) : null;
         String sort = form != null ? form.get("sort") : null;

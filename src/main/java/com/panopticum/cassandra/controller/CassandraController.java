@@ -9,8 +9,11 @@ import com.panopticum.core.util.ControllerModelHelper;
 import com.panopticum.cassandra.model.CassandraKeyspaceInfo;
 import com.panopticum.cassandra.model.CassandraTableInfo;
 import com.panopticum.cassandra.service.CassandraMetadataService;
+import io.micronaut.context.annotation.Value;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.http.HttpResponse;
+import io.micronaut.http.HttpStatus;
+import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Consumes;
@@ -44,6 +47,8 @@ public class CassandraController {
 
     private final DbConnectionService dbConnectionService;
     private final CassandraMetadataService cassandraMetadataService;
+    @Value("${panopticum.read-only:false}")
+    private boolean readOnly;
 
     @Produces(MediaType.TEXT_HTML)
     @Get("/{id}")
@@ -262,8 +267,15 @@ public class CassandraController {
             model.put("detailRows", List.<Map<String, String>>of());
             model.put("editable", false);
         }
+        model.put("readOnly", readOnly);
 
         return model;
+    }
+
+    private void assertNotReadOnly() {
+        if (readOnly) {
+            throw new HttpStatusException(HttpStatus.FORBIDDEN, "read.only.enabled");
+        }
     }
 
     @Post("/{id}/{keyspaceName}/detail/update")
@@ -271,6 +283,7 @@ public class CassandraController {
     @Produces(MediaType.TEXT_HTML)
     public Object saveRow(@PathVariable Long id, @PathVariable String keyspaceName,
                          @Body Map<String, String> form) {
+        assertNotReadOnly();
         String sql = form != null ? form.get("sql") : null;
         Integer rowNum = form != null && form.containsKey("rowNum") ? parseInteger(form.get("rowNum")) : null;
         String sort = form != null ? form.get("sort") : null;

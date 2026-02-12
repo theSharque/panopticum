@@ -56,6 +56,7 @@
 | `PANOPTICUM_DB_PATH` | Путь к файлам H2 | `./data/panopticum` |
 | `PANOPTICUM_CONNECTIONS_JSON` | JSON-массив подключений для загрузки при первом старте (см. ниже) | — |
 | `ADMIN_LOCK` | При `true` запрещает добавление и удаление подключений (UI и API) | `false` |
+| `READ_ONLY` | При `true` запрещает изменение данных на страницах detail и через API (обновление строк, сохранение ключей Redis) | `false` |
 
 ### Подключения при первом старте (bootstrap)
 
