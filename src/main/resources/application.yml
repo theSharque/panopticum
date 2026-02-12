@@ -1,4 +1,5 @@
 panopticum:
+  admin-lock: ${ADMIN_LOCK:false}
   limits:
     query-rows: 1000
     query-page-size: 100

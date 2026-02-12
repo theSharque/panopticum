@@ -32,7 +32,8 @@ public final class MessagesSettings {
             Map.entry("settings.placeholderNameCassandra", "e.g. Production Cassandra"),
             Map.entry("settings.placeholderNameRabbitmq", "e.g. Production RabbitMQ"),
             Map.entry("settings.placeholderNameKafka", "e.g. Local Kafka"),
-            Map.entry("settings.vhost", "VHost")
+            Map.entry("settings.vhost", "VHost"),
+            Map.entry("settings.adminLockEnabled", "Editing connections is disabled by ADMIN_LOCK.")
     );
 
     public static final Map<String, String> RU = Map.ofEntries(
@@ -60,6 +61,7 @@ public final class MessagesSettings {
             Map.entry("settings.placeholderNameCassandra", "Например: Production Cassandra"),
             Map.entry("settings.placeholderNameRabbitmq", "Например: Production RabbitMQ"),
             Map.entry("settings.placeholderNameKafka", "Например: Local Kafka"),
-            Map.entry("settings.vhost", "VHost")
+            Map.entry("settings.vhost", "VHost"),
+            Map.entry("settings.adminLockEnabled", "Изменение подключений отключено (ADMIN_LOCK).")
     );
 }

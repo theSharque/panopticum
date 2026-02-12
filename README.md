@@ -55,6 +55,7 @@ Application: **http://localhost:8080**
 | `PANOPTICUM_PASSWORD` | Basic Auth password | `admin` |
 | `PANOPTICUM_DB_PATH` | H2 database file path | `./data/panopticum` |
 | `PANOPTICUM_CONNECTIONS_JSON` | JSON array of connections to load on first start (see below) | — |
+| `ADMIN_LOCK` | If `true`, disables adding and deleting connections (UI and API) | `false` |
 
 ### Bootstrap connections (first start only)
 

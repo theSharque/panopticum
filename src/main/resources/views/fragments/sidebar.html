@@ -5,10 +5,10 @@
     <title>Sidebar</title>
 </head>
 <body>
-<aside th:fragment="sidebar(connections)" id="sidebar" class="sidebar">
+<aside th:fragment="sidebar(connections, adminLock)" id="sidebar" class="sidebar">
     <nav class="sidebar-nav">
         <span class="sidebar-section-title" th:text="${msg['sidebar.connections']}">Connections</span>
-        <a th:href="@{/settings}" class="sidebar-link" th:classappend="${requestUri != null and requestUri.endsWith('settings') ? 'active' : ''}" th:text="${msg['sidebar.addConnection']}">add connection</a>
+        <a th:if="${!adminLock}" th:href="@{/settings}" class="sidebar-link" th:classappend="${requestUri != null and requestUri.endsWith('settings') ? 'active' : ''}" th:text="${msg['sidebar.addConnection']}">add connection</a>
 
         <th:block th:if="${connections != null and !connections.isEmpty()}">
             <div th:each="conn : ${connections}" class="sidebar-pg">
@@ -22,7 +22,8 @@
                 <a th:if="${conn.type == 'cassandra'}" th:href="@{/cassandra/{id}(id=${conn.id})}" th:text="${conn.name}" class="sidebar-link">Cassandra</a>
                 <a th:if="${conn.type == 'rabbitmq'}" th:href="@{/rabbitmq/{id}/queues(id=${conn.id})}" th:text="${conn.name}" class="sidebar-link">RabbitMQ</a>
                 <a th:if="${conn.type == 'kafka'}" th:href="@{/kafka/{id}/topics(id=${conn.id})}" th:text="${conn.name}" class="sidebar-link">Kafka</a>
-                <form class="sidebar-delete-form"
+                <form th:if="${!adminLock}"
+                      class="sidebar-delete-form"
                       th:attr="hx-delete=@{/settings/delete-connection/{id}(id=${conn.id})}, hx-confirm=${msg['sidebar.deleteConfirmPrefix'] + conn.name + msg['sidebar.deleteConfirmSuffix']}"
                       hx-target="#sidebar"
                       hx-swap="outerHTML">

@@ -7,8 +7,12 @@ import com.panopticum.core.service.DbConnectionFactory;
 import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.i18n.LocaleFilter;
 import com.panopticum.i18n.Messages;
+import io.micronaut.context.annotation.Value;
+import jakarta.annotation.PostConstruct;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
+import io.micronaut.http.HttpStatus;
+import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.Consumes;
 import io.micronaut.http.annotation.Controller;
@@ -24,6 +28,7 @@ import io.micronaut.security.rules.SecurityRule;
 import io.micronaut.views.ModelAndView;
 import io.micronaut.views.View;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 import java.net.URI;
 import java.util.HashMap;
@@ -34,6 +39,7 @@ import java.util.Optional;
 @Secured(SecurityRule.IS_AUTHENTICATED)
 @ExecuteOn(TaskExecutors.BLOCKING)
 @RequiredArgsConstructor
+@Slf4j
 public class SettingsController {
 
     private static final String HX_REQUEST = "HX-Request";
@@ -41,6 +47,13 @@ public class SettingsController {
     private final DbConnectionService dbConnectionService;
     private final DbConnectionFactory dbConnectionFactory;
     private final ConnectionTestService connectionTestService;
+    @Value("${panopticum.admin-lock:false}")
+    private boolean adminLock;
+
+    @PostConstruct
+    void logAdminLock() {
+        log.info("Admin lock is {}", adminLock);
+    }
 
     @Produces(MediaType.TEXT_HTML)
     @Get
@@ -48,8 +61,15 @@ public class SettingsController {
     public Map<String, Object> index() {
         Map<String, Object> model = new HashMap<>();
         model.put("connections", dbConnectionService.findAll());
+        model.put("adminLock", adminLock);
 
         return model;
+    }
+
+    private void assertNotLocked() {
+        if (adminLock) {
+            throw new HttpStatusException(HttpStatus.FORBIDDEN, "admin.lock.enabled");
+        }
     }
 
     @Post("/add-postgres")
@@ -57,6 +77,7 @@ public class SettingsController {
     @Produces(MediaType.TEXT_HTML)
     public Object addPostgres(HttpRequest<?> request,
                              String name, String host, Integer port, String database, String username, String password) {
+        assertNotLocked();
         DbConnection conn = dbConnectionFactory.build("postgresql", name, host, port, database, username, password);
         DbConnection saved = dbConnectionService.save(conn);
         Map<String, Object> model = new HashMap<>();
@@ -78,6 +99,7 @@ public class SettingsController {
     @Produces(MediaType.TEXT_HTML)
     public Object addMongo(HttpRequest<?> request,
                           String name, String host, Integer port, String database, String username, String password) {
+        assertNotLocked();
         DbConnection conn = dbConnectionFactory.build("mongodb", name, host, port, database, username, password);
         DbConnection saved = dbConnectionService.save(conn);
         Map<String, Object> model = new HashMap<>();
@@ -99,6 +121,7 @@ public class SettingsController {
     @Produces(MediaType.TEXT_HTML)
     public Object addRedis(HttpRequest<?> request,
                           String name, String host, Integer port, String database, String password) {
+        assertNotLocked();
         DbConnection conn = dbConnectionFactory.build("redis", name, host, port, database, null, password);
         DbConnection saved = dbConnectionService.save(conn);
         Map<String, Object> model = new HashMap<>();
@@ -120,6 +143,7 @@ public class SettingsController {
     @Produces(MediaType.TEXT_HTML)
     public Object addClickhouse(HttpRequest<?> request,
                                String name, String host, Integer port, String database, String username, String password) {
+        assertNotLocked();
         DbConnection conn = dbConnectionFactory.build("clickhouse", name, host, port, database, username, password);
         DbConnection saved = dbConnectionService.save(conn);
         Map<String, Object> model = new HashMap<>();
@@ -141,6 +165,7 @@ public class SettingsController {
     @Produces(MediaType.TEXT_HTML)
     public Object addMysql(HttpRequest<?> request,
                           String name, String host, Integer port, String database, String username, String password) {
+        assertNotLocked();
         DbConnection conn = dbConnectionFactory.build("mysql", name, host, port, database, username, password);
         DbConnection saved = dbConnectionService.save(conn);
         Map<String, Object> model = new HashMap<>();
@@ -162,6 +187,7 @@ public class SettingsController {
     @Produces(MediaType.TEXT_HTML)
     public Object addMssql(HttpRequest<?> request,
                            String name, String host, Integer port, String database, String username, String password) {
+        assertNotLocked();
         DbConnection conn = dbConnectionFactory.build("sqlserver", name, host, port, database, username, password);
         DbConnection saved = dbConnectionService.save(conn);
         Map<String, Object> model = new HashMap<>();
@@ -183,6 +209,7 @@ public class SettingsController {
     @Produces(MediaType.TEXT_HTML)
     public Object addOracle(HttpRequest<?> request,
                             String name, String host, Integer port, String database, String username, String password) {
+        assertNotLocked();
         DbConnection conn = dbConnectionFactory.build("oracle", name, host, port, database, username, password);
         DbConnection saved = dbConnectionService.save(conn);
         Map<String, Object> model = new HashMap<>();
@@ -204,6 +231,7 @@ public class SettingsController {
     @Produces(MediaType.TEXT_HTML)
     public Object addCassandra(HttpRequest<?> request,
                               String name, String host, Integer port, String database, String username, String password) {
+        assertNotLocked();
         DbConnection conn = dbConnectionFactory.build("cassandra", name, host, port, database, username, password);
         DbConnection saved = dbConnectionService.save(conn);
         Map<String, Object> model = new HashMap<>();
@@ -217,6 +245,7 @@ public class SettingsController {
     @Produces(MediaType.TEXT_HTML)
     public Object addRabbitmq(HttpRequest<?> request,
                               String name, String host, Integer port, String database, String username, String password) {
+        assertNotLocked();
         DbConnection conn = dbConnectionFactory.build("rabbitmq", name, host, port, database, username, password);
         DbConnection saved = dbConnectionService.save(conn);
         Map<String, Object> model = new HashMap<>();
@@ -239,6 +268,7 @@ public class SettingsController {
     public Object addKafka(HttpRequest<?> request,
                            String name, String host, Integer port, String database,
                            Optional<String> username, Optional<String> password) {
+        assertNotLocked();
         DbConnection conn = dbConnectionFactory.build("kafka", name, host, port, database,
                 username.orElse(null), password.orElse(null));
         DbConnection saved = dbConnectionService.save(conn);
@@ -270,6 +300,7 @@ public class SettingsController {
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces(MediaType.TEXT_HTML)
     public Object deleteConnection(HttpRequest<?> request, @PathVariable Long id) {
+        assertNotLocked();
         dbConnectionService.deleteById(id);
         Map<String, Object> model = new HashMap<>();
         model.put("connections", dbConnectionService.findAll());

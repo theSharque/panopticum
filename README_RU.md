@@ -55,6 +55,7 @@
 | `PANOPTICUM_PASSWORD` | Пароль для Basic Auth | `admin` |
 | `PANOPTICUM_DB_PATH` | Путь к файлам H2 | `./data/panopticum` |
 | `PANOPTICUM_CONNECTIONS_JSON` | JSON-массив подключений для загрузки при первом старте (см. ниже) | — |
+| `ADMIN_LOCK` | При `true` запрещает добавление и удаление подключений (UI и API) | `false` |
 
 ### Подключения при первом старте (bootstrap)
 
