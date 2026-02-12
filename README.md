@@ -83,7 +83,7 @@ For Helm: put the JSON in a Secret and mount it as the env var `PANOPTICUM_CONNE
 ./gradlew build
 ```
 
-JAR: `build/libs/panopticum-5.0.1-all.jar`
+JAR: `build/libs/panopticum-all.jar`
 
 ## Docker
 
