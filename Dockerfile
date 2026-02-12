@@ -18,7 +18,7 @@ ENV PANOPTICUM_DB_PATH=/data/panopticum
 
 RUN mkdir -p /data && chown -R 1001:1001 /data
 
-COPY --from=builder --chown=1001:1001 /app/build/libs/panopticum-*-all.jar app.jar
+COPY --from=builder --chown=1001:1001 /app/build/libs/panopticum-all.jar app.jar
 
 USER 1001
 
