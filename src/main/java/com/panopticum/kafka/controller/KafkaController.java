@@ -179,9 +179,9 @@ public class KafkaController {
             return "";
         }
         try {
-            return URLDecoder.decode(topic, StandardCharsets.UTF_8);
+            return unquoteIdentifier(URLDecoder.decode(topic, StandardCharsets.UTF_8));
         } catch (Exception e) {
-            return topic;
+            return unquoteIdentifier(topic);
         }
     }
 
@@ -190,5 +190,16 @@ public class KafkaController {
             return "";
         }
         return topic;
+    }
+
+    private static String unquoteIdentifier(String s) {
+        if (s == null || s.length() < 2) {
+            return s != null ? s : "";
+        }
+        if (s.charAt(0) == '"' && s.lastIndexOf('"') > 0) {
+            int end = s.lastIndexOf('"');
+            return s.substring(1, end).replace("\"\"", "\"");
+        }
+        return s;
     }
 }

@@ -141,13 +141,14 @@ public class MySqlController {
                                          @QueryValue(value = "sort", defaultValue = "") String sort,
                                          @QueryValue(value = "order", defaultValue = "") String order,
                                          @QueryValue(value = "search", defaultValue = "") String search) {
-        String tableEscaped = table != null ? table.replace("`", "``") : "";
+        String tableClean = unquoteBacktick(table);
+        String tableEscaped = tableClean != null ? tableClean.replace("`", "``") : "";
         String sql = "SELECT * FROM `" + tableEscaped + "`";
         Map<String, Object> model = buildSqlPageModel(id, dbName, sql, offset, limit, sort, order, search);
         @SuppressWarnings("unchecked")
         List<BreadcrumbItem> breadcrumbs = (List<BreadcrumbItem>) model.get("breadcrumbs");
         if (breadcrumbs != null && !breadcrumbs.isEmpty()) {
-            breadcrumbs.set(breadcrumbs.size() - 1, new BreadcrumbItem(table, null));
+            breadcrumbs.set(breadcrumbs.size() - 1, new BreadcrumbItem(tableClean != null ? tableClean : "", null));
         }
         return model;
     }
@@ -297,7 +298,7 @@ public class MySqlController {
             return model;
         }
 
-        String tableLabel = tableParam;
+        String tableLabel = tableParam != null && !tableParam.isBlank() ? unquoteBacktick(tableParam) : null;
         if (tableLabel == null || tableLabel.isBlank()) {
             tableLabel = mySqlMetadataService.parseTableFromSql(sql != null ? sql : "").map(MySqlController::simpleTableName).orElse(null);
         }
@@ -414,6 +415,17 @@ public class MySqlController {
             return part.isEmpty() ? trimmed.replace("`", "").trim() : part;
         }
         return trimmed.replace("`", "").trim();
+    }
+
+    private static String unquoteBacktick(String s) {
+        if (s == null || s.isBlank()) {
+            return s != null ? s : "";
+        }
+        String t = s.trim();
+        if (t.length() >= 2 && t.charAt(0) == '`' && t.charAt(t.length() - 1) == '`') {
+            return t.substring(1, t.length() - 1).replace("``", "`");
+        }
+        return t;
     }
 
     private static Integer parseInteger(String s) {

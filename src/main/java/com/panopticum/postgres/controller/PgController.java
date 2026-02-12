@@ -133,16 +133,17 @@ public class PgController {
             return model;
         }
 
+        String schemaClean = unquotePgIdentifier(schema);
         List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
         breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/pg/" + id));
         breadcrumbs.add(new BreadcrumbItem(dbName, "/pg/" + id + "/" + dbName));
-        breadcrumbs.add(new BreadcrumbItem(schema, null));
+        breadcrumbs.add(new BreadcrumbItem(schemaClean, null));
         ControllerModelHelper.addBreadcrumbs(model, breadcrumbs);
         model.put("connectionId", id);
         model.put("dbName", dbName);
-        model.put("schema", schema);
+        model.put("schema", schemaClean);
 
-        Page<TableInfo> paged = pgMetadataService.listTablesPaged(id, dbName, schema, page, size, sort, order);
+        Page<TableInfo> paged = pgMetadataService.listTablesPaged(id, dbName, schemaClean, page, size, sort, order);
         ControllerModelHelper.addPagination(model, paged, "tables");
         ControllerModelHelper.addOrderToggles(model, paged.getSort(), paged.getOrder(),
                 Map.of("name", "orderName", "type", "orderType", "rows", "orderRows", "size", "orderSize"));
@@ -173,8 +174,10 @@ public class PgController {
                                          @QueryValue(value = "sort", defaultValue = "") String sort,
                                          @QueryValue(value = "order", defaultValue = "") String order,
                                          @QueryValue(value = "search", defaultValue = "") String search) {
-        String sql = "SELECT * FROM \"" + schema.replace("\"", "\"\"") + "\".\"" + table.replace("\"", "\"\"") + "\"";
-        return buildSqlPageModel(id, dbName, schema, sql, offset, limit, sort, order, search);
+        String schemaClean = unquotePgIdentifier(schema);
+        String tableClean = unquotePgIdentifier(table);
+        String sql = "SELECT * FROM \"" + schemaClean.replace("\"", "\"\"") + "\".\"" + tableClean.replace("\"", "\"\"") + "\"";
+        return buildSqlPageModel(id, dbName, schemaClean, sql, offset, limit, sort, order, search);
     }
 
     @Produces(MediaType.TEXT_HTML)
@@ -189,6 +192,7 @@ public class PgController {
 
     private Map<String, Object> buildSqlPageModel(Long id, String dbName, String schema, String sql,
                                                   Integer offset, Integer limit, String sort, String order, String search) {
+        String schemaClean = unquotePgIdentifier(schema);
         Map<String, Object> model = ControllerModelHelper.baseModel(id, dbConnectionService);
         Optional<DbConnection> conn = dbConnectionService.findById(id);
         if (conn.isEmpty()) {
@@ -206,18 +210,18 @@ public class PgController {
         List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
         breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/pg/" + id));
         breadcrumbs.add(new BreadcrumbItem(dbName, "/pg/" + id + "/" + dbName));
-        breadcrumbs.add(new BreadcrumbItem(schema, "/pg/" + id + "/" + dbName + "/" + schema));
+        breadcrumbs.add(new BreadcrumbItem(schemaClean != null ? schemaClean : "", "/pg/" + id + "/" + dbName + "/" + (schemaClean != null ? schemaClean : "")));
         breadcrumbs.add(new BreadcrumbItem(tableLabel, null));
         ControllerModelHelper.addBreadcrumbs(model, breadcrumbs);
         model.put("connectionId", id);
         model.put("dbName", dbName);
-        model.put("schema", schema);
+        model.put("schema", schemaClean != null ? schemaClean : "");
         model.put("sql", sql != null ? sql : "");
         model.put("tableQueryActionUrl", "/pg/" + id + "/query");
         String tableSegment = qualifiedTable
                 .map(PgController::simpleTableName)
                 .orElse("sql");
-        model.put("tableDetailActionUrl", "/pg/" + id + "/" + dbName + "/" + schema + "/" + tableSegment + "/detail");
+        model.put("tableDetailActionUrl", "/pg/" + id + "/" + dbName + "/" + (schemaClean != null ? schemaClean : "") + "/" + tableSegment + "/detail");
 
         int off = offset != null ? Math.max(0, offset) : 0;
         int lim = limit != null && limit > 0 ? Math.min(limit, 1000) : 100;
@@ -274,10 +278,11 @@ public class PgController {
     public Object executeQuery(@PathVariable Long id, String sql, String dbName, String schema,
                               @Nullable Integer offset, @Nullable Integer limit,
                               @Nullable String sort, @Nullable String order, @Nullable String search, String target) {
+        String schemaClean = unquotePgIdentifier(schema);
         Map<String, Object> model = new HashMap<>();
         model.put("connectionId", id);
         model.put("dbName", dbName);
-        model.put("schema", schema);
+        model.put("schema", schemaClean != null ? schemaClean : "");
         String searchTerm = search != null && !search.isBlank() ? search.trim() : "";
         model.put("searchTerm", searchTerm);
 
@@ -285,7 +290,7 @@ public class PgController {
             model.put("error", "Empty query");
             model.put("queryActionUrl", "/pg/" + id + "/query");
             model.put("tableQueryActionUrl", "/pg/" + id + "/query");
-            model.put("tableDetailActionUrl", "/pg/" + id + "/" + dbName + "/" + schema + "/detail");
+            model.put("tableDetailActionUrl", "/pg/" + id + "/" + dbName + "/" + (schemaClean != null ? schemaClean : "") + "/detail");
 
             return "table".equals(target)
                     ? new ModelAndView<>("partials/table-view-result", model)
@@ -295,8 +300,8 @@ public class PgController {
         model.put("tableQueryActionUrl", "/pg/" + id + "/query");
         String tableSegment = pgMetadataService.parseTableFromSql(sql).map(PgController::simpleTableName).orElse(null);
         model.put("tableDetailActionUrl", tableSegment != null && !tableSegment.isBlank()
-                ? "/pg/" + id + "/" + dbName + "/" + schema + "/" + tableSegment + "/detail"
-                : "/pg/" + id + "/" + dbName + "/" + schema + "/detail");
+                ? "/pg/" + id + "/" + dbName + "/" + (schemaClean != null ? schemaClean : "") + "/" + tableSegment + "/detail"
+                : "/pg/" + id + "/" + dbName + "/" + (schemaClean != null ? schemaClean : "") + "/detail");
 
         int off = offset != null ? Math.max(0, offset) : 0;
         int lim = limit != null && limit > 0 ? limit : 100;
@@ -337,7 +342,8 @@ public class PgController {
             return model;
         }
 
-        String tableLabel = tableParam;
+        String schemaClean = unquotePgIdentifier(schema);
+        String tableLabel = tableParam != null && !tableParam.isBlank() ? unquotePgIdentifier(tableParam) : null;
         if (tableLabel == null || tableLabel.isBlank()) {
             tableLabel = pgMetadataService.parseTableFromSql(sql != null ? sql : "").map(PgController::simpleTableName).orElse(null);
         }
@@ -345,18 +351,18 @@ public class PgController {
         List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
         breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/pg/" + id));
         breadcrumbs.add(new BreadcrumbItem(dbName != null ? dbName : "", "/pg/" + id + "/" + (dbName != null ? dbName : "")));
-        String schemaUrl = (dbName != null && schema != null && !dbName.isBlank() && !schema.isBlank())
-                ? "/pg/" + id + "/" + dbName + "/" + schema
+        String schemaUrl = (dbName != null && schemaClean != null && !dbName.isBlank() && !schemaClean.isBlank())
+                ? "/pg/" + id + "/" + dbName + "/" + schemaClean
                 : null;
-        breadcrumbs.add(new BreadcrumbItem(schema != null ? schema : "", schemaUrl));
+        breadcrumbs.add(new BreadcrumbItem(schemaClean != null ? schemaClean : "", schemaUrl));
         if (tableLabel != null && !tableLabel.isBlank()) {
-            breadcrumbs.add(new BreadcrumbItem(tableLabel, "/pg/" + id + "/" + dbName + "/" + schema + "/" + tableLabel));
+            breadcrumbs.add(new BreadcrumbItem(tableLabel, "/pg/" + id + "/" + dbName + "/" + schemaClean + "/" + tableLabel));
         }
         breadcrumbs.add(new BreadcrumbItem("detail", null));
         ControllerModelHelper.addBreadcrumbs(model, breadcrumbs);
         model.put("connectionId", id);
         model.put("dbName", dbName != null ? dbName : "");
-        model.put("schema", schema != null ? schema : "");
+        model.put("schema", schemaClean != null ? schemaClean : "");
         model.put("sql", sql != null ? sql : "");
         model.put("rowNum", rowNum != null ? rowNum : 0);
         model.put("sort", sort != null ? sort : "");
@@ -369,7 +375,7 @@ public class PgController {
         List<Map<String, String>> detailRows = new ArrayList<>();
         String rowCtid = null;
         if (sql != null && !sql.isBlank() && rowNum != null && rowNum >= 0) {
-            var result = pgMetadataService.getDetailRowWithCtid(id, dbName, schema, sql, Math.max(0, rowNum), sort, order);
+            var result = pgMetadataService.getDetailRowWithCtid(id, dbName, schemaClean, sql, Math.max(0, rowNum), sort, order);
             if (result.containsKey("error")) {
                 model.put("error", result.get("error"));
             } else {
@@ -456,6 +462,23 @@ public class PgController {
         }
         String trimmed = qualified.trim();
         int dot = trimmed.lastIndexOf('.');
-        return dot >= 0 && dot + 1 < trimmed.length() ? trimmed.substring(dot + 1) : trimmed;
+        if (dot >= 0 && dot + 1 < trimmed.length()) {
+            return unquotePgIdentifier(trimmed.substring(dot + 1));
+        }
+        return unquotePgIdentifier(trimmed);
+    }
+
+    private static String unquotePgIdentifier(String s) {
+        if (s == null || s.isBlank()) {
+            return s != null ? s : "";
+        }
+        String t = s.trim();
+        if (!t.isEmpty() && t.charAt(0) == '"') {
+            t = t.substring(1);
+        }
+        if (!t.isEmpty() && t.charAt(t.length() - 1) == '"') {
+            t = t.substring(0, t.length() - 1);
+        }
+        return t.replace("\"\"", "\"");
     }
 }
