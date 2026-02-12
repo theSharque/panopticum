@@ -63,6 +63,15 @@ services:
       timeout: 5s
       retries: 5
 
+  clickhouse-init:
+    image: clickhouse/clickhouse-server:24
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    volumes:
+      - ./docker/clickhouse-init/init.sql:/init.sql
+    entrypoint: ["sh", "-c", "clickhouse-client --host clickhouse --multiquery < /init.sql"]
+
   mysql:
     image: mysql:8
     ports:
