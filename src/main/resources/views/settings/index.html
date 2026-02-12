@@ -5,49 +5,53 @@
 <main th:fragment="main" class="main-content">
     <h1 th:text="${msg['settings.title']}">Add connection</h1>
 
-    <div class="form-group">
-        <label for="connection-type" th:text="${msg['settings.connectionType']}">Connection type</label>
-        <select id="connection-type" class="connection-type-select">
-            <option value="" th:text="${msg['settings.selectType']}">Select type</option>
-            <option value="postgresql">PostgreSQL</option>
-            <option value="mongodb">MongoDB</option>
-            <option value="redis">Redis</option>
-            <option value="clickhouse">ClickHouse</option>
-            <option value="mysql">MySQL (MariaDB)</option>
-            <option value="sqlserver">MS SQL Server</option>
-            <option value="oracle">Oracle Database</option>
-            <option value="cassandra">Cassandra</option>
-            <option value="rabbitmq">RabbitMQ</option>
-            <option value="kafka">Kafka</option>
-        </select>
+    <div th:if="${!adminLock}">
+        <div class="form-group">
+            <label for="connection-type" th:text="${msg['settings.connectionType']}">Connection type</label>
+            <select id="connection-type" class="connection-type-select">
+                <option value="" th:text="${msg['settings.selectType']}">Select type</option>
+                <option value="postgresql">PostgreSQL</option>
+                <option value="mongodb">MongoDB</option>
+                <option value="redis">Redis</option>
+                <option value="clickhouse">ClickHouse</option>
+                <option value="mysql">MySQL (MariaDB)</option>
+                <option value="sqlserver">MS SQL Server</option>
+                <option value="oracle">Oracle Database</option>
+                <option value="cassandra">Cassandra</option>
+                <option value="rabbitmq">RabbitMQ</option>
+                <option value="kafka">Kafka</option>
+            </select>
+        </div>
+
+        <div th:replace="~{settings/fragments/form-postgres :: form-postgres}"></div>
+        <div th:replace="~{settings/fragments/form-mongo :: form-mongo}"></div>
+        <div th:replace="~{settings/fragments/form-redis :: form-redis}"></div>
+        <div th:replace="~{settings/fragments/form-clickhouse :: form-clickhouse}"></div>
+        <div th:replace="~{settings/fragments/form-mysql :: form-mysql}"></div>
+        <div th:replace="~{settings/fragments/form-mssql :: form-mssql}"></div>
+        <div th:replace="~{settings/fragments/form-oracle :: form-oracle}"></div>
+        <div th:replace="~{settings/fragments/form-cassandra :: form-cassandra}"></div>
+        <div th:replace="~{settings/fragments/form-rabbitmq :: form-rabbitmq}"></div>
+        <div th:replace="~{settings/fragments/form-kafka :: form-kafka}"></div>
+
+        <script>
+            document.getElementById('connection-type').addEventListener('change', function () {
+                var type = this.value;
+                document.getElementById('form-postgres').hidden = type !== 'postgresql';
+                document.getElementById('form-mongo').hidden = type !== 'mongodb';
+                document.getElementById('form-redis').hidden = type !== 'redis';
+                document.getElementById('form-clickhouse').hidden = type !== 'clickhouse';
+                document.getElementById('form-mysql').hidden = type !== 'mysql';
+                document.getElementById('form-mssql').hidden = type !== 'sqlserver';
+                document.getElementById('form-oracle').hidden = type !== 'oracle';
+                document.getElementById('form-cassandra').hidden = type !== 'cassandra';
+                document.getElementById('form-rabbitmq').hidden = type !== 'rabbitmq';
+                document.getElementById('form-kafka').hidden = type !== 'kafka';
+            });
+        </script>
     </div>
 
-    <div th:replace="~{settings/fragments/form-postgres :: form-postgres}"></div>
-    <div th:replace="~{settings/fragments/form-mongo :: form-mongo}"></div>
-    <div th:replace="~{settings/fragments/form-redis :: form-redis}"></div>
-    <div th:replace="~{settings/fragments/form-clickhouse :: form-clickhouse}"></div>
-    <div th:replace="~{settings/fragments/form-mysql :: form-mysql}"></div>
-    <div th:replace="~{settings/fragments/form-mssql :: form-mssql}"></div>
-    <div th:replace="~{settings/fragments/form-oracle :: form-oracle}"></div>
-    <div th:replace="~{settings/fragments/form-cassandra :: form-cassandra}"></div>
-    <div th:replace="~{settings/fragments/form-rabbitmq :: form-rabbitmq}"></div>
-    <div th:replace="~{settings/fragments/form-kafka :: form-kafka}"></div>
-
-    <script>
-        document.getElementById('connection-type').addEventListener('change', function () {
-            var type = this.value;
-            document.getElementById('form-postgres').hidden = type !== 'postgresql';
-            document.getElementById('form-mongo').hidden = type !== 'mongodb';
-            document.getElementById('form-redis').hidden = type !== 'redis';
-            document.getElementById('form-clickhouse').hidden = type !== 'clickhouse';
-            document.getElementById('form-mysql').hidden = type !== 'mysql';
-            document.getElementById('form-mssql').hidden = type !== 'sqlserver';
-            document.getElementById('form-oracle').hidden = type !== 'oracle';
-            document.getElementById('form-cassandra').hidden = type !== 'cassandra';
-            document.getElementById('form-rabbitmq').hidden = type !== 'rabbitmq';
-            document.getElementById('form-kafka').hidden = type !== 'kafka';
-        });
-    </script>
+    <p th:if="${adminLock}" th:text="${msg['settings.adminLockEnabled']}">Connections editing is locked by admin.</p>
 
     <h2 th:text="${msg['settings.addedConnections']}">Saved connections</h2>
     <p th:text="${msg['settings.connectionsInMenu']}">Connections are shown in the menu on the left.</p>

@@ -860,13 +860,13 @@ button[type="submit"]:not(.sidebar-delete):not(.query-th-link):hover {
 }
 
 .query-table td {
-    padding: var(--space-md) var(--space-lg);
+    padding: var(--space-sm) var(--space-md);
     text-align: left;
     border-bottom: 1px solid var(--border);
 }
 
 .query-th {
-    padding: var(--space-md) var(--space-lg);
+    padding: var(--space-sm) var(--space-md);
     text-align: left;
     border: none;
     border-bottom: 1px solid var(--border-strong);
