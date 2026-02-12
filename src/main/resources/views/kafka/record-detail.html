@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(~{::main})}">
+<head></head>
+<body>
+<main th:fragment="main" class="main-content">
+    <div th:replace="~{fragments/breadcrumbs :: breadcrumbs(items=${breadcrumbs})}"></div>
+    <p th:if="${error}" th:text="${msg != null and msg[error] != null ? msg[error] : error}" class="query-error"></p>
+    <h1 th:text="${msg['kafka.recordDetailTitle']}">Record</h1>
+    <div th:if="${record != null}" class="query-result-data">
+        <dl class="detail-dl">
+            <dt><span th:text="${msg['kafka.offset']}">Offset</span> : <span th:text="${record.offset}" class="query-cell-mono"></span></dt>
+            <dt><span th:text="${msg['kafka.partition']}">Partition</span> : <span th:text="${record.partition}" class="query-cell-mono"></span></dt>
+            <dt><span th:text="${msg['kafka.key']}">Key</span> : <span th:text="${record.key != null ? record.key : '—'}" class="query-cell-mono"></span></dt>
+            <dt th:if="${record.timestamp != null}"><span th:text="${msg['kafka.timestamp']}">Timestamp</span> : <span th:text="${record.timestamp}" class="query-cell-mono"></span></dt>
+        </dl>
+        <h2 th:text="${msg['kafka.value']}">Value</h2>
+        <pre class="detail-value detail-json" th:text="${record.value}">—</pre>
+        <div th:if="${record.headers != null and !record.headers.isEmpty()}">
+            <h2 th:text="${msg['kafka.headers']}">Headers</h2>
+            <dl class="detail-dl">
+                <th:block th:each="entry : ${record.headers}">
+                    <dt><span th:text="${entry.key}" class="query-cell-mono"></span> : <span th:text="${entry.value != null ? entry.value : '—'}" class="query-cell-mono"></span></dt>
+                </th:block>
+            </dl>
+        </div>
+    </div>
+    <p th:if="${record == null}" class="text-dim" th:text="${msg['common.noData']}">No data.</p>
+</main>
+</body>
+</html>

@@ -31,6 +31,7 @@ public final class MessagesSettings {
             Map.entry("settings.placeholderNameOracle", "e.g. Production Oracle"),
             Map.entry("settings.placeholderNameCassandra", "e.g. Production Cassandra"),
             Map.entry("settings.placeholderNameRabbitmq", "e.g. Production RabbitMQ"),
+            Map.entry("settings.placeholderNameKafka", "e.g. Local Kafka"),
             Map.entry("settings.vhost", "VHost")
     );
 
@@ -58,6 +59,7 @@ public final class MessagesSettings {
             Map.entry("settings.placeholderNameOracle", "Например: Production Oracle"),
             Map.entry("settings.placeholderNameCassandra", "Например: Production Cassandra"),
             Map.entry("settings.placeholderNameRabbitmq", "Например: Production RabbitMQ"),
+            Map.entry("settings.placeholderNameKafka", "Например: Local Kafka"),
             Map.entry("settings.vhost", "VHost")
     );
 }

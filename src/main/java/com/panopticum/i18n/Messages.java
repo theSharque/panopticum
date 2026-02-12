@@ -19,6 +19,7 @@ public final class Messages {
             merged.putAll(MessagesClickhouse.RU);
             merged.putAll(MessagesCassandra.RU);
             merged.putAll(MessagesRabbitmq.RU);
+            merged.putAll(MessagesKafka.RU);
         } else {
             merged.putAll(MessagesCommon.EN);
             merged.putAll(MessagesSettings.EN);
@@ -28,6 +29,7 @@ public final class Messages {
             merged.putAll(MessagesClickhouse.EN);
             merged.putAll(MessagesCassandra.EN);
             merged.putAll(MessagesRabbitmq.EN);
+            merged.putAll(MessagesKafka.EN);
         }
         return merged;
     }

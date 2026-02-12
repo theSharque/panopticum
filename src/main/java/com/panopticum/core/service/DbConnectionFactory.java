@@ -16,6 +16,7 @@ public class DbConnectionFactory {
     private static final int PORT_MSSQL = 1433;
     private static final int PORT_ORACLE = 1521;
     private static final int PORT_RABBITMQ = 15672;
+    private static final int PORT_KAFKA = 9092;
 
     public DbConnection build(String type, String name, String host, Integer port,
                              String database, String username, String password) {
@@ -66,6 +67,7 @@ public class DbConnectionFactory {
             case "sqlserver" -> PORT_MSSQL;
             case "oracle" -> PORT_ORACLE;
             case "rabbitmq" -> PORT_RABBITMQ;
+            case "kafka" -> PORT_KAFKA;
             default -> PORT_POSTGRESQL;
         };
     }
@@ -80,6 +82,7 @@ public class DbConnectionFactory {
             case "sqlserver" -> "master";
             case "oracle" -> "XEPDB1";
             case "rabbitmq" -> "/";
+            case "kafka" -> "";
             default -> "";
         };
     }
