@@ -23,12 +23,22 @@ micronaut:
         enabled: true
         mapping: "/css/**"
         paths: classpath:static/css
+      static:
+        enabled: true
+        mapping: "/favicon*"
+        paths: classpath:static
   security:
     authentication: basic
     csrf:
       enabled: false
     intercept-url-map:
       - pattern: /css/**
+        access:
+          - isAnonymous()
+      - pattern: /favicon.ico
+        access:
+          - isAnonymous()
+      - pattern: /favicon-*
         access:
           - isAnonymous()
       - pattern: /login
