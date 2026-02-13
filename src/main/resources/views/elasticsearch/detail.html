@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(~{::main})}">
+<head></head>
+<body>
+<main th:fragment="main" class="main-content">
+    <div th:replace="~{fragments/breadcrumbs :: breadcrumbs(items=${breadcrumbs})}"></div>
+    <p th:if="${error}" th:text="${msg != null && msg[error] != null ? msg[error] : error}" class="query-error"></p>
+    <h1 th:text="${msg['elasticsearch.documentDetail']}">Document details</h1>
+    <form th:if="${!readOnly}" th:action="@{/elasticsearch/{id}/indices/{idx}/doc/{docId}(id=${connectionId}, idx=${indexNameEncoded}, docId=${docIdEncoded})}" method="post" class="detail-form">
+        <input type="hidden" name="indexName" th:value="${indexName}"/>
+        <input type="hidden" name="docId" th:value="${docId}"/>
+        <textarea name="body" class="detail-json detail-json-textarea" th:text="${prettyJson}"></textarea>
+        <div class="detail-actions">
+            <button type="submit" class="query-button" th:text="${msg['common.save']}">Save</button>
+        </div>
+    </form>
+    <div th:if="${readOnly}" class="detail-block">
+        <pre class="detail-json detail-json-textarea" th:text="${prettyJson}"></pre>
+    </div>
+</main>
+</body>
+</html>

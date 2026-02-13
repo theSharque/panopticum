@@ -20,6 +20,7 @@ public final class Messages {
             merged.putAll(MessagesCassandra.RU);
             merged.putAll(MessagesRabbitmq.RU);
             merged.putAll(MessagesKafka.RU);
+            merged.putAll(MessagesElasticsearch.RU);
         } else {
             merged.putAll(MessagesCommon.EN);
             merged.putAll(MessagesSettings.EN);
@@ -30,6 +31,7 @@ public final class Messages {
             merged.putAll(MessagesCassandra.EN);
             merged.putAll(MessagesRabbitmq.EN);
             merged.putAll(MessagesKafka.EN);
+            merged.putAll(MessagesElasticsearch.EN);
         }
         return merged;
     }

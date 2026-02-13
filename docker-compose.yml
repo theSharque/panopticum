@@ -9,6 +9,7 @@
 # - Oracle: host=localhost, port=43008, service=XEPDB1, user=panopticum, password=panopticum
 # - RabbitMQ: amqp://localhost:43009 (default user/guest), management UI http://localhost:43010
 # - Kafka: bootstrap localhost:43011 (add in Settings: host=localhost, port=43011)
+# - Elasticsearch/OpenSearch: http://localhost:43012 (add in Settings: host=localhost, port=43012)
 
 services:
   postgres:
@@ -189,6 +190,32 @@ services:
       - ./docker/kafka-init/init.sh:/init.sh
     entrypoint: ["sh", "/init.sh"]
 
+  opensearch:
+    image: opensearchproject/opensearch:2
+    ports:
+      - "43012:9200"
+    environment:
+      discovery.type: single-node
+      DISABLE_INSTALL_DEMO_CONFIG: "true"
+      DISABLE_SECURITY_PLUGIN: "true"
+    volumes:
+      - opensearch_data:/usr/share/opensearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  opensearch-init:
+    image: curlimages/curl:latest
+    depends_on:
+      opensearch:
+        condition: service_healthy
+    volumes:
+      - ./docker/opensearch-init/init.sh:/init.sh
+    entrypoint: ["sh", "/init.sh"]
+
 volumes:
   postgres_data:
   mongodb_data:
@@ -200,3 +227,4 @@ volumes:
   oracle_data:
   rabbitmq_data:
   kafka_data:
+  opensearch_data:

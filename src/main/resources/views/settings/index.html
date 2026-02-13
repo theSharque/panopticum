@@ -20,6 +20,7 @@
                 <option value="cassandra">Cassandra</option>
                 <option value="rabbitmq">RabbitMQ</option>
                 <option value="kafka">Kafka</option>
+                <option value="elasticsearch">Elasticsearch / OpenSearch</option>
             </select>
         </div>
 
@@ -33,6 +34,7 @@
         <div th:replace="~{settings/fragments/form-cassandra :: form-cassandra}"></div>
         <div th:replace="~{settings/fragments/form-rabbitmq :: form-rabbitmq}"></div>
         <div th:replace="~{settings/fragments/form-kafka :: form-kafka}"></div>
+        <div th:replace="~{settings/fragments/form-elasticsearch :: form-elasticsearch}"></div>
 
         <script>
             document.getElementById('connection-type').addEventListener('change', function () {
@@ -47,6 +49,7 @@
                 document.getElementById('form-cassandra').hidden = type !== 'cassandra';
                 document.getElementById('form-rabbitmq').hidden = type !== 'rabbitmq';
                 document.getElementById('form-kafka').hidden = type !== 'kafka';
+                document.getElementById('form-elasticsearch').hidden = type !== 'elasticsearch';
             });
         </script>
     </div>

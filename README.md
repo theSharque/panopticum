@@ -24,6 +24,7 @@ A tool for developers and QA — web interface for viewing and managing database
 | **Cassandra** | Browse keyspaces and tables; run CQL; edit rows (when table has primary key) |
 | **RabbitMQ** | Browse queues; peek messages (read-only, no edit/delete) |
 | **Kafka** | Browse topics and partitions; peek records (read-only) |
+| **Elasticsearch / OpenSearch** | Browse indices; search (Query DSL); view and edit documents by _id (no delete) |
 
 Connections are stored in H2. In Settings you can add connections, test them, and delete them.
 
@@ -35,7 +36,7 @@ Connections are stored in H2. In Settings you can add connections, test them, an
 - Add, test, and remove connections per database type
 - Browse metadata (schemas, tables, collections, keys) with pagination
 - Execute SQL (PostgreSQL, MySQL/MariaDB, MS SQL Server, Oracle, ClickHouse, Cassandra CQL) and queries (MongoDB)
-- Edit and save rows in detail view (PostgreSQL by ctid, MySQL/MS SQL Server when table has PK/unique, Oracle by ROWID, MongoDB, Redis, Cassandra when table has primary key)
+- Edit and save rows in detail view (PostgreSQL by ctid, MySQL/MS SQL Server when table has PK/unique, Oracle by ROWID, MongoDB, Redis, Cassandra when table has primary key, Elasticsearch/OpenSearch document by _id)
 - HTMX for partial updates without full page reloads
 - Localization: EN and RU (browser or path)
 
@@ -64,7 +65,7 @@ If the `db_connections` table is **empty** at startup, the app reads the environ
 
 Value: a JSON array of connection objects. Each object can be specified in one of two ways:
 
-1. **Explicit fields:** `name`, `type`, `host`, `port`, `database`, `username`, `password`. Supported `type` values: `postgresql`, `mongodb`, `redis`, `clickhouse`, `mysql`, `sqlserver`, `oracle`, `cassandra`, `rabbitmq`, `kafka`.
+1. **Explicit fields:** `name`, `type`, `host`, `port`, `database`, `username`, `password`. Supported `type` values: `postgresql`, `mongodb`, `redis`, `clickhouse`, `mysql`, `sqlserver`, `oracle`, `cassandra`, `rabbitmq`, `kafka`, `elasticsearch`.
 2. **JDBC URL:** `name` and `jdbcUrl` (or `url`). The URL is parsed to derive type, host, port, database, username, and password. Supported for PostgreSQL, MySQL, MS SQL Server, Oracle, and ClickHouse (e.g. `jdbc:postgresql://user:pass@host:5432/dbname`, `jdbc:sqlserver://host:1433;databaseName=db;user=sa;password=secret`, `jdbc:oracle:thin:@//host:1521/XEPDB1`).
 
 Example:
@@ -194,6 +195,29 @@ docker compose up -d kafka kafka-init
 3. Open it → **Topics** (list) → click a topic → **Partitions** → click a partition → **Records** (peek) → click a record → **Record** (detail, read-only).
 
 Screens: **Topics** → **Partitions** (for one topic) → **Records** (for one partition) → **Record** (detail). No editing or deleting.
+
+## Elasticsearch / OpenSearch (local dev)
+
+Elasticsearch and OpenSearch are supported via the **REST API** (HTTP). You can list indices, run search with Query DSL, view document details, and edit documents by _id (full replace of _source). No delete.
+
+### Start OpenSearch and load test data
+
+From the project root:
+
+```bash
+docker compose up -d opensearch opensearch-init
+```
+
+- HTTP API: **http://localhost:43012**
+- The `opensearch-init` service creates the index `panopticum_demo` and indexes sample log-like documents.
+
+### Add Elasticsearch connection in Panopticum
+
+1. Go to **Settings** → choose **Elasticsearch / OpenSearch** → fill **Host** (e.g. `localhost`), **Port** (e.g. `43012`). Optionally set **Username** and **Password** for clusters with Basic Auth.
+2. Click **Test**, then **Add**. The connection appears in the sidebar.
+3. Open it → **Indices** (list) → click an index → **Search** (Query DSL, e.g. `{"query":{"match_all":{}}}`) → results table with document _id → click **Open** on a row → **Document details** (view/edit JSON _source, **Save** to update). No delete.
+
+Screens: **Indices** → **Search** (for one index) → **Document details** (view/edit). Compatible with both Elasticsearch and OpenSearch (same REST API).
 
 ## CI/CD
 

@@ -288,6 +288,29 @@ public class SettingsController {
                 username.orElse(null), password.orElse(null));
     }
 
+    @Post("/add-elasticsearch")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @Produces(MediaType.TEXT_HTML)
+    public Object addElasticsearch(HttpRequest<?> request,
+                                   String name, String host, Integer port, String database,
+                                   String username, String password) {
+        assertNotLocked();
+        DbConnection conn = dbConnectionFactory.build("elasticsearch", name, host, port, database, username, password);
+        DbConnection saved = dbConnectionService.save(conn);
+        Map<String, Object> model = new HashMap<>();
+        model.put("connections", dbConnectionService.findAll());
+
+        return responseAfterAdd(request, model, saved.getId(), "/elasticsearch/" + saved.getId() + "/indices");
+    }
+
+    @Post("/test-elasticsearch")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @Produces(MediaType.TEXT_HTML)
+    public ModelAndView<Map<String, Object>> testElasticsearch(HttpRequest<?> request,
+            String host, Integer port, String database, String username, String password) {
+        return testConnectionResult(request, "elasticsearch", host, port, database, username, password);
+    }
+
     @Post("/test-cassandra")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces(MediaType.TEXT_HTML)

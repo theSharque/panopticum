@@ -22,6 +22,7 @@
                 <a th:if="${conn.type == 'cassandra'}" th:href="@{/cassandra/{id}(id=${conn.id})}" th:text="${conn.name}" class="sidebar-link">Cassandra</a>
                 <a th:if="${conn.type == 'rabbitmq'}" th:href="@{/rabbitmq/{id}/queues(id=${conn.id})}" th:text="${conn.name}" class="sidebar-link">RabbitMQ</a>
                 <a th:if="${conn.type == 'kafka'}" th:href="@{/kafka/{id}/topics(id=${conn.id})}" th:text="${conn.name}" class="sidebar-link">Kafka</a>
+                <a th:if="${conn.type == 'elasticsearch'}" th:href="@{/elasticsearch/{id}/indices(id=${conn.id})}" th:text="${conn.name}" class="sidebar-link">Elasticsearch</a>
                 <form th:if="${!adminLock}"
                       class="sidebar-delete-form"
                       th:attr="hx-delete=@{/settings/delete-connection/{id}(id=${conn.id})}, hx-confirm=${msg['sidebar.deleteConfirmPrefix'] + conn.name + msg['sidebar.deleteConfirmSuffix']}"

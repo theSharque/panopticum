@@ -1,0 +1,61 @@
+<div id="table-data" class="query-result">
+    <p th:if="${error}" th:text="${msg != null && msg[error] != null ? msg[error] : error}" class="query-error"></p>
+    <div th:if="${error == null and columns != null and !columns.isEmpty()}" class="query-result-data">
+        <div class="query-pagination-info" th:if="${rows != null and !rows.isEmpty()}">
+            <span class="query-pagination-range" th:text="${msg['common.rowsRange'] + fromRow + '–' + toRow}"></span>
+            <span class="query-pagination-nav">
+                <form class="query-pagination-form"
+                      th:action="@{/elasticsearch/{id}/search(id=${connectionId})}"
+                      method="post"
+                      th:attr="hx-post=@{/elasticsearch/{id}/search(id=${connectionId})}"
+                      hx-target="#table-data"
+                      hx-swap="outerHTML">
+                    <input type="hidden" name="query" th:value="${query}"/>
+                    <input type="hidden" name="indexName" th:value="${indexName}"/>
+                    <input type="hidden" name="limit" th:value="${limit}"/>
+                    <input type="hidden" name="target" value="table"/>
+                    <input type="hidden" name="offset" th:value="${prevOffset}"/>
+                    <button type="submit" class="query-pagination-btn" th:classappend="${!hasPrev} ? 'query-pagination-btn-disabled' : ''" th:disabled="${!hasPrev}" th:text="${'← ' + msg['common.prev']}">← Back</button>
+                </form>
+                <form class="query-pagination-form"
+                      th:action="@{/elasticsearch/{id}/search(id=${connectionId})}"
+                      method="post"
+                      th:attr="hx-post=@{/elasticsearch/{id}/search(id=${connectionId})}"
+                      hx-target="#table-data"
+                      hx-swap="outerHTML">
+                    <input type="hidden" name="query" th:value="${query}"/>
+                    <input type="hidden" name="indexName" th:value="${indexName}"/>
+                    <input type="hidden" name="limit" th:value="${limit}"/>
+                    <input type="hidden" name="target" value="table"/>
+                    <input type="hidden" name="offset" th:value="${nextOffset}"/>
+                    <button type="submit" class="query-pagination-btn" th:classappend="${!hasMore} ? 'query-pagination-btn-disabled' : ''" th:disabled="${!hasMore}" th:text="${msg['common.next'] + ' →'}">Next →</button>
+                </form>
+            </span>
+        </div>
+        <div class="query-table-wrapper">
+            <table class="query-table">
+                <thead>
+                    <tr>
+                        <th class="query-th query-th-detail"></th>
+                        <th th:each="col : ${columns}" class="query-th" th:text="${col}"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="row, rowStat : ${rows}" th:with="currentDocId=${docIds != null and rowStat.index < docIds.size() ? docIds.get(rowStat.index) : null}" class="query-data-row">
+                        <td class="query-detail-cell">
+                            <a th:if="${currentDocId != null and !currentDocId.isEmpty()}"
+                               th:href="@{/elasticsearch/{id}/indices/{idx}/doc/{docId}(id=${connectionId}, idx=${indexNameEncoded}, docId=${currentDocId})}"
+                               class="query-detail-link" th:attr="aria-label=${msg['common.open']}, title=${msg['common.open']}">
+                                <svg class="icon-link" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
+                            </a>
+                            <span th:if="${currentDocId == null or currentDocId.isEmpty()}"
+                                  class="text-dim">—</span>
+                        </td>
+                        <td th:each="cell : ${row}" th:text="${cell}"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <p th:if="${error == null and (rows == null or rows.isEmpty())}" class="text-dim" th:text="${msg['common.noData']}">No data.</p>
+</div>
