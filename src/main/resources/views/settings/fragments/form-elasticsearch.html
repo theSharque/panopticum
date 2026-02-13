@@ -1,0 +1,40 @@
+<div xmlns:th="http://www.thymeleaf.org" id="form-elasticsearch" class="connection-form-block" hidden th:fragment="form-elasticsearch">
+    <form id="connection-form-elasticsearch" action="/settings/add-elasticsearch" method="post" class="add-connection-form"
+          hx-post="/settings/add-elasticsearch"
+          hx-target="#sidebar"
+          hx-swap="outerHTML">
+        <div class="form-group">
+            <label for="name-elasticsearch" th:text="${msg['common.name']}">Name</label>
+            <input type="text" id="name-elasticsearch" name="name" required th:attr="placeholder=${msg['settings.placeholderNameElasticsearch']}">
+        </div>
+        <div class="form-group">
+            <label for="host-elasticsearch" th:text="${msg['settings.host']}">Host</label>
+            <input type="text" id="host-elasticsearch" name="host" required placeholder="localhost" value="localhost">
+        </div>
+        <div class="form-group">
+            <label for="port-elasticsearch" th:text="${msg['settings.port']}">Port</label>
+            <input type="number" id="port-elasticsearch" name="port" value="9200" placeholder="9200">
+        </div>
+        <div class="form-group">
+            <label for="username-elasticsearch" th:text="${msg['settings.username']}">Username</label>
+            <input type="text" id="username-elasticsearch" name="username" placeholder="">
+        </div>
+        <div class="form-group">
+            <label for="password-elasticsearch" th:text="${msg['settings.password']}">Password</label>
+            <input type="password" id="password-elasticsearch" name="password" placeholder="">
+        </div>
+        <input type="hidden" name="database" value="">
+        <div class="form-actions">
+            <span id="test-indicator-elasticsearch" class="connection-test-indicator" aria-hidden="true" th:text="${msg['settings.testing']}">Checking...</span>
+            <button type="button" class="btn-check"
+                    hx-post="/settings/test-elasticsearch"
+                    hx-include="#connection-form-elasticsearch"
+                    hx-target="#connection-test-result-elasticsearch"
+                    hx-swap="innerHTML show:bottom"
+                    hx-indicator="#test-indicator-elasticsearch"
+                    th:text="${msg['settings.test']}">Test</button>
+            <button type="submit" th:text="${msg['settings.add']}">Add</button>
+        </div>
+        <div id="connection-test-result-elasticsearch" class="connection-test-result"></div>
+    </form>
+</div>

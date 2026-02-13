@@ -35,6 +35,10 @@
     --radius: 6px;
     --radius-lg: 8px;
     --duration: 200ms;
+
+    --scrollbar-track: var(--bg-elevated);
+    --scrollbar-thumb: var(--text-dim);
+    --scrollbar-thumb-hover: var(--accent);
 }
 
 * {
@@ -346,6 +350,26 @@ body {
     padding: var(--space-3xl) var(--space-3xl);
     max-width: 100%;
     overflow: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+.main-content::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.main-content::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+}
+
+.main-content::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 4px;
+}
+
+.main-content::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
 }
 
 .main-content h1 {
@@ -851,6 +875,25 @@ button[type="submit"]:not(.sidebar-delete):not(.query-th-link):hover {
     border-radius: var(--radius-lg);
     margin-top: var(--space-md);
     background: var(--bg-content);
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+.query-table-wrapper::-webkit-scrollbar {
+    height: 8px;
+}
+
+.query-table-wrapper::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+}
+
+.query-table-wrapper::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 4px;
+}
+
+.query-table-wrapper::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
 }
 
 .query-table {
@@ -1043,6 +1086,25 @@ a.query-detail-link {
     white-space: pre-wrap;
     word-break: break-word;
     color: var(--text-secondary);
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+.detail-json::-webkit-scrollbar {
+    height: 8px;
+}
+
+.detail-json::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+}
+
+.detail-json::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 4px;
+}
+
+.detail-json::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
 }
 
 .detail-json-textarea {

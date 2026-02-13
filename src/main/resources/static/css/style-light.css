@@ -20,6 +20,10 @@
     --red-500: #dc2626;
 
     --table-row-stripe: rgba(0, 0, 0, 0.03);
+
+    --scrollbar-track: var(--bg-elevated);
+    --scrollbar-thumb: var(--text-dim);
+    --scrollbar-thumb-hover: var(--accent);
 }
 
 .sidebar-footer {

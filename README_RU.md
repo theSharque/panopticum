@@ -24,6 +24,7 @@
 | **Cassandra** | Просмотр keyspace и таблиц; выполнение CQL; редактирование строк (если у таблицы есть primary key) |
 | **RabbitMQ** | Просмотр очередей; просмотр сообщений (peek, только чтение, без редактирования) |
 | **Kafka** | Просмотр топиков и партиций; просмотр записей (только чтение) |
+| **Elasticsearch / OpenSearch** | Просмотр индексов; поиск (Query DSL); просмотр и редактирование документов по _id (без удаления) |
 
 Подключения хранятся в H2. В настройках можно добавлять подключения, проверять их и удалять.
 
@@ -35,7 +36,7 @@
 - Добавление, проверка и удаление подключений для каждого типа БД
 - Просмотр метаданных (схемы, таблицы, коллекции, ключи) с постраничной навигацией
 - Выполнение SQL (PostgreSQL, MySQL/MariaDB, MS SQL Server, Oracle, ClickHouse, Cassandra CQL) и запросов (MongoDB)
-- Редактирование и сохранение строк в детальном просмотре (PostgreSQL по ctid, MySQL/MS SQL Server при наличии PK/unique, Oracle по ROWID, MongoDB, Redis, Cassandra при наличии primary key)
+- Редактирование и сохранение строк в детальном просмотре (PostgreSQL по ctid, MySQL/MS SQL Server при наличии PK/unique, Oracle по ROWID, MongoDB, Redis, Cassandra при наличии primary key, Elasticsearch/OpenSearch — документ по _id)
 - HTMX для частичного обновления без перезагрузки страницы
 - Локализация: EN и RU (по браузеру или пути)
 
@@ -64,7 +65,7 @@
 
 Значение — JSON-массив объектов подключений. Каждый объект можно задать одним из двух способов:
 
-1. **Явные поля:** `name`, `type`, `host`, `port`, `database`, `username`, `password`. Поддерживаемые значения `type`: `postgresql`, `mongodb`, `redis`, `clickhouse`, `mysql`, `sqlserver`, `oracle`, `cassandra`, `rabbitmq`, `kafka`.
+1. **Явные поля:** `name`, `type`, `host`, `port`, `database`, `username`, `password`. Поддерживаемые значения `type`: `postgresql`, `mongodb`, `redis`, `clickhouse`, `mysql`, `sqlserver`, `oracle`, `cassandra`, `rabbitmq`, `kafka`, `elasticsearch`.
 2. **JDBC-строка:** поля `name` и `jdbcUrl` (или `url`). По URL извлекаются тип, хост, порт, база, пользователь и пароль. Поддерживается для PostgreSQL, MySQL, MS SQL Server, Oracle и ClickHouse (например `jdbc:postgresql://user:pass@host:5432/dbname`, `jdbc:sqlserver://host:1433;databaseName=db;user=sa;password=secret`, `jdbc:oracle:thin:@//host:1521/XEPDB1`).
 
 Пример:
@@ -194,6 +195,29 @@ docker compose up -d kafka kafka-init
 3. Откройте его → **Топики** (список) → выберите топик → **Партиции** → выберите партицию → **Записи** (peek) → выберите запись → **Запись** (детальный просмотр, только чтение).
 
 Экраны: **Топики** → **Партиции** (по одному топику) → **Записи** (по одной партиции) → **Запись** (деталь). Редактирование и удаление недоступны.
+
+## Elasticsearch / OpenSearch (локальная разработка)
+
+Elasticsearch и OpenSearch поддерживаются через **REST API** (HTTP): список индексов, поиск с Query DSL, просмотр документа и редактирование по _id (полная замена _source). Удаление документов недоступно.
+
+### Запуск OpenSearch и загрузка тестовых данных
+
+Из корня проекта:
+
+```bash
+docker compose up -d opensearch opensearch-init
+```
+
+- HTTP API: **http://localhost:43012**
+- Сервис `opensearch-init` создаёт индекс `panopticum_demo` и индексирует тестовые документы (логи).
+
+### Добавление подключения Elasticsearch в Panopticum
+
+1. **Настройки** → выберите **Elasticsearch / OpenSearch** → укажите **Хост** (например `localhost`), **Порт** (например `43012`). При необходимости — **Пользователь** и **Пароль** (Basic Auth кластера).
+2. Нажмите **Проверить**, затем **Добавить**. Подключение появится в боковой панели.
+3. Откройте его → **Индексы** (список) → выберите индекс → **Поиск** (Query DSL, например `{"query":{"match_all":{}}}`) → таблица результатов с _id → нажмите **Открыть** по строке → **Документ** (просмотр/редактирование JSON _source, **Сохранить** для обновления). Удаление недоступно.
+
+Экраны: **Индексы** → **Поиск** (по одному индексу) → **Документ** (просмотр/редактирование). Совместимо с Elasticsearch и OpenSearch (один REST API).
 
 ## CI/CD
 
