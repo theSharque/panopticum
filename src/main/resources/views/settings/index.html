@@ -10,14 +10,14 @@
             <label for="connection-type" th:text="${msg['settings.connectionType']}">Connection type</label>
             <select id="connection-type" class="connection-type-select">
                 <option value="" th:text="${msg['settings.selectType']}">Select type</option>
-                <option value="postgresql">PostgreSQL</option>
+                <option value="postgresql">PostgreSQL / CockroachDB / YugabyteDB</option>
                 <option value="mongodb">MongoDB</option>
-                <option value="redis">Redis</option>
+                <option value="redis">Redis / Dragonfly / Valkey / KeyDB</option>
                 <option value="clickhouse">ClickHouse</option>
-                <option value="mysql">MySQL (MariaDB)</option>
+                <option value="mysql">MySQL / MariaDB</option>
                 <option value="sqlserver">MS SQL Server</option>
                 <option value="oracle">Oracle Database</option>
-                <option value="cassandra">Cassandra</option>
+                <option value="cassandra">Cassandra / ScyllaDB</option>
                 <option value="rabbitmq">RabbitMQ</option>
                 <option value="kafka">Kafka</option>
                 <option value="elasticsearch">Elasticsearch / OpenSearch</option>
