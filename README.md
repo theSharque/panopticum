@@ -14,14 +14,14 @@ A tool for developers and QA — web interface for viewing and managing database
 
 | Type | Features |
 |------|----------|
-| **PostgreSQL** | Browse databases, schemas, tables; run SQL; edit rows |
-| **MySQL (MariaDB)** | Browse databases and tables; run SQL; edit rows (if table has PK or unique index) |
+| **PostgreSQL / CockroachDB / YugabyteDB** | Browse databases, schemas, tables; run SQL; edit rows |
+| **MySQL / MariaDB** | Browse databases and tables; run SQL; edit rows (if table has PK or unique index) |
 | **MS SQL Server** | Browse databases, schemas, tables; run SQL; edit rows (if table has PK or unique index) |
 | **Oracle Database** | Browse schemas and tables; run SQL; edit rows by ROWID |
 | **MongoDB** | Browse databases and collections; run queries |
-| **Redis** | Browse databases and keys; view key types and values |
+| **Redis / Dragonfly / Valkey / KeyDB** | Browse databases and keys; view key types and values |
 | **ClickHouse** | Browse databases and tables; run SQL |
-| **Cassandra** | Browse keyspaces and tables; run CQL; edit rows (when table has primary key) |
+| **Cassandra / ScyllaDB** | Browse keyspaces and tables; run CQL; edit rows (when table has primary key) |
 | **RabbitMQ** | Browse queues; peek messages (read-only, no edit/delete) |
 | **Kafka** | Browse topics and partitions; peek records (read-only) |
 | **Elasticsearch / OpenSearch** | Browse indices; search (Query DSL); view and edit documents by _id (no delete) |
@@ -35,8 +35,8 @@ Connections are stored in H2. In Settings you can add connections, test them, an
 - Sidebar with saved connections and quick access to Settings
 - Add, test, and remove connections per database type
 - Browse metadata (schemas, tables, collections, keys) with pagination
-- Execute SQL (PostgreSQL, MySQL/MariaDB, MS SQL Server, Oracle, ClickHouse, Cassandra CQL) and queries (MongoDB)
-- Edit and save rows in detail view (PostgreSQL by ctid, MySQL/MS SQL Server when table has PK/unique, Oracle by ROWID, MongoDB, Redis, Cassandra when table has primary key, Elasticsearch/OpenSearch document by _id)
+- Execute SQL (PostgreSQL / CockroachDB / YugabyteDB, MySQL / MariaDB, MS SQL Server, Oracle, ClickHouse, Cassandra / ScyllaDB CQL) and queries (MongoDB)
+- Edit and save rows in detail view (PostgreSQL by ctid, MySQL/MS SQL Server when table has PK/unique, Oracle by ROWID, MongoDB, Redis / Dragonfly / Valkey / KeyDB, Cassandra / ScyllaDB when table has primary key, Elasticsearch / OpenSearch document by _id)
 - HTMX for partial updates without full page reloads
 - Localization: EN and RU (browser or path)
 

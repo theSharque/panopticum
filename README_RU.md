@@ -14,14 +14,14 @@
 
 | Тип | Возможности |
 |-----|--------------|
-| **PostgreSQL** | Просмотр баз, схем, таблиц; выполнение SQL; редактирование строк |
-| **MySQL (MariaDB)** | Просмотр баз и таблиц; выполнение SQL; редактирование строк (если у таблицы есть PK или unique-индекс) |
+| **PostgreSQL / CockroachDB / YugabyteDB** | Просмотр баз, схем, таблиц; выполнение SQL; редактирование строк |
+| **MySQL / MariaDB** | Просмотр баз и таблиц; выполнение SQL; редактирование строк (если у таблицы есть PK или unique-индекс) |
 | **MS SQL Server** | Просмотр баз, схем, таблиц; выполнение SQL; редактирование строк (если у таблицы есть PK или unique-индекс) |
 | **Oracle Database** | Просмотр схем и таблиц; выполнение SQL; редактирование строк по ROWID |
 | **MongoDB** | Просмотр баз и коллекций; выполнение запросов |
-| **Redis** | Просмотр баз и ключей; типы и значения |
+| **Redis / Dragonfly / Valkey / KeyDB** | Просмотр баз и ключей; типы и значения |
 | **ClickHouse** | Просмотр баз и таблиц; выполнение SQL |
-| **Cassandra** | Просмотр keyspace и таблиц; выполнение CQL; редактирование строк (если у таблицы есть primary key) |
+| **Cassandra / ScyllaDB** | Просмотр keyspace и таблиц; выполнение CQL; редактирование строк (если у таблицы есть primary key) |
 | **RabbitMQ** | Просмотр очередей; просмотр сообщений (peek, только чтение, без редактирования) |
 | **Kafka** | Просмотр топиков и партиций; просмотр записей (только чтение) |
 | **Elasticsearch / OpenSearch** | Просмотр индексов; поиск (Query DSL); просмотр и редактирование документов по _id (без удаления) |
@@ -35,8 +35,8 @@
 - Боковая панель со списком сохранённых подключений и быстрым доступом в Настройки
 - Добавление, проверка и удаление подключений для каждого типа БД
 - Просмотр метаданных (схемы, таблицы, коллекции, ключи) с постраничной навигацией
-- Выполнение SQL (PostgreSQL, MySQL/MariaDB, MS SQL Server, Oracle, ClickHouse, Cassandra CQL) и запросов (MongoDB)
-- Редактирование и сохранение строк в детальном просмотре (PostgreSQL по ctid, MySQL/MS SQL Server при наличии PK/unique, Oracle по ROWID, MongoDB, Redis, Cassandra при наличии primary key, Elasticsearch/OpenSearch — документ по _id)
+- Выполнение SQL (PostgreSQL / CockroachDB / YugabyteDB, MySQL / MariaDB, MS SQL Server, Oracle, ClickHouse, Cassandra / ScyllaDB CQL) и запросов (MongoDB)
+- Редактирование и сохранение строк в детальном просмотре (PostgreSQL по ctid, MySQL/MS SQL Server при наличии PK/unique, Oracle по ROWID, MongoDB, Redis / Dragonfly / Valkey / KeyDB, Cassandra / ScyllaDB при наличии primary key, Elasticsearch / OpenSearch — документ по _id)
 - HTMX для частичного обновления без перезагрузки страницы
 - Локализация: EN и RU (по браузеру или пути)
 
