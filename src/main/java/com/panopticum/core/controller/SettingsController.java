@@ -327,6 +327,7 @@ public class SettingsController {
         dbConnectionService.deleteById(id);
         Map<String, Object> model = new HashMap<>();
         model.put("connections", dbConnectionService.findAll());
+        model.put("adminLock", adminLock);
 
         boolean hxRequest = "true".equalsIgnoreCase(request.getHeaders().getFirst(HX_REQUEST).orElse(""));
 
@@ -339,7 +340,8 @@ public class SettingsController {
 
     private Object responseAfterAdd(HttpRequest<?> request, Map<String, Object> model,
                                     Long savedId, String redirectPath) {
-         boolean hxRequest = "true".equalsIgnoreCase(request.getHeaders().getFirst(HX_REQUEST).orElse(""));
+        model.put("adminLock", adminLock);
+        boolean hxRequest = "true".equalsIgnoreCase(request.getHeaders().getFirst(HX_REQUEST).orElse(""));
         if (hxRequest) {
             if (savedId != null) {
                 request.setAttribute(HxRedirectFilter.HX_REDIRECT_ATTR, redirectPath);

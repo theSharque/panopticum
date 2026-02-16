@@ -1,10 +1,13 @@
 package com.panopticum.core.config;
 
+import lombok.extern.slf4j.Slf4j;
+
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+@Slf4j
 public final class JdbcUrlParser {
 
     private static final Pattern JDBC_PREFIX = Pattern.compile("^jdbc:([^:]+):(?://)?(.*)$");
@@ -75,7 +78,8 @@ public final class JdbcUrlParser {
                 host = authority.substring(0, colon);
                 try {
                     port = Integer.parseInt(authority.substring(colon + 1));
-                } catch (NumberFormatException ignored) {
+                } catch (NumberFormatException e) {
+                    log.warn("Cannot parse port from JDBC URL authority: '{}'", authority);
                 }
             } else {
                 host = authority;
@@ -118,7 +122,8 @@ public final class JdbcUrlParser {
                 }
                 try {
                     port = Integer.parseInt(first.substring(colon + 1).trim());
-                } catch (NumberFormatException ignored) {
+                } catch (NumberFormatException e) {
+                    log.warn("Cannot parse SQL Server port from: '{}'", first);
                 }
             } else {
                 host = first.isBlank() ? "localhost" : first;
@@ -165,7 +170,8 @@ public final class JdbcUrlParser {
                     }
                     try {
                         port = Integer.parseInt(hostPort.substring(colon + 1).trim());
-                    } catch (NumberFormatException ignored) {
+                    } catch (NumberFormatException e) {
+                        log.warn("Cannot parse Oracle port from: '{}'", hostPort);
                     }
                 } else {
                     host = hostPort.isBlank() ? "localhost" : hostPort;
@@ -179,7 +185,8 @@ public final class JdbcUrlParser {
             if (parts.length >= 2) {
                 try {
                     port = Integer.parseInt(parts[1].trim());
-                } catch (NumberFormatException ignored) {
+                } catch (NumberFormatException e) {
+                    log.warn("Cannot parse Oracle port from: '{}'", parts[1].trim());
                 }
             }
             if (parts.length >= 3 && !parts[2].isBlank()) {
@@ -197,6 +204,7 @@ public final class JdbcUrlParser {
         try {
             return URLDecoder.decode(s, StandardCharsets.UTF_8);
         } catch (Exception e) {
+            log.warn("Failed to URL-decode '{}': {}", s, e.getMessage());
             return s;
         }
     }

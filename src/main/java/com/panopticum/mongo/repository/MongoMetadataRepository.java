@@ -202,10 +202,9 @@ public class MongoMetadataRepository {
                 return Optional.empty();
             }
             MongoCollection<Document> collection = client.getDatabase(dbName).getCollection(collectionName);
-            Document doc;
-            if (docId.length() == 24 && docId.matches("[0-9a-fA-F]+")) {
-                doc = collection.find(new Document("_id", new ObjectId(docId))).first();
-            } else {
+            Object filterId = resolveDocId(docId);
+            Document doc = collection.find(new Document("_id", filterId)).first();
+            if (doc == null) {
                 doc = collection.find(new Document("_id", docId)).first();
             }
             return Optional.ofNullable(doc);
@@ -225,7 +224,7 @@ public class MongoMetadataRepository {
             if (client == null) {
                 return Optional.of("error.connectionNotAvailable");
             }
-            Object filterId = docId.length() == 24 && docId.matches("[0-9a-fA-F]+") ? new ObjectId(docId) : docId;
+            Object filterId = resolveDocId(docId);
             MongoCollection<Document> collection = client.getDatabase(dbName).getCollection(collectionName);
             collection.replaceOne(new Document("_id", filterId), doc);
             return Optional.empty();
@@ -233,5 +232,22 @@ public class MongoMetadataRepository {
             log.warn("replaceDocument failed: {}", e.getMessage());
             return Optional.of(e.getMessage());
         }
+    }
+
+    private Object resolveDocId(String docId) {
+        if (docId.length() == 24 && docId.matches("[0-9a-fA-F]+")) {
+            return new ObjectId(docId);
+        }
+        try {
+            return Long.parseLong(docId);
+        } catch (NumberFormatException e) {
+            log.warn("docId '{}' is not a Long, trying Double", docId);
+        }
+        try {
+            return Double.parseDouble(docId);
+        } catch (NumberFormatException e) {
+            log.warn("docId '{}' is not a Double, falling back to String", docId);
+        }
+        return docId;
     }
 }
