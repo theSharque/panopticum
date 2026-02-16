@@ -54,7 +54,8 @@ public class ConnectionTestService {
                 if (!db.isBlank()) {
                     try {
                         dbIndex = Integer.parseInt(db.trim());
-                    } catch (NumberFormatException ignored) {
+                    } catch (NumberFormatException e) {
+                        log.warn("Invalid Redis DB index '{}', using default 0", db.trim());
                     }
                 }
                 yield redisMetadataService.testConnection(h, p, pass, dbIndex);
