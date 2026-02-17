@@ -19,6 +19,10 @@ micronaut:
     name: panopticum
   server:
     max-request-size: 50MB
+    multipart:
+      max-file-size: 50MB
+    netty:
+      form-max-buffered-bytes: 52428800
   router:
     static-resources:
       default:
