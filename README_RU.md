@@ -73,8 +73,16 @@
 ```json
 [
   {"name": "prod-pg", "jdbcUrl": "jdbc:postgresql://app:secret@pg.svc:5432/mydb"},
+  {"name": "prod-mysql", "jdbcUrl": "jdbc:mysql://app:secret@mysql.svc:3306/mydb"},
+  {"name": "prod-mssql", "jdbcUrl": "jdbc:sqlserver://mssql.svc:1433;databaseName=mydb;user=sa;password=secret"},
+  {"name": "prod-oracle", "jdbcUrl": "jdbc:oracle:thin:app/secret@//oracle.svc:1521/XEPDB1"},
   {"name": "analytics", "jdbcUrl": "jdbc:clickhouse://clickhouse.svc:8123/default"},
-  {"name": "cache", "type": "redis", "host": "redis.svc", "port": 6379}
+  {"name": "docs", "type": "mongodb", "host": "mongo.svc", "port": 27017, "database": "mydb", "username": "app", "password": "secret"},
+  {"name": "cache", "type": "redis", "host": "redis.svc", "port": 6379},
+  {"name": "events-db", "type": "cassandra", "host": "cassandra.svc", "port": 9042, "database": "mykeyspace", "username": "cassandra", "password": "secret"},
+  {"name": "broker", "type": "rabbitmq", "host": "rabbitmq.svc", "port": 15672, "username": "guest", "password": "guest"},
+  {"name": "streaming", "type": "kafka", "host": "kafka.svc", "port": 9092},
+  {"name": "search", "type": "elasticsearch", "host": "es.svc", "port": 9200, "username": "elastic", "password": "secret"}
 ]
 ```
 
@@ -133,91 +141,6 @@ docker run -d --name panopticum \
 ```
 
 Откройте **http://localhost:8080**. Для Kubernetes используйте те же переменные окружения и смонтируйте том на `/data` для сохранения данных H2.
-
-## RabbitMQ (локальная разработка)
-
-Поддержка RabbitMQ реализована через **Management HTTP API** (только чтение: список очередей, просмотр сообщений через peek). AMQP-клиента в приложении нет.
-
-### Запуск RabbitMQ с Management-плагином
-
-Из корня проекта:
-
-```bash
-docker compose up -d rabbitmq
-```
-
-- AMQP: **localhost:43009**
-- Веб-интерфейс и Management API: **http://localhost:43010** (логин/пароль по умолчанию: `guest` / `guest`)
-
-### Создание тестовой очереди и отправка сообщений
-
-1. Откройте http://localhost:43010 и войдите под `guest` / `guest`.
-2. Перейдите в **Queues** → **Add a new queue** (например имя `test-queue`, vhost `/`) → **Add queue**.
-3. Откройте очередь → **Publish message** и отправьте несколько сообщений (payload и routing key по желанию).
-
-Либо через Management API (очередь создаётся вручную во вкладке Queues, затем публикация):
-
-```bash
-curl -u guest:guest -X POST http://localhost:43010/api/exchanges/%2F/amq.default/publish \
-  -H "Content-Type: application/json" \
-  -d '{"properties":{},"routing_key":"test-queue","payload":"{\"hello\":\"world\"}","payload_encoding":"string"}'
-```
-
-(Нужно, чтобы очередь `test-queue` была привязана к default exchange или к выбранному.)
-
-### Добавление подключения RabbitMQ в Panopticum
-
-1. **Настройки** → выберите **RabbitMQ** → укажите **Хост** (например `localhost`), **Порт** (порт Management API, например `43010` или `15672`), **VHost** (например `/`), **Пользователь** и **Пароль**.
-2. Нажмите **Проверить**, затем **Добавить**. Подключение появится в боковой панели.
-3. Откройте его → **Очереди** (список) → выберите очередь → **Сообщения** (peek, только чтение) → выберите сообщение → **Сообщение** (детальный просмотр, только чтение).
-
-Экраны: **Очереди** → **Сообщения** (по одной очереди) → **Сообщение** (деталь). Редактирование и удаление сообщений недоступны.
-
-## Kafka (локальная разработка)
-
-Поддержка Kafka реализована через **нативный Java-клиент** (AdminClient + Consumer). Только чтение: список топиков, список партиций, просмотр записей в партиции. Без публикации и удаления.
-
-### Запуск Kafka и загрузка тестовых данных
-
-Из корня проекта:
-
-```bash
-docker compose up -d kafka kafka-init
-```
-
-- Bootstrap: **localhost:43011**
-- Сервис `kafka-init` создаёт топики `demo-events` (3 партиции) и `demo-metrics` (1 партиция) и записывает тестовые JSON-сообщения.
-
-### Добавление подключения Kafka в Panopticum
-
-1. **Настройки** → выберите **Kafka** → укажите **Хост** (например `localhost`), **Порт** (например `43011`).
-2. Нажмите **Проверить**, затем **Добавить**. Подключение появится в боковой панели.
-3. Откройте его → **Топики** (список) → выберите топик → **Партиции** → выберите партицию → **Записи** (peek) → выберите запись → **Запись** (детальный просмотр, только чтение).
-
-Экраны: **Топики** → **Партиции** (по одному топику) → **Записи** (по одной партиции) → **Запись** (деталь). Редактирование и удаление недоступны.
-
-## Elasticsearch / OpenSearch (локальная разработка)
-
-Elasticsearch и OpenSearch поддерживаются через **REST API** (HTTP): список индексов, поиск с Query DSL, просмотр документа и редактирование по _id (полная замена _source). Удаление документов недоступно.
-
-### Запуск OpenSearch и загрузка тестовых данных
-
-Из корня проекта:
-
-```bash
-docker compose up -d opensearch opensearch-init
-```
-
-- HTTP API: **http://localhost:43012**
-- Сервис `opensearch-init` создаёт индекс `panopticum_demo` и индексирует тестовые документы (логи).
-
-### Добавление подключения Elasticsearch в Panopticum
-
-1. **Настройки** → выберите **Elasticsearch / OpenSearch** → укажите **Хост** (например `localhost`), **Порт** (например `43012`). При необходимости — **Пользователь** и **Пароль** (Basic Auth кластера).
-2. Нажмите **Проверить**, затем **Добавить**. Подключение появится в боковой панели.
-3. Откройте его → **Индексы** (список) → выберите индекс → **Поиск** (Query DSL, например `{"query":{"match_all":{}}}`) → таблица результатов с _id → нажмите **Открыть** по строке → **Документ** (просмотр/редактирование JSON _source, **Сохранить** для обновления). Удаление недоступно.
-
-Экраны: **Индексы** → **Поиск** (по одному индексу) → **Документ** (просмотр/редактирование). Совместимо с Elasticsearch и OpenSearch (один REST API).
 
 ## CI/CD
 
