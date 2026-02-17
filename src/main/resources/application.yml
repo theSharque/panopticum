@@ -17,6 +17,8 @@ panopticum:
 micronaut:
   application:
     name: panopticum
+  server:
+    max-request-size: 50MB
   router:
     static-resources:
       default:
