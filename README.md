@@ -73,8 +73,16 @@ Example:
 ```json
 [
   {"name": "prod-pg", "jdbcUrl": "jdbc:postgresql://app:secret@pg.svc:5432/mydb"},
+  {"name": "prod-mysql", "jdbcUrl": "jdbc:mysql://app:secret@mysql.svc:3306/mydb"},
+  {"name": "prod-mssql", "jdbcUrl": "jdbc:sqlserver://mssql.svc:1433;databaseName=mydb;user=sa;password=secret"},
+  {"name": "prod-oracle", "jdbcUrl": "jdbc:oracle:thin:app/secret@//oracle.svc:1521/XEPDB1"},
   {"name": "analytics", "jdbcUrl": "jdbc:clickhouse://clickhouse.svc:8123/default"},
-  {"name": "cache", "type": "redis", "host": "redis.svc", "port": 6379}
+  {"name": "docs", "type": "mongodb", "host": "mongo.svc", "port": 27017, "database": "mydb", "username": "app", "password": "secret"},
+  {"name": "cache", "type": "redis", "host": "redis.svc", "port": 6379},
+  {"name": "events-db", "type": "cassandra", "host": "cassandra.svc", "port": 9042, "database": "mykeyspace", "username": "cassandra", "password": "secret"},
+  {"name": "broker", "type": "rabbitmq", "host": "rabbitmq.svc", "port": 15672, "username": "guest", "password": "guest"},
+  {"name": "streaming", "type": "kafka", "host": "kafka.svc", "port": 9092},
+  {"name": "search", "type": "elasticsearch", "host": "es.svc", "port": 9200, "username": "elastic", "password": "secret"}
 ]
 ```
 
@@ -133,91 +141,6 @@ docker run -d --name panopticum \
 ```
 
 Open **http://localhost:8080**. For Kubernetes, use the same env vars and mount a volume at `/data` for H2 persistence.
-
-## RabbitMQ (local dev)
-
-RabbitMQ is supported via the **Management HTTP API** (read-only: list queues, peek messages). No AMQP client in the app.
-
-### Start RabbitMQ with Management plugin
-
-From the project root:
-
-```bash
-docker compose up -d rabbitmq
-```
-
-- AMQP: **localhost:43009**
-- Management UI and API: **http://localhost:43010** (default user/password: `guest` / `guest`)
-
-### Create a test queue and send messages
-
-1. Open http://localhost:43010 and log in with `guest` / `guest`.
-2. Go to **Queues** → **Add a new queue** (e.g. name `test-queue`, vhost `/`) → **Add queue**.
-3. Open the queue → **Publish message** and send a few messages (payload and routing key optional).
-
-Or use the Management API (e.g. create queue via **Queues** tab, then publish):
-
-```bash
-curl -u guest:guest -X POST http://localhost:43010/api/exchanges/%2F/amq.default/publish \
-  -H "Content-Type: application/json" \
-  -d '{"properties":{},"routing_key":"test-queue","payload":"{\"hello\":\"world\"}","payload_encoding":"string"}'
-```
-
-(Ensure the queue `test-queue` is bound to the default exchange or the one you use.)
-
-### Add RabbitMQ connection in Panopticum
-
-1. Go to **Settings** → choose **RabbitMQ** → fill **Host** (e.g. `localhost`), **Port** (Management API port, e.g. `43010` or `15672`), **VHost** (e.g. `/`), **Username** and **Password**.
-2. Click **Test**, then **Add**. The connection appears in the sidebar.
-3. Open it → **Queues** (list) → click a queue → **Messages** (peek, read-only) → click a message → **Message** (detail, read-only).
-
-Screens: **Queues** → **Messages** (for one queue) → **Message** (detail). No editing or deleting of messages.
-
-## Kafka (local dev)
-
-Kafka is supported via the **native Java client** (AdminClient + Consumer). Read-only: list topics, list partitions, peek records in a partition. No producing or deleting.
-
-### Start Kafka and load test data
-
-From the project root:
-
-```bash
-docker compose up -d kafka kafka-init
-```
-
-- Bootstrap: **localhost:43011**
-- The `kafka-init` service creates topics `demo-events` (3 partitions) and `demo-metrics` (1 partition) and produces sample JSON messages.
-
-### Add Kafka connection in Panopticum
-
-1. Go to **Settings** → choose **Kafka** → fill **Host** (e.g. `localhost`), **Port** (e.g. `43011`).
-2. Click **Test**, then **Add**. The connection appears in the sidebar.
-3. Open it → **Topics** (list) → click a topic → **Partitions** → click a partition → **Records** (peek) → click a record → **Record** (detail, read-only).
-
-Screens: **Topics** → **Partitions** (for one topic) → **Records** (for one partition) → **Record** (detail). No editing or deleting.
-
-## Elasticsearch / OpenSearch (local dev)
-
-Elasticsearch and OpenSearch are supported via the **REST API** (HTTP). You can list indices, run search with Query DSL, view document details, and edit documents by _id (full replace of _source). No delete.
-
-### Start OpenSearch and load test data
-
-From the project root:
-
-```bash
-docker compose up -d opensearch opensearch-init
-```
-
-- HTTP API: **http://localhost:43012**
-- The `opensearch-init` service creates the index `panopticum_demo` and indexes sample log-like documents.
-
-### Add Elasticsearch connection in Panopticum
-
-1. Go to **Settings** → choose **Elasticsearch / OpenSearch** → fill **Host** (e.g. `localhost`), **Port** (e.g. `43012`). Optionally set **Username** and **Password** for clusters with Basic Auth.
-2. Click **Test**, then **Add**. The connection appears in the sidebar.
-3. Open it → **Indices** (list) → click an index → **Search** (Query DSL, e.g. `{"query":{"match_all":{}}}`) → results table with document _id → click **Open** on a row → **Document details** (view/edit JSON _source, **Save** to update). No delete.
-
-Screens: **Indices** → **Search** (for one index) → **Document details** (view/edit). Compatible with both Elasticsearch and OpenSearch (same REST API).
 
 ## CI/CD
 
