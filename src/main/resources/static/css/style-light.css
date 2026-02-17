@@ -30,6 +30,10 @@
     margin-top: auto;
     padding: var(--space-md) var(--space-lg);
     border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
 }
 
 .sidebar-footer-link {
@@ -41,4 +45,9 @@
 
 .sidebar-footer-link:hover {
     color: var(--accent);
+}
+
+.sidebar-footer-version {
+    font-size: 11px;
+    color: var(--text-muted);
 }

@@ -10,6 +10,9 @@ RUN ./gradlew shadowJar --no-daemon
 
 FROM eclipse-temurin:17-jre
 
+ARG APP_VERSION=dev
+ENV APP_VERSION=$APP_VERSION
+
 RUN groupadd -g 1001 app && useradd -u 1001 -g app -s /bin/false app
 
 WORKDIR /app

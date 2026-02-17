@@ -1,5 +1,6 @@
 package com.panopticum.i18n;
 
+import io.micronaut.context.annotation.Value;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.views.ModelAndView;
 import io.micronaut.views.model.ViewModelProcessor;
@@ -12,6 +13,9 @@ public class I18nViewModelProcessor implements ViewModelProcessor<Object> {
 
     private static final String THEME_COOKIE = "theme";
     private static final String DEFAULT_THEME = "dark";
+
+    @Value("${panopticum.version:dev}")
+    private String appVersion;
 
     @Override
     public void process(HttpRequest<?> request, ModelAndView<Object> modelAndView) {
@@ -32,6 +36,7 @@ public class I18nViewModelProcessor implements ViewModelProcessor<Object> {
                 String requestUri = query != null && !query.isEmpty() ? path + "?" + query : path;
                 model.put("requestUri", requestUri);
                 model.put("theme", theme);
+                model.put("appVersion", appVersion);
             }
         });
     }
