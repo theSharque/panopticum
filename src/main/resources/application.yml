@@ -34,6 +34,10 @@ micronaut:
         enabled: true
         mapping: "/favicon*"
         paths: classpath:static
+      js:
+        enabled: true
+        mapping: "/js/**"
+        paths: classpath:static/js
   security:
     authentication: basic
     csrf:
