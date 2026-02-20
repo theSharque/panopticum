@@ -798,6 +798,7 @@ button[type="submit"]:not(.sidebar-delete):not(.query-th-link):hover {
 }
 
 .query-form {
+    position: relative;
     display: flex;
     flex-direction: column;
     gap: var(--space-md);
@@ -867,6 +868,138 @@ button[type="submit"]:not(.sidebar-delete):not(.query-th-link):hover {
     background: var(--bg-hover);
     border-color: var(--accent);
     color: var(--accent-hover);
+}
+
+.query-actions {
+    display: flex;
+    flex-direction: row;
+    gap: var(--space-sm);
+    align-items: center;
+}
+
+.query-history-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    background: var(--bg-elevated);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: border-color var(--duration), background var(--duration), color var(--duration);
+}
+
+.query-history-btn:hover {
+    background: var(--bg-hover);
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.query-history-btn .icon-clock {
+    display: block;
+}
+
+.query-history-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    margin-top: var(--space-sm);
+    max-height: 280px;
+    overflow-y: auto;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 100;
+}
+
+.query-history-dropdown[hidden] {
+    display: none;
+}
+
+.query-history-dropdown-visible {
+    display: block;
+}
+
+.query-history-empty {
+    padding: var(--space-md);
+    color: var(--text-dim);
+    font-size: 13px;
+}
+
+.query-history-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+}
+
+.query-history-item:hover {
+    background: var(--bg-hover);
+}
+
+.query-history-item:last-of-type {
+    border-bottom: none;
+}
+
+.query-history-item-text {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-primary);
+}
+
+.query-history-item-delete {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    background: none;
+    border: none;
+    border-radius: var(--radius);
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: color var(--duration), background var(--duration);
+}
+
+.query-history-item-delete:hover {
+    color: var(--red-500);
+    background: var(--bg-hover);
+}
+
+.query-history-item-delete .icon-delete {
+    display: block;
+}
+
+.query-history-clear {
+    display: block;
+    width: 100%;
+    padding: var(--space-sm) var(--space-md);
+    background: none;
+    border: none;
+    border-top: 1px solid var(--border);
+    color: var(--text-dim);
+    font-size: 12px;
+    cursor: pointer;
+    text-align: left;
+    transition: color var(--duration), background var(--duration);
+}
+
+.query-history-clear:hover {
+    color: var(--red-500);
+    background: var(--bg-hover);
 }
 
 .query-result {
