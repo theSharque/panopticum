@@ -1221,7 +1221,7 @@ a.query-detail-link {
     background: var(--bg-content);
     border: 1px solid var(--border-strong);
     border-radius: var(--radius-lg);
-    overflow-x: auto;
+    overflow: auto;
     font-family: var(--font-mono);
     font-size: 13px;
     line-height: 1.5;
@@ -1233,6 +1233,7 @@ a.query-detail-link {
 }
 
 .detail-json::-webkit-scrollbar {
+    width: 8px;
     height: 8px;
 }
 
@@ -1252,8 +1253,9 @@ a.query-detail-link {
 .detail-json-textarea {
     display: block;
     width: 100%;
-    min-height: 200px;
     box-sizing: border-box;
+    field-sizing: content;
+    overflow-y: auto;
 }
 
 .detail-form {
@@ -1277,8 +1279,9 @@ a.query-detail-link {
 }
 
 .detail-edit-textarea {
-    min-height: 6em;
+    field-sizing: content;
     resize: vertical;
+    overflow-y: auto;
 }
 
 .query-button {
