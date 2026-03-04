@@ -7,6 +7,9 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     textareas.forEach(function (el) {
+        if (el.classList.contains('cm-replaced')) {
+            return;
+        }
         adjustHeight(el);
         el.addEventListener('input', function () {
             adjustHeight(el);

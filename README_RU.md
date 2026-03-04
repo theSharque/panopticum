@@ -38,6 +38,8 @@
 - Выполнение SQL (PostgreSQL / CockroachDB / YugabyteDB, MySQL / MariaDB, MS SQL Server, Oracle, ClickHouse, Cassandra / ScyllaDB CQL) и запросов (MongoDB)
 - Редактирование и сохранение строк в детальном просмотре (PostgreSQL по ctid, MySQL/MS SQL Server при наличии PK/unique, Oracle по ROWID, MongoDB, Redis / Dragonfly / Valkey / KeyDB, Cassandra / ScyllaDB при наличии primary key, Elasticsearch / OpenSearch — документ по _id)
 - HTMX для частичного обновления без перезагрузки страницы
+- Подсветка синтаксиса JSON (read-only блоки и редактор CodeMirror на страницах detail)
+- Офлайн / закрытый контур: все внешние ресурсы (HTMX, Prism, CodeMirror, шрифты) включены локально — CDN не требуется
 - Локализация: EN и RU (по браузеру или пути)
 
 ## Запуск
@@ -95,6 +97,15 @@
 ```
 
 JAR: `build/libs/panopticum-all.jar`
+
+### Пересборка detail-editor (опционально)
+
+Редактор JSON на страницах detail (MongoDB, Elasticsearch, Redis) использует предсобранный бандл. Для пересборки после изменения `detail-editor-src.js` или обновления CodeMirror:
+
+```bash
+npm install
+npm run build:detail-editor
+```
 
 ## Docker
 

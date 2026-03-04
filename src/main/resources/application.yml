@@ -38,12 +38,19 @@ micronaut:
         enabled: true
         mapping: "/js/**"
         paths: classpath:static/js
+      vendor:
+        enabled: true
+        mapping: "/vendor/**"
+        paths: classpath:static/vendor
   security:
     authentication: basic
     csrf:
       enabled: false
     intercept-url-map:
       - pattern: /css/**
+        access:
+          - isAnonymous()
+      - pattern: /vendor/**
         access:
           - isAnonymous()
       - pattern: /favicon.ico

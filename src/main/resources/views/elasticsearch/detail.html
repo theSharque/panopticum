@@ -9,13 +9,13 @@
     <form th:if="${!readOnly}" th:action="@{/elasticsearch/{id}/indices/{idx}/doc/{docId}(id=${connectionId}, idx=${indexNameEncoded}, docId=${docIdEncoded})}" method="post" class="detail-form">
         <input type="hidden" name="indexName" th:value="${indexName}"/>
         <input type="hidden" name="docId" th:value="${docId}"/>
-        <textarea name="body" class="detail-json detail-json-textarea" th:text="${prettyJson}"></textarea>
+        <textarea name="body" class="detail-json detail-json-textarea" data-detail-editor="json" th:text="${prettyJson}"></textarea>
         <div class="detail-actions">
             <button type="submit" class="query-button" th:text="${msg['common.save']}">Save</button>
         </div>
     </form>
     <div th:if="${readOnly}" class="detail-block">
-        <pre class="detail-json detail-json-textarea" th:text="${prettyJson}"></pre>
+        <pre class="detail-json detail-json-textarea"><code class="language-json" th:text="${prettyJson}"></code></pre>
     </div>
 </main>
 </body>

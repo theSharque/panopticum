@@ -17,14 +17,14 @@
             <form th:action="@{/redis/{id}/{dbIndex}/detail(id=${connectionId}, dbIndex=${dbIndex})}" method="post" class="detail-form">
                 <input type="hidden" name="key" th:value="${keyDetail.key}"/>
                 <input type="hidden" name="type" th:value="${keyDetail.type}"/>
-                <textarea name="value" class="detail-json detail-json-textarea" th:text="${keyDetail.value}"></textarea>
+                <textarea name="value" class="detail-json detail-json-textarea" data-detail-editor="json" th:text="${keyDetail.value}"></textarea>
                 <div class="detail-actions">
                     <button type="submit" id="redis-save-btn" class="query-button" th:text="${msg['common.save']}">Save</button>
                 </div>
             </form>
         </div>
         <div th:if="${keyDetail.type == 'string' and readOnly}" class="detail-value">
-            <pre class="detail-value detail-json" th:text="${keyDetail.value}">—</pre>
+            <pre class="detail-value detail-json"><code class="language-json" th:text="${keyDetail.value}">—</code></pre>
         </div>
         <div th:if="${keyDetail.type == 'hash' and keyDetail.value != null and !readOnly}" class="detail-value">
             <form th:action="@{/redis/{id}/{dbIndex}/detail(id=${connectionId}, dbIndex=${dbIndex})}" method="post" class="detail-form">
