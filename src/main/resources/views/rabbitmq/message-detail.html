@@ -12,7 +12,7 @@
             <dt><span th:text="${msg['common.size']}">Size</span> : <span th:text="${message.payloadBytes != null ? message.payloadBytes + ' bytes' : '—'}" class="query-cell-mono"></span></dt>
         </dl>
         <h2 th:text="${msg['rabbitmq.payload']}">Payload</h2>
-        <pre class="detail-value detail-json" th:text="${message.payload}">—</pre>
+        <pre class="detail-value detail-json"><code class="language-json" th:text="${message.payload}">—</code></pre>
         <div th:if="${message.properties != null and !message.properties.isEmpty()}">
             <h2 th:text="${msg['rabbitmq.properties']}">Properties</h2>
             <dl class="detail-dl">

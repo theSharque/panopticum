@@ -14,7 +14,7 @@
             <dt th:if="${record.timestamp != null}"><span th:text="${msg['kafka.timestamp']}">Timestamp</span> : <span th:text="${record.timestamp}" class="query-cell-mono"></span></dt>
         </dl>
         <h2 th:text="${msg['kafka.value']}">Value</h2>
-        <pre class="detail-value detail-json" th:text="${record.value}">—</pre>
+        <pre class="detail-value detail-json"><code class="language-json" th:text="${record.value}">—</code></pre>
         <div th:if="${record.headers != null and !record.headers.isEmpty()}">
             <h2 th:text="${msg['kafka.headers']}">Headers</h2>
             <dl class="detail-dl">

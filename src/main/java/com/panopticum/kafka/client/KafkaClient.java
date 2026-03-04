@@ -206,7 +206,8 @@ public class KafkaClient {
     private Admin adminClient(String bootstrapServers) {
         return Admin.create(Map.of(
                 AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers,
-                AdminClientConfig.REQUEST_TIMEOUT_MS_CONFIG, 10000
+                AdminClientConfig.REQUEST_TIMEOUT_MS_CONFIG, 10000,
+                AdminClientConfig.RETRIES_CONFIG, 10
         ));
     }
 

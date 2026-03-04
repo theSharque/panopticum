@@ -9,7 +9,7 @@
     <form th:action="@{/mongo/{id}/{dbName}/detail(id=${connectionId}, dbName=${dbName})}" method="post" class="detail-form">
         <input type="hidden" name="collection" th:value="${collection}"/>
         <input type="hidden" name="docId" th:value="${docId}"/>
-        <textarea name="body" class="detail-json detail-json-textarea" th:text="${prettyJson}"></textarea>
+        <textarea name="body" class="detail-json detail-json-textarea" data-detail-editor="json" th:text="${prettyJson}"></textarea>
         <div class="detail-actions">
             <button type="submit" class="query-button" th:text="${msg['common.save']}">Save</button>
         </div>

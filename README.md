@@ -38,6 +38,8 @@ Connections are stored in H2. In Settings you can add connections, test them, an
 - Execute SQL (PostgreSQL / CockroachDB / YugabyteDB, MySQL / MariaDB, MS SQL Server, Oracle, ClickHouse, Cassandra / ScyllaDB CQL) and queries (MongoDB)
 - Edit and save rows in detail view (PostgreSQL by ctid, MySQL/MS SQL Server when table has PK/unique, Oracle by ROWID, MongoDB, Redis / Dragonfly / Valkey / KeyDB, Cassandra / ScyllaDB when table has primary key, Elasticsearch / OpenSearch document by _id)
 - HTMX for partial updates without full page reloads
+- JSON syntax highlighting (read-only blocks and CodeMirror editor on detail pages)
+- Offline / closed-circuit: all vendor assets (HTMX, Prism, CodeMirror, fonts) are bundled locally — no CDN required
 - Localization: EN and RU (browser or path)
 
 ## Running
@@ -95,6 +97,15 @@ For Helm: put the JSON in a Secret and mount it as the env var `PANOPTICUM_CONNE
 ```
 
 JAR: `build/libs/panopticum-all.jar`
+
+### Rebuilding detail-editor bundle (optional)
+
+The JSON editor on detail pages (MongoDB, Elasticsearch, Redis) uses a pre-built bundle. To regenerate it after changing `detail-editor-src.js` or updating CodeMirror:
+
+```bash
+npm install
+npm run build:detail-editor
+```
 
 ## Docker
 

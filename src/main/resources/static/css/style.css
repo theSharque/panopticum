@@ -1258,6 +1258,40 @@ a.query-detail-link {
     overflow-y: auto;
 }
 
+.detail-json-textarea.cm-replaced {
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.detail-json.cm-editor-wrapper {
+    margin-top: var(--space-lg);
+}
+
+.detail-json.cm-editor-wrapper .cm-editor {
+    background: var(--bg-content);
+    border-radius: var(--radius-lg);
+}
+
+.detail-json.cm-editor-wrapper .cm-editor .cm-scroller {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.detail-json.cm-editor-wrapper .cm-editor .cm-content {
+    color: var(--text-primary);
+}
+
+.detail-json.cm-editor-wrapper .cm-editor .cm-gutters {
+    background: var(--bg-content);
+    border-color: var(--border-strong);
+}
+
 .detail-form {
     margin-top: var(--space-md);
 }

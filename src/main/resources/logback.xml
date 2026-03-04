@@ -8,6 +8,7 @@
     <logger name="com.clickhouse" level="ERROR"/>
     <logger name="c.c.c.a.internal.HttpAPIClientHelper" level="ERROR"/>
     <logger name="org.mongodb.driver" level="ERROR"/>
+    <logger name="org.apache.kafka" level="ERROR"/>
     <root level="INFO">
         <appender-ref ref="STDOUT"/>
     </root>

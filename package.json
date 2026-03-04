@@ -1,0 +1,30 @@
+{
+  "name": "panopticum",
+  "version": "1.0.0",
+  "description": "A tool for developers and QA — web interface for viewing and managing database connections. Designed for deployment in Kubernetes or Docker.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build:detail-editor": "node scripts/bundle-detail-editor.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theSharque/panopticum.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/theSharque/panopticum/issues"
+  },
+  "homepage": "https://github.com/theSharque/panopticum#readme",
+  "devDependencies": {
+    "esbuild": "^0.27.3"
+  },
+  "dependencies": {
+    "@codemirror/lang-json": "^6.0.2",
+    "@codemirror/state": "^6.5.4",
+    "@codemirror/theme-one-dark": "^6.1.3",
+    "@codemirror/view": "^6.39.16"
+  }
+}
