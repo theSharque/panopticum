@@ -226,6 +226,7 @@ public class MongoMetadataRepository {
             }
             Object filterId = resolveDocId(docId);
             MongoCollection<Document> collection = client.getDatabase(dbName).getCollection(collectionName);
+            doc.put("_id", filterId);
             collection.replaceOne(new Document("_id", filterId), doc);
             return Optional.empty();
         } catch (Exception e) {
