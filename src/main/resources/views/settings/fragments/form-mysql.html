@@ -3,25 +3,26 @@
           hx-post="/settings/add-mysql"
           hx-target="#sidebar"
           hx-swap="outerHTML">
+        <input type="hidden" name="id" th:if="${editingConnection != null}" th:value="${editingConnection != null ? editingConnection.id : null}">
         <div class="form-group">
             <label for="name-mysql" th:text="${msg['common.name']}">Name</label>
-            <input type="text" id="name-mysql" name="name" required th:attr="placeholder=${msg['settings.placeholderNameMysql']}">
+            <input type="text" id="name-mysql" name="name" required th:attr="placeholder=${msg['settings.placeholderNameMysql']}" th:value="${editingConnection != null ? editingConnection.name : null}">
         </div>
         <div class="form-group">
             <label for="host-mysql" th:text="${msg['settings.host']}">Host</label>
-            <input type="text" id="host-mysql" name="host" required placeholder="localhost" value="localhost">
+            <input type="text" id="host-mysql" name="host" required placeholder="localhost" th:value="${editingConnection != null ? editingConnection.host : 'localhost'}">
         </div>
         <div class="form-group">
             <label for="port-mysql" th:text="${msg['settings.port']}">Port</label>
-            <input type="number" id="port-mysql" name="port" value="3306">
+            <input type="number" id="port-mysql" name="port" th:value="${editingConnection != null ? editingConnection.port : 3306}">
         </div>
         <div class="form-group">
             <label for="database-mysql" th:text="${msg['settings.database']}">Database</label>
-            <input type="text" id="database-mysql" name="database" required placeholder="mydb">
+            <input type="text" id="database-mysql" name="database" required placeholder="mydb" th:value="${editingConnection != null ? editingConnection.dbName : null}">
         </div>
         <div class="form-group">
             <label for="username-mysql" th:text="${msg['settings.username']}">Username</label>
-            <input type="text" id="username-mysql" name="username" required placeholder="user">
+            <input type="text" id="username-mysql" name="username" required placeholder="user" th:value="${editingConnection != null ? editingConnection.username : null}">
         </div>
         <div class="form-group">
             <label for="password-mysql" th:text="${msg['settings.password']}">Password</label>
@@ -36,7 +37,7 @@
                     hx-swap="innerHTML show:bottom"
                     hx-indicator="#test-indicator-mysql"
                     th:text="${msg['settings.test']}">Test</button>
-            <button type="submit" th:text="${msg['settings.add']}">Add</button>
+            <button type="submit" th:text="${editingConnection != null ? msg['settings.save'] : msg['settings.add']}">Add</button>
         </div>
         <div id="connection-test-result-mysql" class="connection-test-result"></div>
     </form>

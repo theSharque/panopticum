@@ -3,25 +3,26 @@
           hx-post="/settings/add-cassandra"
           hx-target="#sidebar"
           hx-swap="outerHTML">
+        <input type="hidden" name="id" th:if="${editingConnection != null}" th:value="${editingConnection != null ? editingConnection.id : null}">
         <div class="form-group">
             <label for="name-cassandra" th:text="${msg['common.name']}">Name</label>
-            <input type="text" id="name-cassandra" name="name" required th:attr="placeholder=${msg['settings.placeholderNameCassandra']}">
+            <input type="text" id="name-cassandra" name="name" required th:attr="placeholder=${msg['settings.placeholderNameCassandra']}" th:value="${editingConnection != null ? editingConnection.name : null}">
         </div>
         <div class="form-group">
             <label for="host-cassandra" th:text="${msg['settings.host']}">Host</label>
-            <input type="text" id="host-cassandra" name="host" required placeholder="localhost" value="localhost">
+            <input type="text" id="host-cassandra" name="host" required placeholder="localhost" th:value="${editingConnection != null ? editingConnection.host : 'localhost'}">
         </div>
         <div class="form-group">
             <label for="port-cassandra" th:text="${msg['settings.port']}">Port</label>
-            <input type="number" id="port-cassandra" name="port" value="9042">
+            <input type="number" id="port-cassandra" name="port" th:value="${editingConnection != null ? editingConnection.port : 9042}">
         </div>
         <div class="form-group">
             <label for="database-cassandra" th:text="${msg['settings.database']}">Keyspace</label>
-            <input type="text" id="database-cassandra" name="database" placeholder="optional">
+            <input type="text" id="database-cassandra" name="database" placeholder="optional" th:value="${editingConnection != null ? editingConnection.dbName : null}">
         </div>
         <div class="form-group">
             <label for="username-cassandra" th:text="${msg['settings.username']}">Username</label>
-            <input type="text" id="username-cassandra" name="username" placeholder="user">
+            <input type="text" id="username-cassandra" name="username" placeholder="user" th:value="${editingConnection != null ? editingConnection.username : null}">
         </div>
         <div class="form-group">
             <label for="password-cassandra" th:text="${msg['settings.password']}">Password</label>
@@ -36,7 +37,7 @@
                     hx-swap="innerHTML show:bottom"
                     hx-indicator="#test-indicator-cassandra"
                     th:text="${msg['settings.test']}">Test</button>
-            <button type="submit" th:text="${msg['settings.add']}">Add</button>
+            <button type="submit" th:text="${editingConnection != null ? msg['settings.save'] : msg['settings.add']}">Add</button>
         </div>
         <div id="connection-test-result-cassandra" class="connection-test-result"></div>
     </form>

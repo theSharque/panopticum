@@ -3,25 +3,26 @@
           hx-post="/settings/add-mssql"
           hx-target="#sidebar"
           hx-swap="outerHTML">
+        <input type="hidden" name="id" th:if="${editingConnection != null}" th:value="${editingConnection != null ? editingConnection.id : null}">
         <div class="form-group">
             <label for="name-mssql" th:text="${msg['common.name']}">Name</label>
-            <input type="text" id="name-mssql" name="name" required th:attr="placeholder=${msg['settings.placeholderNameMssql']}">
+            <input type="text" id="name-mssql" name="name" required th:attr="placeholder=${msg['settings.placeholderNameMssql']}" th:value="${editingConnection != null ? editingConnection.name : null}">
         </div>
         <div class="form-group">
             <label for="host-mssql" th:text="${msg['settings.host']}">Host</label>
-            <input type="text" id="host-mssql" name="host" required placeholder="localhost" value="localhost">
+            <input type="text" id="host-mssql" name="host" required placeholder="localhost" th:value="${editingConnection != null ? editingConnection.host : 'localhost'}">
         </div>
         <div class="form-group">
             <label for="port-mssql" th:text="${msg['settings.port']}">Port</label>
-            <input type="number" id="port-mssql" name="port" value="1433">
+            <input type="number" id="port-mssql" name="port" th:value="${editingConnection != null ? editingConnection.port : 1433}">
         </div>
         <div class="form-group">
             <label for="database-mssql" th:text="${msg['settings.database']}">Database</label>
-            <input type="text" id="database-mssql" name="database" required placeholder="master">
+            <input type="text" id="database-mssql" name="database" required placeholder="master" th:value="${editingConnection != null ? editingConnection.dbName : null}">
         </div>
         <div class="form-group">
             <label for="username-mssql" th:text="${msg['settings.username']}">Username</label>
-            <input type="text" id="username-mssql" name="username" required placeholder="sa">
+            <input type="text" id="username-mssql" name="username" required placeholder="sa" th:value="${editingConnection != null ? editingConnection.username : null}">
         </div>
         <div class="form-group">
             <label for="password-mssql" th:text="${msg['settings.password']}">Password</label>
@@ -36,7 +37,7 @@
                     hx-swap="innerHTML show:bottom"
                     hx-indicator="#test-indicator-mssql"
                     th:text="${msg['settings.test']}">Test</button>
-            <button type="submit" th:text="${msg['settings.add']}">Add</button>
+            <button type="submit" th:text="${editingConnection != null ? msg['settings.save'] : msg['settings.add']}">Add</button>
         </div>
         <div id="connection-test-result-mssql" class="connection-test-result"></div>
     </form>

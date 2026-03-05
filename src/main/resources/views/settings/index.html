@@ -8,7 +8,7 @@
     <div th:if="${!adminLock}">
         <div class="form-group">
             <label for="connection-type" th:text="${msg['settings.connectionType']}">Connection type</label>
-            <select id="connection-type" class="connection-type-select">
+            <select id="connection-type" class="connection-type-select" th:attr="data-initial-type=${editingConnection != null ? editingConnection.type : null}">
                 <option value="" th:text="${msg['settings.selectType']}">Select type</option>
                 <option value="postgresql">PostgreSQL / CockroachDB / YugabyteDB</option>
                 <option value="mongodb">MongoDB</option>
@@ -37,20 +37,31 @@
         <div th:replace="~{settings/fragments/form-elasticsearch :: form-elasticsearch}"></div>
 
         <script>
-            document.getElementById('connection-type').addEventListener('change', function () {
-                var type = this.value;
-                document.getElementById('form-postgres').hidden = type !== 'postgresql';
-                document.getElementById('form-mongo').hidden = type !== 'mongodb';
-                document.getElementById('form-redis').hidden = type !== 'redis';
-                document.getElementById('form-clickhouse').hidden = type !== 'clickhouse';
-                document.getElementById('form-mysql').hidden = type !== 'mysql';
-                document.getElementById('form-mssql').hidden = type !== 'sqlserver';
-                document.getElementById('form-oracle').hidden = type !== 'oracle';
-                document.getElementById('form-cassandra').hidden = type !== 'cassandra';
-                document.getElementById('form-rabbitmq').hidden = type !== 'rabbitmq';
-                document.getElementById('form-kafka').hidden = type !== 'kafka';
-                document.getElementById('form-elasticsearch').hidden = type !== 'elasticsearch';
-            });
+            (function () {
+                var select = document.getElementById('connection-type');
+                var initial = select.getAttribute('data-initial-type');
+                if (initial) {
+                    select.value = initial;
+                }
+                function handleChange() {
+                    var type = select.value;
+                    document.getElementById('form-postgres').hidden = type !== 'postgresql';
+                    document.getElementById('form-mongo').hidden = type !== 'mongodb';
+                    document.getElementById('form-redis').hidden = type !== 'redis';
+                    document.getElementById('form-clickhouse').hidden = type !== 'clickhouse';
+                    document.getElementById('form-mysql').hidden = type !== 'mysql';
+                    document.getElementById('form-mssql').hidden = type !== 'sqlserver';
+                    document.getElementById('form-oracle').hidden = type !== 'oracle';
+                    document.getElementById('form-cassandra').hidden = type !== 'cassandra';
+                    document.getElementById('form-rabbitmq').hidden = type !== 'rabbitmq';
+                    document.getElementById('form-kafka').hidden = type !== 'kafka';
+                    document.getElementById('form-elasticsearch').hidden = type !== 'elasticsearch';
+                }
+                select.addEventListener('change', handleChange);
+                if (initial) {
+                    handleChange();
+                }
+            })();
         </script>
     </div>
 

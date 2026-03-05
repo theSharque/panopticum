@@ -325,6 +325,29 @@ body {
     border-left-color: var(--border-strong);
 }
 
+.sidebar-edit {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
+    color: var(--text-muted);
+    text-decoration: none;
+    border-radius: var(--radius);
+    transition: color var(--duration), background var(--duration);
+}
+
+.sidebar-edit:hover {
+    color: var(--accent);
+    background: var(--bg-hover);
+}
+
+.sidebar-edit svg {
+    flex-shrink: 0;
+}
+
 .sidebar-delete-form {
     margin: 0;
     flex-shrink: 0;

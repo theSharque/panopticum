@@ -66,6 +66,21 @@ public class SettingsController {
         return model;
     }
 
+    @Produces(MediaType.TEXT_HTML)
+    @Get("/edit/{id}")
+    @View("settings/index")
+    public Map<String, Object> edit(@PathVariable Long id) {
+        assertNotLocked();
+        DbConnection conn = dbConnectionService.findById(id)
+                .orElseThrow(() -> new HttpStatusException(HttpStatus.NOT_FOUND, "connection.notFound"));
+        Map<String, Object> model = new HashMap<>();
+        model.put("connections", dbConnectionService.findAll());
+        model.put("adminLock", adminLock);
+        model.put("editingConnection", conn);
+
+        return model;
+    }
+
     private void assertNotLocked() {
         if (adminLock) {
             throw new HttpStatusException(HttpStatus.FORBIDDEN, "admin.lock.enabled");
@@ -76,190 +91,198 @@ public class SettingsController {
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces(MediaType.TEXT_HTML)
     public Object addPostgres(HttpRequest<?> request,
-                             String name, String host, Integer port, String database, String username, String password) {
+                             String name, String host, Integer port, String database, String username, String password,
+                             Optional<Long> id) {
         assertNotLocked();
-        DbConnection conn = dbConnectionFactory.build("postgresql", name, host, port, database, username, password);
-        DbConnection saved = dbConnectionService.save(conn);
+        DbConnection conn = saveOrUpdate("postgresql", id, name, host, port, database, username, password);
         Map<String, Object> model = new HashMap<>();
         model.put("connections", dbConnectionService.findAll());
 
-        return responseAfterAdd(request, model, saved.getId(), "/pg/" + saved.getId());
+        return responseAfterAdd(request, model, conn.getId(), "/pg/" + conn.getId());
     }
 
     @Post("/test-postgres")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces(MediaType.TEXT_HTML)
     public ModelAndView<Map<String, Object>> testPostgres(HttpRequest<?> request,
-            String host, Integer port, String database, String username, String password) {
-        return testConnectionResult(request, "postgresql", host, port, database, username, password);
+            String host, Integer port, String database, String username, String password,
+            Optional<Long> id) {
+        return testConnectionResult(request, "postgresql", host, port, database, username, password, id);
     }
 
     @Post("/add-mongo")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces(MediaType.TEXT_HTML)
     public Object addMongo(HttpRequest<?> request,
-                          String name, String host, Integer port, String database, String username, String password) {
+                          String name, String host, Integer port, String database, String username, String password,
+                          Optional<Long> id) {
         assertNotLocked();
-        DbConnection conn = dbConnectionFactory.build("mongodb", name, host, port, database, username, password);
-        DbConnection saved = dbConnectionService.save(conn);
+        DbConnection conn = saveOrUpdate("mongodb", id, name, host, port, database, username, password);
         Map<String, Object> model = new HashMap<>();
         model.put("connections", dbConnectionService.findAll());
 
-        return responseAfterAdd(request, model, saved.getId(), "/mongo/" + saved.getId());
+        return responseAfterAdd(request, model, conn.getId(), "/mongo/" + conn.getId());
     }
 
     @Post("/test-mongo")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces(MediaType.TEXT_HTML)
     public ModelAndView<Map<String, Object>> testMongo(HttpRequest<?> request,
-            String host, Integer port, String database, String username, String password) {
-        return testConnectionResult(request, "mongodb", host, port, database, username, password);
+            String host, Integer port, String database, String username, String password,
+            Optional<Long> id) {
+        return testConnectionResult(request, "mongodb", host, port, database, username, password, id);
     }
 
     @Post("/add-redis")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces(MediaType.TEXT_HTML)
     public Object addRedis(HttpRequest<?> request,
-                          String name, String host, Integer port, String database, String password) {
+                          String name, String host, Integer port, String database, String password,
+                          Optional<Long> id) {
         assertNotLocked();
-        DbConnection conn = dbConnectionFactory.build("redis", name, host, port, database, null, password);
-        DbConnection saved = dbConnectionService.save(conn);
+        DbConnection conn = saveOrUpdate("redis", id, name, host, port, database, null, password);
         Map<String, Object> model = new HashMap<>();
         model.put("connections", dbConnectionService.findAll());
 
-        return responseAfterAdd(request, model, saved.getId(), "/redis/" + saved.getId());
+        return responseAfterAdd(request, model, conn.getId(), "/redis/" + conn.getId());
     }
 
     @Post("/test-redis")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces(MediaType.TEXT_HTML)
     public ModelAndView<Map<String, Object>> testRedis(HttpRequest<?> request,
-            String host, Integer port, String database, String password) {
-        return testConnectionResult(request, "redis", host, port, database, null, password);
+            String host, Integer port, String database, String password,
+            Optional<Long> id) {
+        return testConnectionResult(request, "redis", host, port, database, null, password, id);
     }
 
     @Post("/add-clickhouse")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces(MediaType.TEXT_HTML)
     public Object addClickhouse(HttpRequest<?> request,
-                               String name, String host, Integer port, String database, String username, String password) {
+                               String name, String host, Integer port, String database, String username, String password,
+                               Optional<Long> id) {
         assertNotLocked();
-        DbConnection conn = dbConnectionFactory.build("clickhouse", name, host, port, database, username, password);
-        DbConnection saved = dbConnectionService.save(conn);
+        DbConnection conn = saveOrUpdate("clickhouse", id, name, host, port, database, username, password);
         Map<String, Object> model = new HashMap<>();
         model.put("connections", dbConnectionService.findAll());
 
-        return responseAfterAdd(request, model, saved.getId(), "/clickhouse/" + saved.getId());
+        return responseAfterAdd(request, model, conn.getId(), "/clickhouse/" + conn.getId());
     }
 
     @Post("/test-clickhouse")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces(MediaType.TEXT_HTML)
     public ModelAndView<Map<String, Object>> testClickhouse(HttpRequest<?> request,
-            String host, Integer port, String database, String username, String password) {
-        return testConnectionResult(request, "clickhouse", host, port, database, username, password);
+            String host, Integer port, String database, String username, String password,
+            Optional<Long> id) {
+        return testConnectionResult(request, "clickhouse", host, port, database, username, password, id);
     }
 
     @Post("/add-mysql")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces(MediaType.TEXT_HTML)
     public Object addMysql(HttpRequest<?> request,
-                          String name, String host, Integer port, String database, String username, String password) {
+                          String name, String host, Integer port, String database, String username, String password,
+                          Optional<Long> id) {
         assertNotLocked();
-        DbConnection conn = dbConnectionFactory.build("mysql", name, host, port, database, username, password);
-        DbConnection saved = dbConnectionService.save(conn);
+        DbConnection conn = saveOrUpdate("mysql", id, name, host, port, database, username, password);
         Map<String, Object> model = new HashMap<>();
         model.put("connections", dbConnectionService.findAll());
 
-        return responseAfterAdd(request, model, saved.getId(), "/mysql/" + saved.getId());
+        return responseAfterAdd(request, model, conn.getId(), "/mysql/" + conn.getId());
     }
 
     @Post("/test-mysql")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces(MediaType.TEXT_HTML)
     public ModelAndView<Map<String, Object>> testMysql(HttpRequest<?> request,
-            String host, Integer port, String database, String username, String password) {
-        return testConnectionResult(request, "mysql", host, port, database, username, password);
+            String host, Integer port, String database, String username, String password,
+            Optional<Long> id) {
+        return testConnectionResult(request, "mysql", host, port, database, username, password, id);
     }
 
     @Post("/add-mssql")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces(MediaType.TEXT_HTML)
     public Object addMssql(HttpRequest<?> request,
-                           String name, String host, Integer port, String database, String username, String password) {
+                           String name, String host, Integer port, String database, String username, String password,
+                           Optional<Long> id) {
         assertNotLocked();
-        DbConnection conn = dbConnectionFactory.build("sqlserver", name, host, port, database, username, password);
-        DbConnection saved = dbConnectionService.save(conn);
+        DbConnection conn = saveOrUpdate("sqlserver", id, name, host, port, database, username, password);
         Map<String, Object> model = new HashMap<>();
         model.put("connections", dbConnectionService.findAll());
 
-        return responseAfterAdd(request, model, saved.getId(), "/mssql/" + saved.getId());
+        return responseAfterAdd(request, model, conn.getId(), "/mssql/" + conn.getId());
     }
 
     @Post("/test-mssql")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces(MediaType.TEXT_HTML)
     public ModelAndView<Map<String, Object>> testMssql(HttpRequest<?> request,
-            String host, Integer port, String database, String username, String password) {
-        return testConnectionResult(request, "sqlserver", host, port, database, username, password);
+            String host, Integer port, String database, String username, String password,
+            Optional<Long> id) {
+        return testConnectionResult(request, "sqlserver", host, port, database, username, password, id);
     }
 
     @Post("/add-oracle")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces(MediaType.TEXT_HTML)
     public Object addOracle(HttpRequest<?> request,
-                            String name, String host, Integer port, String database, String username, String password) {
+                            String name, String host, Integer port, String database, String username, String password,
+                            Optional<Long> id) {
         assertNotLocked();
-        DbConnection conn = dbConnectionFactory.build("oracle", name, host, port, database, username, password);
-        DbConnection saved = dbConnectionService.save(conn);
+        DbConnection conn = saveOrUpdate("oracle", id, name, host, port, database, username, password);
         Map<String, Object> model = new HashMap<>();
         model.put("connections", dbConnectionService.findAll());
 
-        return responseAfterAdd(request, model, saved.getId(), "/oracle/" + saved.getId());
+        return responseAfterAdd(request, model, conn.getId(), "/oracle/" + conn.getId());
     }
 
     @Post("/test-oracle")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces(MediaType.TEXT_HTML)
     public ModelAndView<Map<String, Object>> testOracle(HttpRequest<?> request,
-            String host, Integer port, String database, String username, String password) {
-        return testConnectionResult(request, "oracle", host, port, database, username, password);
+            String host, Integer port, String database, String username, String password,
+            Optional<Long> id) {
+        return testConnectionResult(request, "oracle", host, port, database, username, password, id);
     }
 
     @Post("/add-cassandra")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces(MediaType.TEXT_HTML)
     public Object addCassandra(HttpRequest<?> request,
-                              String name, String host, Integer port, String database, String username, String password) {
+                              String name, String host, Integer port, String database, String username, String password,
+                              Optional<Long> id) {
         assertNotLocked();
-        DbConnection conn = dbConnectionFactory.build("cassandra", name, host, port, database, username, password);
-        DbConnection saved = dbConnectionService.save(conn);
+        DbConnection conn = saveOrUpdate("cassandra", id, name, host, port, database, username, password);
         Map<String, Object> model = new HashMap<>();
         model.put("connections", dbConnectionService.findAll());
 
-        return responseAfterAdd(request, model, saved.getId(), "/cassandra/" + saved.getId());
+        return responseAfterAdd(request, model, conn.getId(), "/cassandra/" + conn.getId());
     }
 
     @Post("/add-rabbitmq")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces(MediaType.TEXT_HTML)
     public Object addRabbitmq(HttpRequest<?> request,
-                              String name, String host, Integer port, String database, String username, String password) {
+                              String name, String host, Integer port, String database, String username, String password,
+                              Optional<Long> id) {
         assertNotLocked();
-        DbConnection conn = dbConnectionFactory.build("rabbitmq", name, host, port, database, username, password);
-        DbConnection saved = dbConnectionService.save(conn);
+        DbConnection conn = saveOrUpdate("rabbitmq", id, name, host, port, database, username, password);
         Map<String, Object> model = new HashMap<>();
         model.put("connections", dbConnectionService.findAll());
 
-        return responseAfterAdd(request, model, saved.getId(), "/rabbitmq/" + saved.getId() + "/queues");
+        return responseAfterAdd(request, model, conn.getId(), "/rabbitmq/" + conn.getId() + "/queues");
     }
 
     @Post("/test-rabbitmq")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces(MediaType.TEXT_HTML)
     public ModelAndView<Map<String, Object>> testRabbitmq(HttpRequest<?> request,
-            String host, Integer port, String database, String username, String password) {
-        return testConnectionResult(request, "rabbitmq", host, port, database, username, password);
+            String host, Integer port, String database, String username, String password,
+            Optional<Long> id) {
+        return testConnectionResult(request, "rabbitmq", host, port, database, username, password, id);
     }
 
     @Post("/add-kafka")
@@ -267,15 +290,15 @@ public class SettingsController {
     @Produces(MediaType.TEXT_HTML)
     public Object addKafka(HttpRequest<?> request,
                            String name, String host, Integer port, String database,
-                           Optional<String> username, Optional<String> password) {
+                           Optional<String> username, Optional<String> password,
+                           Optional<Long> id) {
         assertNotLocked();
-        DbConnection conn = dbConnectionFactory.build("kafka", name, host, port, database,
+        DbConnection conn = saveOrUpdate("kafka", id, name, host, port, database,
                 username.orElse(null), password.orElse(null));
-        DbConnection saved = dbConnectionService.save(conn);
         Map<String, Object> model = new HashMap<>();
         model.put("connections", dbConnectionService.findAll());
 
-        return responseAfterAdd(request, model, saved.getId(), "/kafka/" + saved.getId() + "/topics");
+        return responseAfterAdd(request, model, conn.getId(), "/kafka/" + conn.getId() + "/topics");
     }
 
     @Post("/test-kafka")
@@ -283,9 +306,10 @@ public class SettingsController {
     @Produces(MediaType.TEXT_HTML)
     public ModelAndView<Map<String, Object>> testKafka(HttpRequest<?> request,
             String host, Integer port, String database,
-            Optional<String> username, Optional<String> password) {
+            Optional<String> username, Optional<String> password,
+            Optional<Long> id) {
         return testConnectionResult(request, "kafka", host, port, database,
-                username.orElse(null), password.orElse(null));
+                username.orElse(null), password.orElse(null), id);
     }
 
     @Post("/add-elasticsearch")
@@ -293,30 +317,32 @@ public class SettingsController {
     @Produces(MediaType.TEXT_HTML)
     public Object addElasticsearch(HttpRequest<?> request,
                                    String name, String host, Integer port, String database,
-                                   String username, String password) {
+                                   String username, String password,
+                                   Optional<Long> id) {
         assertNotLocked();
-        DbConnection conn = dbConnectionFactory.build("elasticsearch", name, host, port, database, username, password);
-        DbConnection saved = dbConnectionService.save(conn);
+        DbConnection conn = saveOrUpdate("elasticsearch", id, name, host, port, database, username, password);
         Map<String, Object> model = new HashMap<>();
         model.put("connections", dbConnectionService.findAll());
 
-        return responseAfterAdd(request, model, saved.getId(), "/elasticsearch/" + saved.getId() + "/indices");
+        return responseAfterAdd(request, model, conn.getId(), "/elasticsearch/" + conn.getId() + "/indices");
     }
 
     @Post("/test-elasticsearch")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces(MediaType.TEXT_HTML)
     public ModelAndView<Map<String, Object>> testElasticsearch(HttpRequest<?> request,
-            String host, Integer port, String database, String username, String password) {
-        return testConnectionResult(request, "elasticsearch", host, port, database, username, password);
+            String host, Integer port, String database, String username, String password,
+            Optional<Long> id) {
+        return testConnectionResult(request, "elasticsearch", host, port, database, username, password, id);
     }
 
     @Post("/test-cassandra")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces(MediaType.TEXT_HTML)
     public ModelAndView<Map<String, Object>> testCassandra(HttpRequest<?> request,
-            String host, Integer port, String database, String username, String password) {
-        return testConnectionResult(request, "cassandra", host, port, database, username, password);
+            String host, Integer port, String database, String username, String password,
+            Optional<Long> id) {
+        return testConnectionResult(request, "cassandra", host, port, database, username, password, id);
     }
 
     @Delete("/delete-connection/{id}")
@@ -338,6 +364,24 @@ public class SettingsController {
         return HttpResponse.redirect(URI.create("/settings"));
     }
 
+    private DbConnection saveOrUpdate(String expectedType, Optional<Long> id,
+                                     String name, String host, Integer port, String database,
+                                     String username, String password) {
+        if (id != null && id.isPresent()) {
+            DbConnection existing = dbConnectionService.findById(id.get())
+                    .orElseThrow(() -> new HttpStatusException(HttpStatus.NOT_FOUND, "connection.notFound"));
+            if (!expectedType.equalsIgnoreCase(existing.getType())) {
+                throw new HttpStatusException(HttpStatus.BAD_REQUEST, "connection.typeMismatch");
+            }
+            String pwd = (password != null && !password.isBlank()) ? password : existing.getPassword();
+            DbConnection conn = dbConnectionFactory.build(expectedType, name, host, port, database, username, pwd);
+            conn.setId(id.get());
+            return dbConnectionService.save(conn);
+        }
+        DbConnection conn = dbConnectionFactory.build(expectedType, name, host, port, database, username, password);
+        return dbConnectionService.save(conn);
+    }
+
     private Object responseAfterAdd(HttpRequest<?> request, Map<String, Object> model,
                                     Long savedId, String redirectPath) {
         model.put("adminLock", adminLock);
@@ -351,12 +395,26 @@ public class SettingsController {
         return new ModelAndView<>("settings/index", model);
     }
 
+    private String resolvePasswordForTest(Optional<Long> id, String password) {
+        if (password != null && !password.isBlank()) {
+            return password;
+        }
+        if (id != null && id.isPresent()) {
+            return dbConnectionService.findById(id.get())
+                    .map(DbConnection::getPassword)
+                    .orElse(password);
+        }
+        return password;
+    }
+
     private ModelAndView<Map<String, Object>> testConnectionResult(HttpRequest<?> request, String type,
                                                                    String host, Integer port, String database,
-                                                                   String username, String password) {
+                                                                   String username, String password,
+                                                                   Optional<Long> id) {
+        String pwd = resolvePasswordForTest(id, password);
         Map<String, Object> model = new HashMap<>();
         try {
-            var error = connectionTestService.test(type, host, port, database, username, password);
+            var error = connectionTestService.test(type, host, port, database, username, pwd);
             model.put("success", error.isEmpty());
             String messageKey = error.orElse("connectionTest.success");
             model.put("message", messageKey);

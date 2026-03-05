@@ -17,10 +17,19 @@
 
     document.addEventListener('DOMContentLoaded', init);
 
-    document.body.addEventListener('htmx:afterSwap', function (ev) {
-        var target = ev.detail.target;
-        if (target && target.querySelectorAll) {
-            highlightAll(target);
+    function addHtmxListener() {
+        if (document.body) {
+            document.body.addEventListener('htmx:afterSwap', function (ev) {
+                var target = ev.detail && ev.detail.target;
+                if (target && target.querySelectorAll) {
+                    highlightAll(target);
+                }
+            });
         }
-    });
+    }
+    if (document.body) {
+        addHtmxListener();
+    } else {
+        document.addEventListener('DOMContentLoaded', addHtmxListener);
+    }
 })();
