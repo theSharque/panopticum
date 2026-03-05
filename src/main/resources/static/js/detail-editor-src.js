@@ -69,12 +69,21 @@ function run() {
     } else {
         init();
     }
-    document.body.addEventListener('htmx:afterSwap', function (ev) {
-        var target = ev.detail && ev.detail.target;
-        if (target && target.querySelectorAll) {
-            init(target);
+    function addHtmxListener() {
+        if (document.body) {
+            document.body.addEventListener('htmx:afterSwap', function (ev) {
+                var target = ev.detail && ev.detail.target;
+                if (target && target.querySelectorAll) {
+                    init(target);
+                }
+            });
         }
-    });
+    }
+    if (document.body) {
+        addHtmxListener();
+    } else {
+        document.addEventListener('DOMContentLoaded', addHtmxListener);
+    }
 }
 
 run();

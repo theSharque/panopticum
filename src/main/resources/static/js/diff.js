@@ -189,12 +189,21 @@
         }
     });
 
-    document.body.addEventListener('htmx:afterSwap', function (ev) {
-        const target = ev.detail && ev.detail.target;
-        if (target && typeof target.querySelectorAll === 'function') {
-            updateHeaderVisibility();
-            initAddButtons();
+    function addHtmxListener() {
+        if (document.body) {
+            document.body.addEventListener('htmx:afterSwap', function (ev) {
+                const target = ev.detail && ev.detail.target;
+                if (target && typeof target.querySelectorAll === 'function') {
+                    updateHeaderVisibility();
+                    initAddButtons();
+                }
+            });
         }
-    });
+    }
+    if (document.body) {
+        addHtmxListener();
+    } else {
+        document.addEventListener('DOMContentLoaded', addHtmxListener);
+    }
 
 })();

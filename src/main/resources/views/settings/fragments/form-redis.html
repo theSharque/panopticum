@@ -3,21 +3,22 @@
           hx-post="/settings/add-redis"
           hx-target="#sidebar"
           hx-swap="outerHTML">
+        <input type="hidden" name="id" th:if="${editingConnection != null}" th:value="${editingConnection != null ? editingConnection.id : null}">
         <div class="form-group">
             <label for="name-redis" th:text="${msg['common.name']}">Name</label>
-            <input type="text" id="name-redis" name="name" required th:attr="placeholder=${msg['settings.placeholderNameRedis']}">
+            <input type="text" id="name-redis" name="name" required th:attr="placeholder=${msg['settings.placeholderNameRedis']}" th:value="${editingConnection != null ? editingConnection.name : null}">
         </div>
         <div class="form-group">
             <label for="host-redis" th:text="${msg['settings.host']}">Host</label>
-            <input type="text" id="host-redis" name="host" required placeholder="localhost" value="localhost">
+            <input type="text" id="host-redis" name="host" required placeholder="localhost" th:value="${editingConnection != null ? editingConnection.host : 'localhost'}">
         </div>
         <div class="form-group">
             <label for="port-redis" th:text="${msg['settings.port']}">Port</label>
-            <input type="number" id="port-redis" name="port" value="6379">
+            <input type="number" id="port-redis" name="port" th:value="${editingConnection != null ? editingConnection.port : 6379}">
         </div>
         <div class="form-group">
             <label for="database-redis" th:text="${msg['settings.databaseRedis']}">DB (0–15)</label>
-            <input type="number" id="database-redis" name="database" placeholder="0" value="0" min="0" max="15">
+            <input type="number" id="database-redis" name="database" placeholder="0" min="0" max="15" th:value="${editingConnection != null ? editingConnection.dbName : '0'}">
         </div>
         <div class="form-group">
             <label for="password-redis" th:text="${msg['settings.password']}">Password</label>
@@ -32,7 +33,7 @@
                     hx-swap="innerHTML show:bottom"
                     hx-indicator="#test-indicator-redis"
                     th:text="${msg['settings.test']}">Test</button>
-            <button type="submit" th:text="${msg['settings.add']}">Add</button>
+            <button type="submit" th:text="${editingConnection != null ? msg['settings.save'] : msg['settings.add']}">Add</button>
         </div>
         <div id="connection-test-result-redis" class="connection-test-result"></div>
     </form>
