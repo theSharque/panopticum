@@ -233,6 +233,7 @@ body {
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
+    height: 100vh;
     background: var(--bg-sidebar);
     border-right: 1px solid var(--border);
     padding: var(--space-lg) 0;
@@ -281,6 +282,33 @@ body {
 .sidebar-nav {
     display: flex;
     flex-direction: column;
+    flex: 1;
+    overflow: hidden;
+}
+
+.sidebar-connections {
+    flex: 1;
+    overflow-y: auto;
+    padding-top: var(--space-xs);
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+.sidebar-connections::-webkit-scrollbar {
+    width: 8px;
+}
+
+.sidebar-connections::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+}
+
+.sidebar-connections::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 4px;
+}
+
+.sidebar-connections::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
 }
 
 .sidebar-link.active {
