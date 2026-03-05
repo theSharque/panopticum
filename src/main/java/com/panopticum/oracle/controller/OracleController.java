@@ -8,6 +8,8 @@ import com.panopticum.core.model.SchemaInfo;
 import com.panopticum.core.model.TableInfo;
 import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.core.util.ControllerModelHelper;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.panopticum.oracle.service.OracleMetadataService;
 import io.micronaut.context.annotation.Value;
 import io.micronaut.core.annotation.Nullable;
@@ -47,6 +49,7 @@ public class OracleController {
 
     private final DbConnectionService dbConnectionService;
     private final OracleMetadataService oracleMetadataService;
+    private final ObjectMapper objectMapper;
     @Value("${panopticum.read-only:false}")
     private boolean readOnly;
 
@@ -341,6 +344,28 @@ public class OracleController {
             model.put("rowRowid", "");
         }
         model.put("readOnly", readOnly);
+
+        @SuppressWarnings("unchecked")
+        List<Map<String, String>> detailRows = (List<Map<String, String>>) model.get("detailRows");
+        if (detailRows != null && !detailRows.isEmpty()) {
+            String label = conn.get().getName() + " / " + (schemaClean != null ? schemaClean : "") + " / row " + (rowNum != null ? rowNum : 0);
+            try {
+                String dataJson = objectMapper.writeValueAsString(detailRows);
+                Map<String, Object> payload = Map.of(
+                        "source", "oracle",
+                        "connectionId", id,
+                        "connectionName", conn.get().getName(),
+                        "label", label,
+                        "data", dataJson,
+                        "dataFormat", "keyValue"
+                );
+                model.put("dataDiffPayload", objectMapper.writeValueAsString(payload));
+            } catch (JsonProcessingException e) {
+                model.put("dataDiffPayload", (String) null);
+            }
+        } else {
+            model.put("dataDiffPayload", (String) null);
+        }
 
         return model;
     }

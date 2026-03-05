@@ -1337,6 +1337,62 @@ a.query-detail-link {
     color: var(--text-muted);
 }
 
+.header-compare-link {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 14px;
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: var(--radius);
+    transition: color var(--duration), background var(--duration);
+}
+
+.header-compare-link:hover {
+    color: var(--accent);
+    background: var(--bg-hover);
+}
+
+.data-diff-add.added {
+    background: var(--green-500);
+    color: var(--bg-main);
+    border-color: var(--green-500);
+}
+
+.data-diff-container {
+    margin-top: var(--space-lg);
+}
+
+.data-diff-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: var(--space-lg);
+    overflow-x: auto;
+}
+
+.data-diff-card {
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-lg);
+    background: var(--bg-content);
+    overflow: hidden;
+}
+
+.data-diff-card-title {
+    padding: var(--space-md);
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+    word-break: break-word;
+}
+
+.data-diff-card-body {
+    padding: var(--space-md);
+    overflow: auto;
+}
+
+.data-diff-card-body .detail-json {
+    margin-top: 0;
+}
+
 @media (prefers-reduced-motion: reduce) {
     *,
     *::before,

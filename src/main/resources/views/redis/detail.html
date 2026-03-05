@@ -77,6 +77,11 @@
                 </tbody>
             </table>
         </div>
+        <div class="detail-actions" th:if="${dataDiffPayload != null}">
+            <button type="button" class="query-button data-diff-add"
+                    th:attr="data-diff-payload=${dataDiffPayload}, data-diff-added-text=${msg['diff.added']}"
+                    th:text="${msg['diff.addToCompare']}">Add to comparison</button>
+        </div>
     </div>
     <p th:if="${keyDetail == null}" class="text-dim" th:text="${msg['redis.keyNotFoundOrError']}">Key not found or connection error.</p>
 </main>

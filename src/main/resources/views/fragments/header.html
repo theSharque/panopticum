@@ -9,6 +9,8 @@
 <header th:fragment="header" class="app-header">
     <a th:href="@{/}" class="app-name">Panopticum</a>
     <div class="header-actions">
+        <a href="/diff" class="header-compare-link" id="data-diff-header-link" style="display: none;"
+           th:text="${msg['diff.compare']}">Compare</a>
         <nav class="theme-toggle" aria-label="Theme">
             <a th:href="@{/theme(mode='light', redirect=${requestUri})}"
                th:classappend="${theme == 'light'} ? 'active' : ''"

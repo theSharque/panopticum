@@ -62,7 +62,13 @@ public final class MessagesCommon {
             Map.entry("lang.en", "English"),
             Map.entry("lang.ru", "Русский"),
             Map.entry("theme.light", "Light"),
-            Map.entry("theme.dark", "Dark")
+            Map.entry("theme.dark", "Dark"),
+            Map.entry("diff.addToCompare", "Add to comparison"),
+            Map.entry("diff.added", "Added"),
+            Map.entry("diff.compare", "Compare"),
+            Map.entry("diff.title", "Data comparison"),
+            Map.entry("diff.clear", "Clear"),
+            Map.entry("diff.empty", "No items to compare.")
     );
 
     public static final Map<String, String> RU = Map.ofEntries(
@@ -120,6 +126,12 @@ public final class MessagesCommon {
             Map.entry("lang.en", "English"),
             Map.entry("lang.ru", "Русский"),
             Map.entry("theme.light", "Светлая"),
-            Map.entry("theme.dark", "Тёмная")
+            Map.entry("theme.dark", "Тёмная"),
+            Map.entry("diff.addToCompare", "Добавить к сравнению"),
+            Map.entry("diff.added", "Добавлено"),
+            Map.entry("diff.compare", "Сравнение"),
+            Map.entry("diff.title", "Сравнение данных"),
+            Map.entry("diff.clear", "Очистить"),
+            Map.entry("diff.empty", "Нет элементов для сравнения.")
     );
 }

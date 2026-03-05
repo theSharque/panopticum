@@ -15,6 +15,11 @@
         </dl>
         <h2 th:text="${msg['kafka.value']}">Value</h2>
         <pre class="detail-value detail-json"><code class="language-json" th:text="${record.value}">—</code></pre>
+        <div class="detail-actions" th:if="${dataDiffPayload != null}">
+            <button type="button" class="query-button data-diff-add"
+                    th:attr="data-diff-payload=${dataDiffPayload}, data-diff-added-text=${msg['diff.added']}"
+                    th:text="${msg['diff.addToCompare']}">Add to comparison</button>
+        </div>
         <div th:if="${record.headers != null and !record.headers.isEmpty()}">
             <h2 th:text="${msg['kafka.headers']}">Headers</h2>
             <dl class="detail-dl">

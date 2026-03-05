@@ -7,6 +7,8 @@ import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.core.util.ControllerModelHelper;
 import com.panopticum.rabbitmq.model.RabbitMqMessage;
 import com.panopticum.rabbitmq.model.RabbitMqQueueInfo;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.panopticum.rabbitmq.service.RabbitMqService;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.MediaType;
@@ -38,6 +40,7 @@ public class RabbitMqController {
 
     private final DbConnectionService dbConnectionService;
     private final RabbitMqService rabbitMqService;
+    private final ObjectMapper objectMapper;
 
     @Get("/{id}")
     public HttpResponse<?> index(@PathVariable Long id) {
@@ -149,6 +152,22 @@ public class RabbitMqController {
         model.put("vhostForUrl", vhostForUrl(vhostDecoded));
         if (message.isEmpty()) {
             model.put("error", "rabbitmq.messageNotFound");
+        } else {
+            String label = conn.get().getName() + " / " + queueBreadcrumbLabel(vhostDecoded, queueName) + " / #" + (index + 1);
+            try {
+                String dataJson = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(message.get());
+                Map<String, Object> payload = Map.of(
+                        "source", "rabbitmq",
+                        "connectionId", id,
+                        "connectionName", conn.get().getName(),
+                        "label", label,
+                        "data", dataJson,
+                        "dataFormat", "json"
+                );
+                model.put("dataDiffPayload", objectMapper.writeValueAsString(payload));
+            } catch (JsonProcessingException e) {
+                model.put("dataDiffPayload", (String) null);
+            }
         }
 
         return model;
