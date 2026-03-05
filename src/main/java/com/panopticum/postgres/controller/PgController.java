@@ -9,6 +9,8 @@ import com.panopticum.core.model.SchemaInfo;
 import com.panopticum.core.model.TableInfo;
 import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.core.util.ControllerModelHelper;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.panopticum.postgres.service.PgMetadataService;
 import io.micronaut.context.annotation.Value;
 import io.micronaut.core.annotation.Nullable;
@@ -48,6 +50,7 @@ public class PgController {
 
     private final DbConnectionService dbConnectionService;
     private final PgMetadataService pgMetadataService;
+    private final ObjectMapper objectMapper;
     @Value("${panopticum.read-only:false}")
     private boolean readOnly;
 
@@ -396,6 +399,26 @@ public class PgController {
         model.put("detailRows", detailRows);
         model.put("rowCtid", rowCtid != null ? rowCtid : "");
         model.put("readOnly", readOnly);
+
+        if (!detailRows.isEmpty()) {
+            String label = conn.get().getName() + " / " + (dbName != null ? dbName : "") + " / " + (schemaClean != null ? schemaClean : "") + " / row " + (rowNum != null ? rowNum : 0);
+            try {
+                String dataJson = objectMapper.writeValueAsString(detailRows);
+                Map<String, Object> payload = Map.of(
+                        "source", "pg",
+                        "connectionId", id,
+                        "connectionName", conn.get().getName(),
+                        "label", label,
+                        "data", dataJson,
+                        "dataFormat", "keyValue"
+                );
+                model.put("dataDiffPayload", objectMapper.writeValueAsString(payload));
+            } catch (JsonProcessingException e) {
+                model.put("dataDiffPayload", (String) null);
+            }
+        } else {
+            model.put("dataDiffPayload", (String) null);
+        }
 
         return model;
     }

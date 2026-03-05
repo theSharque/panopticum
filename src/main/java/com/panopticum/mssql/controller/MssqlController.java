@@ -9,6 +9,8 @@ import com.panopticum.core.util.ControllerModelHelper;
 import com.panopticum.core.model.DatabaseInfo;
 import com.panopticum.core.model.SchemaInfo;
 import com.panopticum.core.model.TableInfo;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.panopticum.mssql.service.MssqlMetadataService;
 import io.micronaut.context.annotation.Value;
 import io.micronaut.core.annotation.Nullable;
@@ -48,6 +50,7 @@ public class MssqlController {
 
     private final DbConnectionService dbConnectionService;
     private final MssqlMetadataService mssqlMetadataService;
+    private final ObjectMapper objectMapper;
     @Value("${panopticum.read-only:false}")
     private boolean readOnly;
 
@@ -394,6 +397,28 @@ public class MssqlController {
             model.put("editable", false);
         }
         model.put("readOnly", readOnly);
+
+        @SuppressWarnings("unchecked")
+        List<Map<String, String>> detailRows = (List<Map<String, String>>) model.get("detailRows");
+        if (detailRows != null && !detailRows.isEmpty()) {
+            String label = conn.get().getName() + " / " + (dbNameClean != null ? dbNameClean : "") + " / " + (schemaClean != null ? schemaClean : "") + " / row " + (rowNum != null ? rowNum : 0);
+            try {
+                String dataJson = objectMapper.writeValueAsString(detailRows);
+                Map<String, Object> payload = Map.of(
+                        "source", "mssql",
+                        "connectionId", id,
+                        "connectionName", conn.get().getName(),
+                        "label", label,
+                        "data", dataJson,
+                        "dataFormat", "keyValue"
+                );
+                model.put("dataDiffPayload", objectMapper.writeValueAsString(payload));
+            } catch (JsonProcessingException e) {
+                model.put("dataDiffPayload", (String) null);
+            }
+        } else {
+            model.put("dataDiffPayload", (String) null);
+        }
 
         return model;
     }

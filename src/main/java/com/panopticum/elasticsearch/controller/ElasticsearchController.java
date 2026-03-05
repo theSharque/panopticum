@@ -7,6 +7,8 @@ import com.panopticum.core.model.QueryResult;
 import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.core.util.ControllerModelHelper;
 import com.panopticum.elasticsearch.model.ElasticsearchIndexInfo;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.panopticum.elasticsearch.service.ElasticsearchService;
 import io.micronaut.context.annotation.Value;
 import io.micronaut.core.annotation.Nullable;
@@ -49,6 +51,7 @@ public class ElasticsearchController {
 
     private final DbConnectionService dbConnectionService;
     private final ElasticsearchService elasticsearchService;
+    private final ObjectMapper objectMapper;
 
     @Value("${panopticum.read-only:false}")
     private boolean readOnly;
@@ -186,6 +189,21 @@ public class ElasticsearchController {
         model.put("prettyJson", json);
         model.put("error", null);
 
+        String label = conn.get().getName() + " / " + (indexName != null ? indexName : "") + " / " + (docId != null ? docId : "");
+        try {
+            Map<String, Object> payload = Map.of(
+                    "source", "elasticsearch",
+                    "connectionId", id,
+                    "connectionName", conn.get().getName(),
+                    "label", label,
+                    "data", json,
+                    "dataFormat", "json"
+            );
+            model.put("dataDiffPayload", objectMapper.writeValueAsString(payload));
+        } catch (JsonProcessingException e) {
+            model.put("dataDiffPayload", (String) null);
+        }
+
         return model;
     }
 
@@ -226,6 +244,20 @@ public class ElasticsearchController {
             model.put("readOnly", readOnly);
             model.put("prettyJson", body != null ? body : "{}");
             model.put("error", err.get());
+            try {
+                String label = conn.get().getName() + " / " + (indexName != null ? indexName : "") + " / " + (docId != null ? docId : "");
+                Map<String, Object> payload = Map.of(
+                        "source", "elasticsearch",
+                        "connectionId", id,
+                        "connectionName", conn.get().getName(),
+                        "label", label,
+                        "data", body != null ? body : "{}",
+                        "dataFormat", "json"
+                );
+                model.put("dataDiffPayload", objectMapper.writeValueAsString(payload));
+            } catch (JsonProcessingException e) {
+                model.put("dataDiffPayload", (String) null);
+            }
             return new ModelAndView<>("elasticsearch/detail", model);
         }
 

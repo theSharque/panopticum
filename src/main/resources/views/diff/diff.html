@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(~{::main})}">
+<head></head>
+<body>
+<main th:fragment="main" class="main-content">
+    <h1 th:text="${msg['diff.title']}">Data comparison</h1>
+    <div id="data-diff-container" class="data-diff-container"
+         th:attr="data-diff-empty-text=${msg['diff.empty']}"></div>
+    <div class="detail-actions">
+        <button type="button" id="data-diff-clear-btn" class="query-button"
+                th:text="${msg['diff.clear']}">Clear</button>
+    </div>
+</main>
+</body>
+</html>

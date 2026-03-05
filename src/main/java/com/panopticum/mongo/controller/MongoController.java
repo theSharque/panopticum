@@ -8,6 +8,8 @@ import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.core.util.ControllerModelHelper;
 import com.panopticum.mongo.model.MongoCollectionInfo;
 import com.panopticum.core.model.DatabaseInfo;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.panopticum.mongo.service.MongoMetadataService;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.http.HttpResponse;
@@ -44,6 +46,7 @@ public class MongoController {
 
     private final DbConnectionService dbConnectionService;
     private final MongoMetadataService mongoMetadataService;
+    private final ObjectMapper objectMapper;
 
     @Produces(MediaType.TEXT_HTML)
     @Get("/{id}")
@@ -230,6 +233,21 @@ public class MongoController {
                 .orElse("{}");
         model.put("prettyJson", json);
 
+        String label = conn.get().getName() + " / " + dbName + " / " + (collection != null ? collection : "") + " / " + (docId != null ? docId : "");
+        try {
+            Map<String, Object> payload = Map.of(
+                    "source", "mongo",
+                    "connectionId", id,
+                    "connectionName", conn.get().getName(),
+                    "label", label,
+                    "data", json,
+                    "dataFormat", "json"
+            );
+            model.put("dataDiffPayload", objectMapper.writeValueAsString(payload));
+        } catch (JsonProcessingException e) {
+            model.put("dataDiffPayload", (String) null);
+        }
+
         return model;
     }
 
@@ -264,6 +282,20 @@ public class MongoController {
             model.put("docId", docId != null ? docId : "");
             model.put("prettyJson", body != null ? body : "{}");
             model.put("error", err.get());
+            try {
+                String label = conn.get().getName() + " / " + dbName + " / " + (collection != null ? collection : "") + " / " + (docId != null ? docId : "");
+                Map<String, Object> payload = Map.of(
+                        "source", "mongo",
+                        "connectionId", id,
+                        "connectionName", conn.get().getName(),
+                        "label", label,
+                        "data", body != null ? body : "{}",
+                        "dataFormat", "json"
+                );
+                model.put("dataDiffPayload", objectMapper.writeValueAsString(payload));
+            } catch (JsonProcessingException e) {
+                model.put("dataDiffPayload", (String) null);
+            }
             return new ModelAndView<>("mongo/detail", model);
         }
 

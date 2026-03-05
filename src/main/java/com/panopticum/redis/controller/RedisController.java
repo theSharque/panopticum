@@ -5,6 +5,8 @@ import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.core.util.ControllerModelHelper;
 import com.panopticum.redis.model.RedisDbInfo;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.panopticum.redis.model.RedisKeyDetail;
 import com.panopticum.redis.model.RedisKeyInfo;
 import com.panopticum.redis.model.RedisKeysPage;
@@ -47,6 +49,7 @@ public class RedisController {
 
     private final DbConnectionService dbConnectionService;
     private final RedisMetadataService redisMetadataService;
+    private final ObjectMapper objectMapper;
     @Value("${panopticum.read-only:false}")
     private boolean readOnly;
 
@@ -147,6 +150,26 @@ public class RedisController {
         model.put("keyDetail", detail.orElse(null));
         model.put("readOnly", readOnly);
 
+        if (detail.isPresent()) {
+            String label = conn.get().getName() + " / DB " + dbIndex + " / " + (key != null ? key : "");
+            try {
+                String dataJson = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(detail.get());
+                Map<String, Object> payload = Map.of(
+                        "source", "redis",
+                        "connectionId", id,
+                        "connectionName", conn.get().getName(),
+                        "label", label,
+                        "data", dataJson,
+                        "dataFormat", "json"
+                );
+                model.put("dataDiffPayload", objectMapper.writeValueAsString(payload));
+            } catch (JsonProcessingException e) {
+                model.put("dataDiffPayload", (String) null);
+            }
+        } else {
+            model.put("dataDiffPayload", (String) null);
+        }
+
         return model;
     }
 
@@ -201,9 +224,29 @@ public class RedisController {
             model.put("connectionId", id);
             model.put("dbIndex", dbIndex);
             model.put("key", key != null ? key : "");
-            model.put("keyDetail", redisMetadataService.getKeyDetail(id, dbIndex, key).orElse(null));
+            Optional<RedisKeyDetail> keyDetailOpt = redisMetadataService.getKeyDetail(id, dbIndex, key);
+            model.put("keyDetail", keyDetailOpt.orElse(null));
             model.put("error", err.get());
             model.put("readOnly", readOnly);
+            if (keyDetailOpt.isPresent()) {
+                try {
+                    String label = conn.get().getName() + " / DB " + dbIndex + " / " + (key != null ? key : "");
+                    String dataJson = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(keyDetailOpt.get());
+                    Map<String, Object> payload = Map.of(
+                            "source", "redis",
+                            "connectionId", id,
+                            "connectionName", conn.get().getName(),
+                            "label", label,
+                            "data", dataJson,
+                            "dataFormat", "json"
+                    );
+                    model.put("dataDiffPayload", objectMapper.writeValueAsString(payload));
+                } catch (JsonProcessingException e) {
+                    model.put("dataDiffPayload", (String) null);
+                }
+            } else {
+                model.put("dataDiffPayload", (String) null);
+            }
             return new ModelAndView<>("redis/detail", model);
         }
         return HttpResponse.redirect(URI.create("/redis/" + id + "/" + dbIndex + "/detail?key=" + URLEncoder.encode(key != null ? key : "", StandardCharsets.UTF_8)));

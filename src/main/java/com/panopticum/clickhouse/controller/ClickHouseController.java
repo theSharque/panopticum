@@ -8,6 +8,8 @@ import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.core.util.ControllerModelHelper;
 import com.panopticum.core.model.DatabaseInfo;
 import com.panopticum.core.model.TableInfo;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.panopticum.clickhouse.service.ClickHouseMetadataService;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.http.HttpResponse;
@@ -42,6 +44,7 @@ public class ClickHouseController {
 
     private final DbConnectionService dbConnectionService;
     private final ClickHouseMetadataService clickHouseMetadataService;
+    private final ObjectMapper objectMapper;
 
     @Produces(MediaType.TEXT_HTML)
     @Get("/{id}")
@@ -328,6 +331,26 @@ public class ClickHouseController {
             }
         }
         model.put("detailRows", detailRows);
+
+        if (!detailRows.isEmpty()) {
+            String label = conn.get().getName() + " / " + (dbName != null ? dbName : "") + " / row " + (rowNum != null ? rowNum : 0);
+            try {
+                String dataJson = objectMapper.writeValueAsString(detailRows);
+                Map<String, Object> payload = Map.of(
+                        "source", "clickhouse",
+                        "connectionId", id,
+                        "connectionName", conn.get().getName(),
+                        "label", label,
+                        "data", dataJson,
+                        "dataFormat", "keyValue"
+                );
+                model.put("dataDiffPayload", objectMapper.writeValueAsString(payload));
+            } catch (JsonProcessingException e) {
+                model.put("dataDiffPayload", (String) null);
+            }
+        } else {
+            model.put("dataDiffPayload", (String) null);
+        }
 
         return model;
     }

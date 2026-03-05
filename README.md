@@ -41,6 +41,7 @@ Connections are stored in H2. In Settings you can add connections, test them, an
 - JSON syntax highlighting (read-only blocks and CodeMirror editor on detail pages)
 - Offline / closed-circuit: all vendor assets (HTMX, Prism, CodeMirror, fonts) are bundled locally — no CDN required
 - Localization: EN and RU (browser or path)
+- **Data Diff:** add records from any detail page to a comparison list (stored in browser localStorage); compare side-by-side across environments (Dev vs Stage vs Prod) or different DB types
 
 ## Running
 

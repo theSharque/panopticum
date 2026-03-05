@@ -7,6 +7,8 @@ import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.core.util.ControllerModelHelper;
 import com.panopticum.kafka.model.KafkaRecord;
 import com.panopticum.kafka.model.KafkaTopicInfo;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.panopticum.kafka.service.KafkaService;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.MediaType;
@@ -40,6 +42,7 @@ public class KafkaController {
 
     private final DbConnectionService dbConnectionService;
     private final KafkaService kafkaService;
+    private final ObjectMapper objectMapper;
 
     @Get("/{id}")
     public HttpResponse<?> index(@PathVariable Long id) {
@@ -169,6 +172,22 @@ public class KafkaController {
         model.put("record", record.orElse(null));
         if (record.isEmpty()) {
             model.put("error", "kafka.recordNotFound");
+        } else {
+            String label = conn.get().getName() + " / " + topicDecoded + " / " + partition + " / " + offset;
+            try {
+                String dataJson = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(record.get());
+                Map<String, Object> payload = Map.of(
+                        "source", "kafka",
+                        "connectionId", id,
+                        "connectionName", conn.get().getName(),
+                        "label", label,
+                        "data", dataJson,
+                        "dataFormat", "json"
+                );
+                model.put("dataDiffPayload", objectMapper.writeValueAsString(payload));
+            } catch (JsonProcessingException e) {
+                model.put("dataDiffPayload", (String) null);
+            }
         }
 
         return model;
