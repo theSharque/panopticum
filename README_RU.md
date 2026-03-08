@@ -6,6 +6,7 @@
 
 - **Backend:** Micronaut 4.x
 - **Views:** Thymeleaf + HTMX
+- **API:** REST API для всех операций; Swagger/OpenAPI 3.0
 - **Auth:** HTTP Basic (логин/пароль из environment)
 - **Storage:** H2 (миграции Flyway)
 - **i18n:** английский и русский
@@ -37,6 +38,8 @@
 - Просмотр метаданных (схемы, таблицы, коллекции, ключи) с постраничной навигацией
 - Выполнение SQL (PostgreSQL / CockroachDB / YugabyteDB, MySQL / MariaDB, MS SQL Server, Oracle, ClickHouse, Cassandra / ScyllaDB CQL) и запросов (MongoDB)
 - Редактирование и сохранение строк в детальном просмотре (PostgreSQL по ctid, MySQL/MS SQL Server при наличии PK/unique, Oracle по ROWID, MongoDB, Redis / Dragonfly / Valkey / KeyDB, Cassandra / ScyllaDB при наличии primary key, Elasticsearch / OpenSearch — документ по _id)
+- REST API для всех операций с БД (подключения, просмотр, SQL/запросы, редактирование строк и т.д.)
+- Swagger UI по адресу `/swagger-ui` для интерактивной документации API (OpenAPI 3.0)
 - HTMX для частичного обновления без перезагрузки страницы
 - Подсветка синтаксиса JSON (read-only блоки и редактор CodeMirror на страницах detail)
 - Офлайн / закрытый контур: все внешние ресурсы (HTMX, Prism, CodeMirror, шрифты) включены локально — CDN не требуется
@@ -50,6 +53,8 @@
 ```
 
 Приложение: **http://localhost:8080**
+
+Swagger UI: **http://localhost:8080/swagger-ui**
 
 ## Конфигурация
 

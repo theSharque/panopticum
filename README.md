@@ -6,6 +6,7 @@ A tool for developers and QA — web interface for viewing and managing database
 
 - **Backend:** Micronaut 4.x
 - **Views:** Thymeleaf + HTMX
+- **API:** REST API for all operations; Swagger/OpenAPI 3.0
 - **Auth:** HTTP Basic (login/password from environment)
 - **Storage:** H2 (Flyway migrations)
 - **i18n:** English and Russian
@@ -37,6 +38,8 @@ Connections are stored in H2. In Settings you can add connections, test them, an
 - Browse metadata (schemas, tables, collections, keys) with pagination
 - Execute SQL (PostgreSQL / CockroachDB / YugabyteDB, MySQL / MariaDB, MS SQL Server, Oracle, ClickHouse, Cassandra / ScyllaDB CQL) and queries (MongoDB)
 - Edit and save rows in detail view (PostgreSQL by ctid, MySQL/MS SQL Server when table has PK/unique, Oracle by ROWID, MongoDB, Redis / Dragonfly / Valkey / KeyDB, Cassandra / ScyllaDB when table has primary key, Elasticsearch / OpenSearch document by _id)
+- REST API for all database operations (connections, browse, SQL/query execution, row edit, etc.)
+- Swagger UI at `/swagger-ui` for interactive API documentation (OpenAPI 3.0)
 - HTMX for partial updates without full page reloads
 - JSON syntax highlighting (read-only blocks and CodeMirror editor on detail pages)
 - Offline / closed-circuit: all vendor assets (HTMX, Prism, CodeMirror, fonts) are bundled locally — no CDN required
@@ -50,6 +53,8 @@ Connections are stored in H2. In Settings you can add connections, test them, an
 ```
 
 Application: **http://localhost:8080**
+
+Swagger UI: **http://localhost:8080/swagger-ui**
 
 ## Configuration
 
