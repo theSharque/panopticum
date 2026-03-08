@@ -16,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -70,7 +71,7 @@ public class PgMetadataService {
         List<DatabaseInfo> all = new ArrayList<>(listDatabaseInfos(connectionId));
         boolean desc = "desc".equalsIgnoreCase(order);
         String sortBy = sort != null ? sort : "name";
-        java.util.Comparator<DatabaseInfo> comparator = "size".equals(sortBy)
+        Comparator<DatabaseInfo> comparator = "size".equals(sortBy)
                 ? (desc ? (a, b) -> Long.compare(b.getSizeOnDisk(), a.getSizeOnDisk()) : (a, b) -> Long.compare(a.getSizeOnDisk(), b.getSizeOnDisk()))
                 : (desc ? (a, b) -> b.getName().compareToIgnoreCase(a.getName()) : (a, b) -> a.getName().compareToIgnoreCase(b.getName()));
         List<DatabaseInfo> sorted = all.stream().sorted(comparator).toList();
@@ -89,7 +90,7 @@ public class PgMetadataService {
         List<SchemaInfo> all = new ArrayList<>(listSchemaInfos(connectionId, dbName));
         boolean desc = "desc".equalsIgnoreCase(order);
         String sortBy = sort != null ? sort : "name";
-        java.util.Comparator<SchemaInfo> comparator;
+        Comparator<SchemaInfo> comparator;
         if ("tables".equals(sortBy)) {
             comparator = desc ? (a, b) -> Integer.compare(b.getTableCount(), a.getTableCount()) : (a, b) -> Integer.compare(a.getTableCount(), b.getTableCount());
         } else if ("owner".equals(sortBy)) {
@@ -116,7 +117,7 @@ public class PgMetadataService {
         List<TableInfo> all = new ArrayList<>(listTableInfos(connectionId, dbName, schema));
         boolean desc = "desc".equalsIgnoreCase(order);
         String sortBy = sort != null ? sort : "name";
-        java.util.Comparator<TableInfo> comparator;
+        Comparator<TableInfo> comparator;
         if ("type".equalsIgnoreCase(sortBy)) {
             comparator = desc ? (a, b) -> (b.getType() != null ? b.getType() : "").compareToIgnoreCase(a.getType() != null ? a.getType() : "")
                     : (a, b) -> (a.getType() != null ? a.getType() : "").compareToIgnoreCase(b.getType() != null ? b.getType() : "");

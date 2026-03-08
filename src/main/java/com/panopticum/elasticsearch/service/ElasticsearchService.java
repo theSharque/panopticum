@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -65,13 +66,13 @@ public class ElasticsearchService {
         return Page.of(sorted, page, size, sortBy, order != null ? order : "asc");
     }
 
-    private static java.util.Comparator<ElasticsearchIndexInfo> indexComparator(String sortBy, boolean desc) {
-        java.util.Comparator<ElasticsearchIndexInfo> c = switch (sortBy) {
-            case "docsCount" -> java.util.Comparator.comparingLong(ElasticsearchIndexInfo::getDocsCountNum);
-            case "storeSize" -> java.util.Comparator.comparing(
+    private static Comparator<ElasticsearchIndexInfo> indexComparator(String sortBy, boolean desc) {
+        Comparator<ElasticsearchIndexInfo> c = switch (sortBy) {
+            case "docsCount" -> Comparator.comparingLong(ElasticsearchIndexInfo::getDocsCountNum);
+            case "storeSize" -> Comparator.comparing(
                     i -> i.getStoreSize() != null ? i.getStoreSize() : "",
                     String.CASE_INSENSITIVE_ORDER);
-            default -> java.util.Comparator.comparing(
+            default -> Comparator.comparing(
                     i -> i.getIndex() != null ? i.getIndex() : "",
                     String.CASE_INSENSITIVE_ORDER);
         };

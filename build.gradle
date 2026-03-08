@@ -1,6 +1,6 @@
 plugins {
     id("com.github.johnrengelman.shadow") version "8.1.1"
-    id("io.micronaut.application") version "4.6.1"
+    id("io.micronaut.application") version "4.6.2"
 }
 
 version = "6.3.0"
@@ -8,6 +8,16 @@ group = "com.panopticum"
 
 repositories {
     mavenCentral()
+}
+
+micronaut {
+    version = project.findProperty("micronautVersion") ?: "4.10.7"
+    runtime("netty")
+    testRuntime("junit5")
+    processing {
+        incremental(false)
+        annotations("com.panopticum.*")
+    }
 }
 
 configurations.all {
@@ -30,7 +40,6 @@ configurations.all {
 }
 
 dependencies {
-    implementation(platform("io.micronaut.platform:micronaut-platform:4.10.7"))
     annotationProcessor("org.projectlombok:lombok")
     annotationProcessor("io.micronaut:micronaut-core-processor")
     compileOnly("io.micronaut:micronaut-core-processor")
@@ -39,6 +48,7 @@ dependencies {
     annotationProcessor("io.micronaut.serde:micronaut-serde-processor")
     annotationProcessor("io.micronaut.openapi:micronaut-openapi")
     implementation("io.micronaut.openapi:micronaut-openapi-annotations")
+    implementation("io.swagger.core.v3:swagger-annotations:2.2.39")
     implementation("io.micronaut:micronaut-http-client")
     implementation("io.micronaut:micronaut-http-server-netty")
     implementation("io.micronaut.security:micronaut-security")
@@ -51,17 +61,17 @@ dependencies {
     compileOnly("org.projectlombok:lombok")
     runtimeOnly("ch.qos.logback:logback-classic")
     runtimeOnly("ch.qos.logback:logback-core")
-    runtimeOnly("com.h2database:h2")
-    runtimeOnly("org.postgresql:postgresql")
-    runtimeOnly("com.mysql:mysql-connector-j")
-    runtimeOnly("com.microsoft.sqlserver:mssql-jdbc")
-    runtimeOnly("com.oracle.database.jdbc:ojdbc11")
-    implementation("org.mongodb:mongodb-driver-sync")
+    runtimeOnly("com.h2database:h2:2.3.232")
+    runtimeOnly("org.postgresql:postgresql:42.7.4")
+    runtimeOnly("com.mysql:mysql-connector-j:9.1.0")
+    runtimeOnly("com.microsoft.sqlserver:mssql-jdbc:12.10.2.jre11")
+    runtimeOnly("com.oracle.database.jdbc:ojdbc11:21.18.0.0")
+    implementation("org.mongodb:mongodb-driver-sync:1.5.1")
     implementation("io.lettuce:lettuce-core:6.5.4.RELEASE")
     runtimeOnly("com.clickhouse:clickhouse-jdbc:0.9.6:all")
     implementation("com.datastax.oss:java-driver-core:4.17.0")
     implementation("org.apache.kafka:kafka-clients:3.7.0")
-    runtimeOnly("org.yaml:snakeyaml")
+    runtimeOnly("org.yaml:snakeyaml:2.2")
 }
 
 application {
@@ -75,15 +85,6 @@ java {
 
 tasks.withType(JavaCompile).configureEach {
     options.compilerArgs = ["-parameters"]
-}
-
-micronaut {
-    runtime("netty")
-    testRuntime("junit5")
-    processing {
-        incremental(false)
-        annotations("com.panopticum.*")
-    }
 }
 
 shadowJar {
