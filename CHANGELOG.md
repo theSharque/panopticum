@@ -1,49 +1,205 @@
 # Changelog
 
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [7.0.0] - 2025
+
+### Added
+
+- REST API for all operations (connections, databases, SQL/query execution, row edit, etc.)
+- Swagger/OpenAPI 3.0 with interactive Swagger UI at `/swagger-ui`
+
+### Fixed
+
+- Build configuration
+
+## [6.5.1]
+
+### Added
+
+- DB scroll
+
+## [6.5.0]
+
+### Added
+
+- DB row edit feature
+
+## [6.4.0]
+
+### Added
+
+- Simple diff view
+
+## [6.3.1]
+
+### Fixed
+
+- MongoDB update
+
+## [6.3.0]
+
+### Added
+
+- JSON syntax highlighting and offline support
+
+## [6.2.0]
+
+### Added
+
+- TextArea autosize
+
+## [6.1.0]
+
+### Added
+
+- SQL/Query history
+
+## [6.0.6]
+
+### Added
+
+- Version tag display
+
+## [6.0.5]
+
+### Changed
+
+- Request size limit (pick up large request body)
+
+## [6.0.4]
+
+### Fixed
+
+- Delete operation, MongoDB ID handling
+
+## [6.0.3]
+
+### Added
+
+- All supported DB types in connections
+
+## [6.0.2]
+
+### Fixed
+
+- Favicon path
+
+## [6.0.1]
+
+### Added
+
+- Application icon
+
+## [6.0.0]
+
+### Added
+
+- Elasticsearch support
+
+## [5.6.0]
+
+### Added
+
+- READ_ONLY mode
+
+## [5.5.1]
+
+### Fixed
+
+- Docker configuration
+
+## [5.5.0]
+
+### Fixed
+
+- Application name display
+
+## [5.2.0]
+
+### Fixed
+
+- Details view
+
+## [5.1.0]
+
+### Added
+
+- Simple SQL search
+
 ## [5.0.1]
 
-- Add redis search
+### Added
+
+- Redis search
 
 ## [5.0.0]
 
-- Add RabbitMQ support
+### Added
+
+- RabbitMQ support
 
 ## [4.5.1]
 
-- Upgrade version, add odd/even lines
+### Added
+
+- Odd/even row highlighting (zebra striping)
 
 ## [4.5.0]
 
-- Fixes
+### Fixed
+
+- Various fixes
 
 ## [4.3.0]
 
-- MS-SQL support
+### Added
+
+- MS SQL Server support
 
 ## [4.2.0]
+
+### Added
 
 - Default connections on startup
 
 ## [4.1.0]
 
-- Add Cassandra
+### Added
+
+- Cassandra support
 
 ## [4.0.0]
 
-- Add MySQL support
+### Added
+
+- MySQL support
 
 ## [3.0.1]
 
-- Fix security issues
+### Fixed
+
+- Security issues
 
 ## [3.0.0]
 
-- Fix header click
+### Fixed
+
+- Header click behavior
 
 ## [2.0.0]
 
-- Change style, add 2 themes
+### Added
+
+- Two themes (light/dark)
+- New UI style
 
 ## [0.1]
 
-- CI/CD
+### Added
+
+- CI/CD pipeline
+- Initial Panopticum MVP (Micronaut + Thymeleaf + HTMX)
