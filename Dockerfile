@@ -3,7 +3,7 @@ FROM eclipse-temurin:17-jdk AS builder
 WORKDIR /app
 
 COPY gradle gradle
-COPY gradlew build.gradle settings.gradle gradle.properties ./
+COPY gradlew build.gradle settings.gradle ./
 COPY src src/
 
 RUN ./gradlew shadowJar --no-daemon
