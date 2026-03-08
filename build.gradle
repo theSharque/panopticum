@@ -37,6 +37,8 @@ dependencies {
     annotationProcessor("io.micronaut:micronaut-http-validation")
     annotationProcessor("io.micronaut.security:micronaut-security-annotations")
     annotationProcessor("io.micronaut.serde:micronaut-serde-processor")
+    annotationProcessor("io.micronaut.openapi:micronaut-openapi")
+    implementation("io.micronaut.openapi:micronaut-openapi-annotations")
     implementation("io.micronaut:micronaut-http-client")
     implementation("io.micronaut:micronaut-http-server-netty")
     implementation("io.micronaut.security:micronaut-security")
@@ -69,6 +71,10 @@ application {
 java {
     sourceCompatibility = JavaVersion.toVersion("17")
     targetCompatibility = JavaVersion.toVersion("17")
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.compilerArgs = ["-parameters"]
 }
 
 micronaut {
