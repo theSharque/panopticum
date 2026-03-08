@@ -18,6 +18,7 @@ import org.bson.json.JsonWriterSettings;
 import org.bson.types.ObjectId;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
@@ -62,7 +63,7 @@ public class MongoMetadataService {
         List<DatabaseInfo> all = new ArrayList<>(listDatabaseInfos(connectionId));
         boolean desc = "desc".equalsIgnoreCase(order);
         String sortBy = sort != null ? sort : "name";
-        java.util.Comparator<DatabaseInfo> comparator = "size".equals(sortBy)
+        Comparator<DatabaseInfo> comparator = "size".equals(sortBy)
                 ? (desc ? (a, b) -> Long.compare(b.getSizeOnDisk(), a.getSizeOnDisk()) : (a, b) -> Long.compare(a.getSizeOnDisk(), b.getSizeOnDisk()))
                 : (desc ? (a, b) -> b.getName().compareToIgnoreCase(a.getName()) : (a, b) -> a.getName().compareToIgnoreCase(b.getName()));
         List<DatabaseInfo> sorted = all.stream().sorted(comparator).toList();
@@ -82,7 +83,7 @@ public class MongoMetadataService {
         List<MongoCollectionInfo> all = mongoMetadataRepository.listCollectionInfos(connectionId, dbName, allNames);
         boolean desc = "desc".equalsIgnoreCase(order);
         String sortBy = sort != null ? sort : "name";
-        java.util.Comparator<MongoCollectionInfo> comparator;
+        Comparator<MongoCollectionInfo> comparator;
         if ("size".equals(sortBy)) {
             comparator = desc ? (a, b) -> Long.compare(b.getSizeOnDisk(), a.getSizeOnDisk()) : (a, b) -> Long.compare(a.getSizeOnDisk(), b.getSizeOnDisk());
         } else if ("count".equals(sortBy)) {

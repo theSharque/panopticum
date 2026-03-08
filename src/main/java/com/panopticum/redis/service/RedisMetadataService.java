@@ -74,7 +74,7 @@ public class RedisMetadataService {
         }
         boolean desc = "desc".equalsIgnoreCase(order);
         String sortBy = sort != null ? sort : "key";
-        java.util.Comparator<RedisKeyInfo> comparator = switch (sortBy) {
+        Comparator<RedisKeyInfo> comparator = switch (sortBy) {
             case "type" -> desc
                     ? Comparator.comparing(RedisKeyInfo::getType, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)).reversed()
                     : Comparator.comparing(RedisKeyInfo::getType, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));

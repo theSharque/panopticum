@@ -15,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -65,7 +66,7 @@ public class OracleMetadataService {
         List<SchemaInfo> all = new ArrayList<>(listSchemaInfos(connectionId));
         boolean desc = "desc".equalsIgnoreCase(order);
         String sortBy = sort != null ? sort : "name";
-        java.util.Comparator<SchemaInfo> comparator;
+        Comparator<SchemaInfo> comparator;
         if ("tables".equals(sortBy)) {
             comparator = desc ? (a, b) -> Integer.compare(b.getTableCount(), a.getTableCount())
                     : (a, b) -> Integer.compare(a.getTableCount(), b.getTableCount());
@@ -88,7 +89,7 @@ public class OracleMetadataService {
         List<TableInfo> all = new ArrayList<>(listTableInfos(connectionId, schema));
         boolean desc = "desc".equalsIgnoreCase(order);
         String sortBy = sort != null ? sort : "name";
-        java.util.Comparator<TableInfo> comparator;
+        Comparator<TableInfo> comparator;
         if ("type".equalsIgnoreCase(sortBy)) {
             comparator = desc ? (a, b) -> (b.getType() != null ? b.getType() : "").compareToIgnoreCase(a.getType() != null ? a.getType() : "")
                     : (a, b) -> (a.getType() != null ? a.getType() : "").compareToIgnoreCase(b.getType() != null ? b.getType() : "");

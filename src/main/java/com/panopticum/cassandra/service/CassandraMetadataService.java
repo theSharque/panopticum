@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -152,7 +153,7 @@ public class CassandraMetadataService {
         List<CassandraKeyspaceInfo> all = new ArrayList<>(listKeyspaceInfos(connectionId));
         boolean desc = "desc".equalsIgnoreCase(order);
         String sortBy = sort != null ? sort : "name";
-        java.util.Comparator<CassandraKeyspaceInfo> comparator;
+        Comparator<CassandraKeyspaceInfo> comparator;
         if ("durableWrites".equals(sortBy)) {
             comparator = desc
                     ? (a, b) -> Boolean.compare(b.getDurableWrites() != null && b.getDurableWrites(), a.getDurableWrites() != null && a.getDurableWrites())
@@ -176,7 +177,7 @@ public class CassandraMetadataService {
         List<CassandraTableInfo> all = new ArrayList<>(listTableInfos(connectionId, keyspaceName));
         boolean desc = "desc".equalsIgnoreCase(order);
         String sortBy = sort != null ? sort : "name";
-        java.util.Comparator<CassandraTableInfo> comparator;
+        Comparator<CassandraTableInfo> comparator;
         if ("type".equalsIgnoreCase(sortBy)) {
             comparator = desc ? (a, b) -> (b.getType() != null ? b.getType() : "").compareToIgnoreCase(a.getType() != null ? a.getType() : "")
                     : (a, b) -> (a.getType() != null ? a.getType() : "").compareToIgnoreCase(b.getType() != null ? b.getType() : "");

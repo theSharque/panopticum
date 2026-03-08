@@ -1,10 +1,12 @@
 package com.panopticum.core.model;
 
+import io.micronaut.serde.annotation.Serdeable;
 import lombok.Getter;
 
 import java.util.List;
 
 @Getter
+@Serdeable
 public class Page<T> {
 
     private final List<T> items;

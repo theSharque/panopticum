@@ -110,7 +110,7 @@ public class RedisController {
         model.put("searchTerm", searchTerm);
 
         RedisKeysPage page = redisMetadataService.listKeys(id, dbIndex, pattern, cursor, size);
-        java.util.List<RedisKeyInfo> items = redisMetadataService.sortKeys(page.getKeys(), sort, order);
+        List<RedisKeyInfo> items = redisMetadataService.sortKeys(page.getKeys(), sort, order);
         String orderVal = order != null ? order : "asc";
         String sortBy = sort != null ? sort : "key";
         model.put("items", items);
