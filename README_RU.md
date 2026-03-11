@@ -39,7 +39,7 @@
 - Выполнение SQL (PostgreSQL / CockroachDB / YugabyteDB, MySQL / MariaDB, MS SQL Server, Oracle, ClickHouse, Cassandra / ScyllaDB CQL) и запросов (MongoDB)
 - Редактирование и сохранение строк в детальном просмотре (PostgreSQL по ctid, MySQL/MS SQL Server при наличии PK/unique, Oracle по ROWID, MongoDB, Redis / Dragonfly / Valkey / KeyDB, Cassandra / ScyllaDB при наличии primary key, Elasticsearch / OpenSearch — документ по _id)
 - REST API для всех операций с БД (подключения, просмотр, SQL/запросы, редактирование строк и т.д.)
-- Swagger UI по адресу `/swagger-ui` для интерактивной документации API (OpenAPI 3.0)
+- Swagger UI по адресу `/swagger-ui` для интерактивной документации API (OpenAPI 3.0); `/swagger` и `/swagger/index.html` делают редирект туда
 - HTMX для частичного обновления без перезагрузки страницы
 - Подсветка синтаксиса JSON (read-only блоки и редактор CodeMirror на страницах detail)
 - Офлайн / закрытый контур: все внешние ресурсы (HTMX, Prism, CodeMirror, шрифты) включены локально — CDN не требуется
@@ -54,7 +54,7 @@
 
 Приложение: **http://localhost:8080**
 
-Swagger UI: **http://localhost:8080/swagger-ui**
+Swagger UI: **http://localhost:8080/swagger-ui** (или http://localhost:8080/swagger, http://localhost:8080/swagger/index.html)
 
 ## Конфигурация
 

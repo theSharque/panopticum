@@ -39,7 +39,7 @@ Connections are stored in H2. In Settings you can add connections, test them, an
 - Execute SQL (PostgreSQL / CockroachDB / YugabyteDB, MySQL / MariaDB, MS SQL Server, Oracle, ClickHouse, Cassandra / ScyllaDB CQL) and queries (MongoDB)
 - Edit and save rows in detail view (PostgreSQL by ctid, MySQL/MS SQL Server when table has PK/unique, Oracle by ROWID, MongoDB, Redis / Dragonfly / Valkey / KeyDB, Cassandra / ScyllaDB when table has primary key, Elasticsearch / OpenSearch document by _id)
 - REST API for all database operations (connections, browse, SQL/query execution, row edit, etc.)
-- Swagger UI at `/swagger-ui` for interactive API documentation (OpenAPI 3.0)
+- Swagger UI at `/swagger-ui` for interactive API documentation (OpenAPI 3.0); `/swagger` and `/swagger/index.html` redirect there
 - HTMX for partial updates without full page reloads
 - JSON syntax highlighting (read-only blocks and CodeMirror editor on detail pages)
 - Offline / closed-circuit: all vendor assets (HTMX, Prism, CodeMirror, fonts) are bundled locally — no CDN required
@@ -54,7 +54,7 @@ Connections are stored in H2. In Settings you can add connections, test them, an
 
 Application: **http://localhost:8080**
 
-Swagger UI: **http://localhost:8080/swagger-ui**
+Swagger UI: **http://localhost:8080/swagger-ui** (or http://localhost:8080/swagger, http://localhost:8080/swagger/index.html)
 
 ## Configuration
 
