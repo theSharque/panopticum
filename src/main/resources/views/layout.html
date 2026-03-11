@@ -25,7 +25,7 @@
     <script th:src="@{/js/sidebar-tree.js}"></script>
 </head>
 
-<body>
+<body th:attr="data-theme=${theme}">
 <div class="layout">
     <div th:replace="~{fragments/sidebar :: sidebar(connections=${connections}, adminLock=${adminLock})}"></div>
 
