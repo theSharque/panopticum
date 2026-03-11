@@ -353,6 +353,45 @@ body {
     border-left-color: var(--border-strong);
 }
 
+.sidebar-folder {
+    margin: 0;
+}
+
+.sidebar-folder-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    padding: var(--space-sm) var(--space-lg);
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-size: 14px;
+    transition: color var(--duration), background var(--duration);
+}
+
+.sidebar-folder-header:hover {
+    color: var(--accent);
+    background: var(--bg-hover);
+}
+
+.sidebar-folder-toggle {
+    flex-shrink: 0;
+    font-size: 10px;
+    transition: transform var(--duration);
+}
+
+.sidebar-folder-label {
+    flex: 1;
+    min-width: 0;
+}
+
+.sidebar-folder-children {
+    padding-left: var(--space-md);
+}
+
+.sidebar-folder.collapsed .sidebar-folder-children {
+    display: none;
+}
+
 .sidebar-edit {
     flex-shrink: 0;
     display: inline-flex;

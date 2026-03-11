@@ -11,8 +11,9 @@
         <a th:if="${!adminLock}" th:href="@{/settings}" class="sidebar-link" th:classappend="${requestUri != null and requestUri.endsWith('settings') ? 'active' : ''}" th:text="${msg['sidebar.addConnection']}">add connection</a>
 
         <div class="sidebar-connections">
-            <th:block th:if="${connections != null and !connections.isEmpty()}">
-                <div th:each="conn : ${connections}" class="sidebar-pg">
+            <div id="sidebar-conn-source" style="display:none">
+                <th:block th:if="${connections != null and !connections.isEmpty()}">
+                    <div th:each="conn : ${connections}" class="sidebar-pg" th:attr="data-name=${conn.name}">
                     <a th:if="${conn.type == 'postgresql'}" th:href="@{/pg/{id}(id=${conn.id})}" th:text="${conn.name}" class="sidebar-link">PG</a>
                     <a th:if="${conn.type == 'mongodb'}" th:href="@{/mongo/{id}(id=${conn.id})}" th:text="${conn.name}" class="sidebar-link">Mongo</a>
                     <a th:if="${conn.type == 'redis'}" th:href="@{/redis/{id}(id=${conn.id})}" th:text="${conn.name}" class="sidebar-link">Redis</a>
@@ -34,6 +35,8 @@
                     </form>
                 </div>
             </th:block>
+            </div>
+            <div id="sidebar-tree"></div>
         </div>
     </nav>
     <div class="sidebar-footer">
