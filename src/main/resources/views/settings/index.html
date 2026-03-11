@@ -5,6 +5,10 @@
 <main th:fragment="main" class="main-content">
     <h1 th:text="${msg['settings.title']}">Add connection</h1>
 
+    <div id="validation-messages" hidden
+         th:attr="data-name-trailing-slash=${msg['connection.nameTrailingSlash']},
+                  data-name-duplicate=${msg['connection.nameDuplicate']}"></div>
+
     <div th:if="${!adminLock}">
         <div class="form-group">
             <label for="connection-type" th:text="${msg['settings.connectionType']}">Connection type</label>

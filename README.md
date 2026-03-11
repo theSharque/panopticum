@@ -27,13 +27,13 @@ A tool for developers and QA — web interface for viewing and managing database
 | **Kafka** | Browse topics and partitions; peek records (read-only) |
 | **Elasticsearch / OpenSearch** | Browse indices; search (Query DSL); view and edit documents by _id (no delete) |
 
-Connections are stored in H2. In Settings you can add connections, test them, and delete them.
+Connections are stored in H2. In Settings you can add connections, test them, and delete them. Connection names may contain `/` to organize them into folders in the sidebar (e.g. `Prod/PG`, `Prod/Mongo`). Names must be unique and cannot end with `/`.
 
 ## Features
 
 - HTTP Basic Auth (credentials from env)
 - Light and dark theme (toggle in header and on login page)
-- Sidebar with saved connections and quick access to Settings
+- Sidebar with saved connections and quick access to Settings; tree view for connections — use `/` in connection names to create folders (e.g. `Dev/PG`, `Dev/Back/Oracle`), collapsible with state persisted per session
 - Add, test, and remove connections per database type
 - Browse metadata (schemas, tables, collections, keys) with pagination
 - Execute SQL (PostgreSQL / CockroachDB / YugabyteDB, MySQL / MariaDB, MS SQL Server, Oracle, ClickHouse, Cassandra / ScyllaDB CQL) and queries (MongoDB)
