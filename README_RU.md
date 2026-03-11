@@ -104,13 +104,14 @@ Swagger UI: **http://localhost:8080/swagger-ui** (или http://localhost:8080/s
 
 JAR: `build/libs/panopticum-all.jar`
 
-### Пересборка detail-editor (опционально)
+### Пересборка редакторов (опционально)
 
-Редактор JSON на страницах detail (MongoDB, Elasticsearch, Redis) использует предсобранный бандл. Для пересборки после изменения `detail-editor-src.js` или обновления CodeMirror:
+Редактор JSON на страницах detail и редакторы запросов используют предсобранные бандлы. Для пересборки после изменения исходных файлов или обновления CodeMirror:
 
 ```bash
 npm install
 npm run build:detail-editor
+npm run build:query-editor
 ```
 
 ## Docker

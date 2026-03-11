@@ -10,7 +10,7 @@
         <input type="hidden" name="dbName" th:value="${dbName}"/>
         <input type="hidden" name="schema" th:value="${schema}"/>
         <input type="hidden" name="offset" value="0"/>
-        <textarea name="sql" class="query-textarea" rows="4" placeholder="SELECT * FROM ..."></textarea>
+        <textarea name="sql" class="query-textarea" data-lang="sql" rows="4" placeholder="SELECT * FROM ..."></textarea>
         <button type="submit" class="query-execute">Execute</button>
     </form>
     <div id="query-result" class="query-result"></div>
