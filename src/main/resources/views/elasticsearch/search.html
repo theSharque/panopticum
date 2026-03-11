@@ -4,8 +4,6 @@
 <body>
 <main th:fragment="main" class="main-content">
     <div th:replace="~{fragments/breadcrumbs :: breadcrumbs(items=${breadcrumbs})}"></div>
-    <h1 th:text="${msg['elasticsearch.search']}">Search</h1>
-
     <section class="query-panel query-panel-table">
         <h3 class="query-panel-title">Query DSL</h3>
         <form th:action="@{/elasticsearch/{id}/indices/{idx}/search(id=${connectionId}, idx=${indexNameEncoded})}"
