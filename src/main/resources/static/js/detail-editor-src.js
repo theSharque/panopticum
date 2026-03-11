@@ -1,13 +1,13 @@
 import { EditorView } from '@codemirror/view';
 import { EditorState } from '@codemirror/state';
+import { syntaxHighlighting, defaultHighlightStyle } from '@codemirror/language';
 import { json } from '@codemirror/lang-json';
 import { oneDark } from '@codemirror/theme-one-dark';
 
 const CM_REPLACED_CLASS = 'cm-replaced';
 
-function getTheme() {
-    var isDark = document.body.getAttribute('data-theme') !== 'light';
-    return isDark ? oneDark : null;
+function isDark() {
+    return document.body.getAttribute('data-theme') !== 'light';
 }
 
 function initEditor(textarea) {
@@ -29,8 +29,8 @@ function initEditor(textarea) {
     textarea.style.pointerEvents = 'none';
     textarea.style.overflow = 'hidden';
 
-    var theme = getTheme();
     var extensions = [
+        isDark() ? oneDark : syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
         json(),
         EditorView.lineWrapping,
         EditorView.theme({
@@ -39,10 +39,6 @@ function initEditor(textarea) {
             '&.cm-scroller': { fontFamily: 'var(--font-mono), "JetBrains Mono", monospace' }
         })
     ];
-
-    if (theme) {
-        extensions.unshift(theme);
-    }
 
     var state = EditorState.create({
         doc: content,
