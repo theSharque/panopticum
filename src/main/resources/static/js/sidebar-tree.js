@@ -38,16 +38,16 @@
 
     function isOpen(path) {
         try {
-            var stored = sessionStorage.getItem(getStorageKey(path));
-            return stored !== 'closed';
+            var stored = localStorage.getItem(getStorageKey(path));
+            return stored === 'open';
         } catch (e) {
-            return true;
+            return false;
         }
     }
 
     function setOpen(path, open) {
         try {
-            sessionStorage.setItem(getStorageKey(path), open ? 'open' : 'closed');
+            localStorage.setItem(getStorageKey(path), open ? 'open' : 'closed');
         } catch (e) {}
     }
 
