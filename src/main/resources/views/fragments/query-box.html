@@ -2,7 +2,6 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
 <section th:fragment="queryBox(connectionId, dbName, schema)" class="query-panel">
-    <h3 class="query-panel-title">Query</h3>
     <form th:action="@{/pg/{id}/query(id=${connectionId})}" method="post" class="query-form"
           th:attr="hx-post=@{/pg/{id}/query(id=${connectionId})}"
           hx-target="#query-result"

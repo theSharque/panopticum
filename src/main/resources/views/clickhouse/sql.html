@@ -5,7 +5,6 @@
 <main th:fragment="main" class="main-content">
     <div th:replace="~{fragments/breadcrumbs :: breadcrumbs(items=${breadcrumbs})}"></div>
     <section class="query-panel query-panel-table">
-        <h3 class="query-panel-title" th:text="${msg['query.title']}">Query</h3>
         <form th:action="@{/clickhouse/{id}/query(id=${connectionId})}"
               method="post"
               th:attr="hx-post=@{/clickhouse/{id}/query(id=${connectionId})}"
