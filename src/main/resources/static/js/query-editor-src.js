@@ -6,6 +6,11 @@ import { oneDark } from '@codemirror/theme-one-dark';
 
 const CM_REPLACED_CLASS = 'cm-replaced';
 
+function getTheme() {
+    var theme = document.body.getAttribute('data-theme') || 'dark';
+    return theme === 'light' ? null : oneDark;
+}
+
 function initEditor(textarea) {
     if (textarea.dataset.cmInitialized === 'true') {
         return;
@@ -28,19 +33,24 @@ function initEditor(textarea) {
     textarea.style.overflow = 'hidden';
 
     var languageExtension = lang === 'json' ? json() : sql();
+    var theme = getTheme();
+    var extensions = [
+        languageExtension,
+        EditorView.lineWrapping,
+        EditorView.theme({
+            '&': { fontSize: '13px' },
+            '&.cm-editor': { minHeight: '120px' },
+            '&.cm-scroller': { fontFamily: 'var(--font-mono), "JetBrains Mono", monospace' }
+        })
+    ];
+
+    if (theme) {
+        extensions.unshift(theme);
+    }
 
     var state = EditorState.create({
         doc: content,
-        extensions: [
-            oneDark,
-            languageExtension,
-            EditorView.lineWrapping,
-            EditorView.theme({
-                '&': { fontSize: '13px' },
-                '&.cm-editor': { minHeight: '120px' },
-                '&.cm-scroller': { fontFamily: 'var(--font-mono), "JetBrains Mono", monospace' }
-            })
-        ]
+        extensions: extensions
     });
 
     var view = new EditorView({
