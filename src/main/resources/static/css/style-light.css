@@ -51,3 +51,93 @@
     font-size: 11px;
     color: var(--text-muted);
 }
+
+.cm-editor {
+    background-color: var(--bg-content);
+    color: var(--text-primary);
+}
+
+.cm-content {
+    color: var(--text-primary);
+    caret-color: var(--accent);
+}
+
+.cm-gutters {
+    background-color: var(--bg-elevated);
+    border-right: 1px solid var(--border);
+    color: var(--text-muted);
+}
+
+.cm-activeLineGutter {
+    background-color: var(--bg-hover);
+}
+
+.cm-keyword {
+    color: #d63384;
+}
+
+.cm-atom {
+    color: #059669;
+}
+
+.cm-number {
+    color: #0891b2;
+}
+
+.cm-string {
+    color: #059669;
+}
+
+.cm-property {
+    color: #0369a1;
+}
+
+.cm-comment {
+    color: #94a3b8;
+}
+
+.cm-variable {
+    color: var(--text-primary);
+}
+
+.cm-operator {
+    color: #64748b;
+}
+
+.cm-qualifier {
+    color: #7c3aed;
+}
+
+.cm-heading {
+    color: #1f2937;
+    font-weight: bold;
+}
+
+.cm-strong {
+    font-weight: bold;
+}
+
+.cm-emphasis {
+    font-style: italic;
+}
+
+.cm-selection {
+    background-color: rgba(37, 99, 235, 0.15);
+}
+
+.cm-cursor {
+    border-left: 1px solid var(--accent);
+}
+
+.cm-lineNumbers .cm-gutterElement {
+    min-width: 3em;
+}
+
+.cm-matchingBracket {
+    background-color: rgba(37, 99, 235, 0.08);
+    outline: 1px solid #2563eb;
+}
+
+.cm-nonmatchingBracket {
+    background-color: rgba(220, 38, 38, 0.15);
+}
