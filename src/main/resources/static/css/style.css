@@ -872,12 +872,6 @@ button[type="submit"]:not(.sidebar-delete):not(.query-th-link):hover {
     margin-bottom: var(--space-md);
 }
 
-.query-panel {
-    margin-top: var(--space-xl);
-    padding-top: var(--space-lg);
-    border-top: 1px solid var(--border);
-}
-
 .query-panel-title {
     font-family: var(--font-sans);
     font-size: 13px;
