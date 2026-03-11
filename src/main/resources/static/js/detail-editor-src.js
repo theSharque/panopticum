@@ -6,8 +6,8 @@ import { oneDark } from '@codemirror/theme-one-dark';
 const CM_REPLACED_CLASS = 'cm-replaced';
 
 function getTheme() {
-    var theme = document.body.getAttribute('data-theme') || 'dark';
-    return theme === 'light' ? null : oneDark;
+    var isDark = document.body.getAttribute('data-theme') !== 'light';
+    return isDark ? oneDark : null;
 }
 
 function initEditor(textarea) {
