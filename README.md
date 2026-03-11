@@ -104,13 +104,14 @@ For Helm: put the JSON in a Secret and mount it as the env var `PANOPTICUM_CONNE
 
 JAR: `build/libs/panopticum-all.jar`
 
-### Rebuilding detail-editor bundle (optional)
+### Rebuilding editor bundles (optional)
 
-The JSON editor on detail pages (MongoDB, Elasticsearch, Redis) uses a pre-built bundle. To regenerate it after changing `detail-editor-src.js` or updating CodeMirror:
+The JSON editor on detail pages and query editors use pre-built bundles. To regenerate them after changing source files or updating CodeMirror:
 
 ```bash
 npm install
 npm run build:detail-editor
+npm run build:query-editor
 ```
 
 ## Docker

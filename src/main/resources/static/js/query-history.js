@@ -110,6 +110,7 @@
                     });
                     text.addEventListener('click', function () {
                         textarea.value = q;
+                        textarea.dispatchEvent(new CustomEvent('panopticum:query-apply', { detail: { value: q } }));
                         dropdown.setAttribute('hidden', '');
                         dropdown.classList.remove('query-history-dropdown-visible');
                     });
