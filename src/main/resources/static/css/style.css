@@ -929,6 +929,17 @@ button[type="submit"]:not(.sidebar-delete):not(.query-th-link):hover {
     box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2);
 }
 
+.query-editor.cm-editor-wrapper .cm-editor {
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    transition: border-color var(--duration), box-shadow var(--duration);
+}
+
+.query-editor.cm-editor-wrapper .cm-editor.cm-focused {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2);
+}
+
 .query-execute {
     display: inline-flex;
     align-items: center;
