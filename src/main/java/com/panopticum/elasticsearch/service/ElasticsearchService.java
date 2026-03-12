@@ -89,7 +89,7 @@ public class ElasticsearchService {
                 .filter(m -> m != null && !m.isEmpty());
     }
 
-    public Optional<QueryResult> search(Long connectionId, String indexName, String queryDsl, int offset, int limit) {
+    public Optional<QueryResult> executeQuery(Long connectionId, String indexName, String queryDsl, int offset, int limit) {
         if (indexName == null || indexName.isBlank()) {
             return Optional.of(QueryResult.error("error.specifyIndex"));
         }

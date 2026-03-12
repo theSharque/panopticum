@@ -91,7 +91,7 @@ public class MySqlMetadataRepository {
     public List<DatabaseInfo> listDatabaseInfos(Long connectionId) {
         try (Connection conn = getConnection(connectionId).orElse(null)) {
             if (conn == null) {
-                return List.of();
+                throw new RuntimeException("Connection not available");
             }
             List<DatabaseInfo> infos = new ArrayList<>();
             try (PreparedStatement ps = conn.prepareStatement(LIST_DATABASES_SQL);
@@ -105,13 +105,16 @@ public class MySqlMetadataRepository {
             return infos;
         } catch (SQLException e) {
             log.warn("listDatabaseInfos failed: {}", e.getMessage());
-            return List.of();
+            throw new RuntimeException(e.getMessage(), e);
         }
     }
 
     public List<TableInfo> listTableInfos(Long connectionId, String dbName) {
         try (Connection conn = getConnection(connectionId, dbName).orElse(null)) {
-            if (conn == null || dbName == null || dbName.isBlank()) {
+            if (conn == null) {
+                throw new RuntimeException("Connection not available");
+            }
+            if (dbName == null || dbName.isBlank()) {
                 return List.of();
             }
             List<TableInfo> tables = new ArrayList<>();
@@ -131,7 +134,7 @@ public class MySqlMetadataRepository {
             return tables;
         } catch (SQLException e) {
             log.warn("listTableInfos failed: {}", e.getMessage());
-            return List.of();
+            throw new RuntimeException(e.getMessage(), e);
         }
     }
 
