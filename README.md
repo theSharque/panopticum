@@ -45,6 +45,98 @@ Connections are stored in H2. In Settings you can add connections, test them, an
 - Offline / closed-circuit: all vendor assets (HTMX, Prism, CodeMirror, fonts) are bundled locally — no CDN required
 - Localization: EN and RU (browser or path)
 - **Data Diff:** add records from any detail page to a comparison list (stored in browser localStorage); compare side-by-side across environments (Dev vs Stage vs Prod) or different DB types
+- **MCP (Model Context Protocol):** JSON-RPC endpoint at `/mcp` for AI agents — list data sources, browse catalogs/schemas/tables, run queries, and compare records across databases (Postgres vs Mongo, etc.)
+
+## MCP (Model Context Protocol)
+
+Panopticum exposes an MCP-compatible JSON-RPC endpoint at `/mcp` for AI agents (Cursor, Claude Desktop, etc.). Agents can list connections, browse metadata, run queries, and compare data across different database types. All MCP requests require HTTP Basic Auth (same credentials as the web UI).
+
+**Endpoint:** `POST /mcp`  
+**Auth:** HTTP Basic (same as `PANOPTICUM_USER` / `PANOPTICUM_PASSWORD`)
+
+**Tools:**
+
+| Tool | Description |
+|------|--------------|
+| `list-data-sources` | Safe list of connections (id, name, dbType, queryFormat, hierarchyModel — no credentials) |
+| `list-catalogs` | Databases / keyspaces / topics (Kafka) / db 0–15 (Redis) / indices (Elasticsearch) |
+| `list-namespaces` | Schemas (Postgres, MSSQL, Oracle) |
+| `list-entities` | Tables / collections / partitions (Kafka, catalog=topic) |
+| `query-data` | Execute SQL/CQL/MQL/JSON; returns unified envelope (max 100 rows) |
+| `get-record-detail` | Single record/document for comparison |
+
+**Test with curl:**
+
+```bash
+# Initialize
+curl -u admin:admin -X POST http://localhost:8080/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}'
+
+# List tools
+curl -u admin:admin -X POST http://localhost:8080/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}'
+
+# List data sources
+curl -u admin:admin -X POST http://localhost:8080/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"list-data-sources","arguments":{}}}'
+
+# List catalogs (Kafka topics, Redis db 0-15, Elasticsearch indices)
+curl -u admin:admin -X POST http://localhost:8080/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"list-catalogs","arguments":{"connectionId":481}}}'
+
+# Query Kafka (catalog=topic, query=JSON opts)
+curl -u admin:admin -X POST http://localhost:8080/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"query-data","arguments":{"connectionId":481,"catalog":"my-topic","query":"{\"partition\":0,\"fromEnd\":true,\"count\":10}"}}}'
+
+# Query Redis (catalog=dbIndex, query=glob pattern)
+curl -u admin:admin -X POST http://localhost:8080/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":6,"method":"tools/call","params":{"name":"query-data","arguments":{"connectionId":353,"catalog":"0","query":"user:*"}}}'
+
+# Query Elasticsearch (catalog/entity=index, query=JSON DSL)
+curl -u admin:admin -X POST http://localhost:8080/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":7,"method":"tools/call","params":{"name":"query-data","arguments":{"connectionId":577,"entity":"my-index","query":"{\"query\":{\"match_all\":{}}}"}}}'
+```
+
+**Cursor** (`.cursor/mcp.json` or `~/.cursor/mcp.json`):
+
+```json
+{
+  "mcpServers": {
+    "panopticum": {
+      "url": "http://localhost:8080/mcp",
+      "headers": {
+        "Authorization": "Basic YWRtaW46YWRtaW4="
+      }
+    }
+  }
+}
+```
+
+Replace `YWRtaW46YWRtaW4=` with Base64 of `username:password` (e.g. `echo -n "admin:changeme" | base64`).
+
+**Claude Desktop** (`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS):
+
+```json
+{
+  "mcpServers": {
+    "panopticum": {
+      "url": "http://localhost:8080/mcp",
+      "headers": {
+        "Authorization": "Basic YWRtaW46YWRtaW4="
+      }
+    }
+  }
+}
+```
+
+**Windsurf / other MCP clients:** Use the same `url` + `headers` pattern. Ensure the client supports HTTP POST JSON-RPC (not only stdio or SSE).
 
 ## Running
 

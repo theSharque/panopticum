@@ -45,6 +45,98 @@
 - Офлайн / закрытый контур: все внешние ресурсы (HTMX, Prism, CodeMirror, шрифты) включены локально — CDN не требуется
 - Локализация: EN и RU (по браузеру или пути)
 - **Data Diff (сравнение данных):** добавление записей с любой страницы detail в список сравнения (хранится в localStorage браузера); визуальное сравнение side-by-side между окружениями (Dev vs Stage vs Prod) или разными типами БД
+- **MCP (Model Context Protocol):** JSON-RPC endpoint по адресу `/mcp` для AI-агентов — список источников данных, просмотр каталогов/схем/таблиц, выполнение запросов и сравнение записей между БД (Postgres vs Mongo и т.д.)
+
+## MCP (Model Context Protocol)
+
+Panopticum предоставляет MCP-совместимый JSON-RPC endpoint по адресу `/mcp` для AI-агентов (Cursor, Claude Desktop и др.). Агенты могут получать список подключений, просматривать метаданные, выполнять запросы и сравнивать данные между разными типами БД. Все MCP-запросы требуют HTTP Basic Auth (те же учётные данные, что и для веб-интерфейса).
+
+**Endpoint:** `POST /mcp`  
+**Аутентификация:** HTTP Basic (те же `PANOPTICUM_USER` / `PANOPTICUM_PASSWORD`)
+
+**Tools:**
+
+| Tool | Описание |
+|------|----------|
+| `list-data-sources` | Безопасный список подключений (id, name, dbType, queryFormat, hierarchyModel — без кредов) |
+| `list-catalogs` | Базы данных / keyspaces / топики (Kafka) / db 0–15 (Redis) / индексы (Elasticsearch) |
+| `list-namespaces` | Схемы (Postgres, MSSQL, Oracle) |
+| `list-entities` | Таблицы / коллекции / партиции (Kafka, catalog=топик) |
+| `query-data` | Выполнение SQL/CQL/MQL/JSON; возвращает унифицированный envelope (макс. 100 строк) |
+| `get-record-detail` | Одна запись/документ для сравнения |
+
+**Проверка через curl:**
+
+```bash
+# Инициализация
+curl -u admin:admin -X POST http://localhost:8080/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}'
+
+# Список tools
+curl -u admin:admin -X POST http://localhost:8080/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}'
+
+# Список источников данных
+curl -u admin:admin -X POST http://localhost:8080/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"list-data-sources","arguments":{}}}'
+
+# Список каталогов (Kafka: топики, Redis: db 0-15, Elasticsearch: индексы)
+curl -u admin:admin -X POST http://localhost:8080/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"list-catalogs","arguments":{"connectionId":481}}}'
+
+# Запрос Kafka (catalog=топик, query=JSON с partition, fromOffset, count, fromEnd)
+curl -u admin:admin -X POST http://localhost:8080/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"query-data","arguments":{"connectionId":481,"catalog":"my-topic","query":"{\"partition\":0,\"fromEnd\":true,\"count\":10}"}}}'
+
+# Запрос Redis (catalog=dbIndex, query=glob-паттерн)
+curl -u admin:admin -X POST http://localhost:8080/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":6,"method":"tools/call","params":{"name":"query-data","arguments":{"connectionId":353,"catalog":"0","query":"user:*"}}}'
+
+# Запрос Elasticsearch (catalog/entity=индекс, query=JSON DSL)
+curl -u admin:admin -X POST http://localhost:8080/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":7,"method":"tools/call","params":{"name":"query-data","arguments":{"connectionId":577,"entity":"my-index","query":"{\"query\":{\"match_all\":{}}}"}}}'
+```
+
+**Cursor** (`.cursor/mcp.json` или `~/.cursor/mcp.json`):
+
+```json
+{
+  "mcpServers": {
+    "panopticum": {
+      "url": "http://localhost:8080/mcp",
+      "headers": {
+        "Authorization": "Basic YWRtaW46YWRtaW4="
+      }
+    }
+  }
+}
+```
+
+Замените `YWRtaW46YWRtaW4=` на Base64 от `username:password` (например `echo -n "admin:changeme" | base64`).
+
+**Claude Desktop** (`~/Library/Application Support/Claude/claude_desktop_config.json` на macOS):
+
+```json
+{
+  "mcpServers": {
+    "panopticum": {
+      "url": "http://localhost:8080/mcp",
+      "headers": {
+        "Authorization": "Basic YWRtaW46YWRtaW4="
+      }
+    }
+  }
+}
+```
+
+**Windsurf и другие MCP-клиенты:** используйте тот же формат `url` + `headers`. Убедитесь, что клиент поддерживает HTTP POST JSON-RPC (а не только stdio или SSE).
 
 ## Запуск
 

@@ -104,7 +104,7 @@ public class OracleMetadataRepository {
     public List<SchemaInfo> listSchemaInfos(Long connectionId) {
         try (Connection conn = getConnection(connectionId).orElse(null)) {
             if (conn == null) {
-                return List.of();
+                throw new RuntimeException("Connection not available");
             }
             List<SchemaInfo> infos = new ArrayList<>();
             try (PreparedStatement ps = conn.prepareStatement(LIST_SCHEMAS_SQL);
@@ -118,13 +118,16 @@ public class OracleMetadataRepository {
             return infos;
         } catch (SQLException e) {
             log.warn("listSchemaInfos failed: {}", firstLineOf(e.getMessage()));
-            return List.of();
+            throw new RuntimeException(e.getMessage(), e);
         }
     }
 
     public List<TableInfo> listTableInfos(Long connectionId, String schema) {
         try (Connection conn = getConnection(connectionId, schema).orElse(null)) {
-            if (conn == null || schema == null || schema.isBlank()) {
+            if (conn == null) {
+                throw new RuntimeException("Connection not available");
+            }
+            if (schema == null || schema.isBlank()) {
                 return List.of();
             }
             List<TableInfo> tables = new ArrayList<>();
@@ -146,7 +149,7 @@ public class OracleMetadataRepository {
             return tables;
         } catch (SQLException e) {
             log.warn("listTableInfos failed: {}", firstLineOf(e.getMessage()));
-            return List.of();
+            throw new RuntimeException(e.getMessage(), e);
         }
     }
 

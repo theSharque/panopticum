@@ -45,7 +45,7 @@ public class CassandraMetadataRepository {
     public List<CassandraKeyspaceInfo> listKeyspaceInfos(Long connectionId) {
         Optional<CqlSession> sessionOpt = createSession(connectionId, null);
         if (sessionOpt.isEmpty()) {
-            return List.of();
+            throw new RuntimeException("Connection not available");
         }
         try (CqlSession session = sessionOpt.get()) {
             ResultSet rs = session.execute(SimpleStatement.newInstance(LIST_KEYSPACES));
@@ -61,7 +61,7 @@ public class CassandraMetadataRepository {
             return list;
         } catch (Exception e) {
             log.warn("listKeyspaceInfos failed: {}", e.getMessage());
-            return List.of();
+            throw new RuntimeException(e.getMessage(), e);
         }
     }
 
@@ -71,7 +71,7 @@ public class CassandraMetadataRepository {
         }
         Optional<CqlSession> sessionOpt = createSession(connectionId, keyspaceName);
         if (sessionOpt.isEmpty()) {
-            return List.of();
+            throw new RuntimeException("Connection not available");
         }
         try (CqlSession session = sessionOpt.get()) {
             ResultSet rs = session.execute(SimpleStatement.newInstance(LIST_TABLES, keyspaceName));
@@ -88,7 +88,7 @@ public class CassandraMetadataRepository {
             return list;
         } catch (Exception e) {
             log.warn("listTableInfos failed: {}", e.getMessage());
-            return List.of();
+            throw new RuntimeException(e.getMessage(), e);
         }
     }
 

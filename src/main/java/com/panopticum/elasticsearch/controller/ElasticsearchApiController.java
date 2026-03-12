@@ -81,7 +81,7 @@ public class ElasticsearchApiController {
                 ? request.getQuery() : DEFAULT_QUERY;
         int offset = Math.max(0, request.getOffset());
         int limit = request.getLimit() > 0 ? Math.min(request.getLimit(), 1000) : 100;
-        return elasticsearchService.search(id, indexName, query, offset, limit)
+        return elasticsearchService.executeQuery(id, indexName, query, offset, limit)
                 .orElse(QueryResult.error("error.queryExecutionFailed"));
     }
 

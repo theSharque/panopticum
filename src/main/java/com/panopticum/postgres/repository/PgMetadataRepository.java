@@ -97,7 +97,7 @@ public class PgMetadataRepository {
     public List<DatabaseInfo> listDatabaseInfos(Long connectionId) {
         try (Connection conn = getConnection(connectionId).orElse(null)) {
             if (conn == null) {
-                return List.of();
+                throw new RuntimeException("Connection not available");
             }
 
             List<DatabaseInfo> infos = new ArrayList<>();
@@ -113,14 +113,14 @@ public class PgMetadataRepository {
             return infos;
         } catch (SQLException e) {
             log.warn("listDatabaseInfos failed: {}", e.getMessage());
-            return List.of();
+            throw new RuntimeException(e.getMessage(), e);
         }
     }
 
     public List<SchemaInfo> listSchemaInfos(Long connectionId, String dbName) {
         try (Connection conn = getConnection(connectionId, dbName).orElse(null)) {
             if (conn == null) {
-                return List.of();
+                throw new RuntimeException("Connection not available");
             }
 
             List<SchemaInfo> infos = new ArrayList<>();
@@ -138,8 +138,7 @@ public class PgMetadataRepository {
             return infos;
         } catch (SQLException e) {
             log.warn("listSchemaInfos failed: {}", e.getMessage());
-
-            return List.of();
+            throw new RuntimeException(e.getMessage(), e);
         }
     }
 
@@ -157,7 +156,10 @@ public class PgMetadataRepository {
 
     public List<TableInfo> listTableInfos(Long connectionId, String dbName, String schema) {
         try (Connection conn = getConnection(connectionId, dbName).orElse(null)) {
-            if (conn == null || schema == null || schema.isBlank()) {
+            if (conn == null) {
+                throw new RuntimeException("Connection not available");
+            }
+            if (schema == null || schema.isBlank()) {
                 return List.of();
             }
 
@@ -182,7 +184,7 @@ public class PgMetadataRepository {
             return tables;
         } catch (SQLException e) {
             log.warn("listTableInfos failed: {}", e.getMessage());
-            return List.of();
+            throw new RuntimeException(e.getMessage(), e);
         }
     }
 

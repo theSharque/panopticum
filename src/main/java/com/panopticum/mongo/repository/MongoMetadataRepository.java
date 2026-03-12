@@ -80,7 +80,7 @@ public class MongoMetadataRepository {
     public List<DatabaseInfo> listDatabaseInfos(Long connectionId) {
         try (MongoClient client = createClient(connectionId).orElse(null)) {
             if (client == null) {
-                return List.of();
+                throw new RuntimeException("Connection not available");
             }
             List<DatabaseInfo> infos = new ArrayList<>();
             for (Document doc : client.listDatabases()) {
@@ -91,13 +91,16 @@ public class MongoMetadataRepository {
             return infos;
         } catch (Exception e) {
             log.warn("listDatabaseInfos failed: {}", e.getMessage());
-            return List.of();
+            throw new RuntimeException(e.getMessage(), e);
         }
     }
 
     public List<String> listCollections(Long connectionId, String dbName, int offset, int limit) {
         try (MongoClient client = createClient(connectionId).orElse(null)) {
-            if (client == null || dbName == null || dbName.isBlank()) {
+            if (client == null) {
+                throw new RuntimeException("Connection not available");
+            }
+            if (dbName == null || dbName.isBlank()) {
                 return List.of();
             }
             MongoDatabase database = client.getDatabase(dbName);
@@ -107,7 +110,7 @@ public class MongoMetadataRepository {
             return offset < all.size() ? all.subList(offset, end) : List.of();
         } catch (Exception e) {
             log.warn("listCollections failed: {}", e.getMessage());
-            return List.of();
+            throw new RuntimeException(e.getMessage(), e);
         }
     }
 
@@ -116,7 +119,10 @@ public class MongoMetadataRepository {
             return List.of();
         }
         try (MongoClient client = createClient(connectionId).orElse(null)) {
-            if (client == null || dbName == null || dbName.isBlank()) {
+            if (client == null) {
+                throw new RuntimeException("Connection not available");
+            }
+            if (dbName == null || dbName.isBlank()) {
                 return List.of();
             }
             MongoDatabase database = client.getDatabase(dbName);
@@ -137,7 +143,7 @@ public class MongoMetadataRepository {
             return infos;
         } catch (Exception e) {
             log.warn("listCollectionInfos failed: {}", e.getMessage());
-            return List.of();
+            throw new RuntimeException(e.getMessage(), e);
         }
     }
 

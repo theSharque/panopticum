@@ -141,7 +141,7 @@ public class ElasticsearchController {
             model.put("fromRow", 0);
             model.put("toRow", 0);
         } else {
-            var result = elasticsearchService.search(id, indexName, query, off, lim)
+            var result = elasticsearchService.executeQuery(id, indexName, query, off, lim)
                     .orElse(QueryResult.error("error.queryExecutionFailed"));
             model.put("error", result.hasError() ? result.getError() : null);
             model.put("columns", result.getColumns());
@@ -294,7 +294,7 @@ public class ElasticsearchController {
             return new ModelAndView<>("partials/elasticsearch-search-result", model);
         }
 
-        var result = elasticsearchService.search(id, indexName, query, off, lim)
+        var result = elasticsearchService.executeQuery(id, indexName, query, off, lim)
                 .orElse(QueryResult.error("error.queryExecutionFailed"));
 
         model.put("error", result.hasError() ? result.getError() : null);

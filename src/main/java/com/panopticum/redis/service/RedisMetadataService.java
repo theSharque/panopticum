@@ -1,5 +1,7 @@
 package com.panopticum.redis.service;
 
+import com.panopticum.core.model.QueryResult;
+import com.panopticum.core.util.StringUtils;
 import com.panopticum.redis.model.RedisDbInfo;
 import com.panopticum.redis.model.RedisKeyDetail;
 import com.panopticum.redis.model.RedisKeyInfo;
@@ -86,6 +88,28 @@ public class RedisMetadataService {
                     : Comparator.comparing(RedisKeyInfo::getKey, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
         };
         return keys.stream().sorted(comparator).toList();
+    }
+
+    public Optional<QueryResult> executeQuery(Long connectionId, String catalog, String query, int effectiveLimit) {
+        int dbIndex = 0;
+        if (catalog != null && !catalog.isBlank()) {
+            try {
+                dbIndex = Integer.parseInt(catalog.trim());
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        String pattern = (query != null && !query.isBlank()) ? query.trim() : "*";
+        int limit = Math.min(effectiveLimit, keysPerPage);
+        var page = listKeys(connectionId, dbIndex, pattern, "0", limit);
+        List<RedisKeyInfo> keys = page.getKeys() != null ? page.getKeys() : List.of();
+        List<String> columns = List.of("key", "type", "ttl");
+        List<List<Object>> rows = keys.stream()
+                .map(k -> List.<Object>of(
+                        StringUtils.truncateCell(k.getKey()),
+                        k.getType(),
+                        k.getTtl()))
+                .toList();
+        return Optional.of(new QueryResult(columns, null, rows, null, null, 0, limit, page.isHasMore()));
     }
 
     public RedisKeysPage listKeys(Long connectionId, int dbIndex, String pattern, String cursor, int limit) {

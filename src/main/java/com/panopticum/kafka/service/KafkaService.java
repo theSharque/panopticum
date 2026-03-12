@@ -1,6 +1,8 @@
 package com.panopticum.kafka.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.panopticum.core.model.Page;
+import com.panopticum.core.model.QueryResult;
 import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.core.util.StringUtils;
 import com.panopticum.kafka.client.KafkaClient;
@@ -14,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Singleton
@@ -22,9 +25,11 @@ import java.util.Optional;
 public class KafkaService {
 
     private static final int PEEK_MAX_COUNT = 50;
+    private static final int EXECUTE_QUERY_HARD_LIMIT = 100;
 
     private final DbConnectionService dbConnectionService;
     private final KafkaClient kafkaClient;
+    private final ObjectMapper objectMapper;
 
     @Value("${panopticum.limits.kafka.peek-count:20}")
     private int defaultPeekCount;
@@ -106,6 +111,61 @@ public class KafkaService {
                         .headers(r.getHeaders())
                         .build())
                 .toList();
+    }
+
+    public Optional<QueryResult> executeQuery(Long connectionId, String topic, String entity, String query,
+                                              int offset, int effectiveLimit) {
+        if (topic == null || topic.isBlank()) {
+            return Optional.of(QueryResult.error("catalog (topic name) is required for Kafka"));
+        }
+        int partition = 0;
+        long fromOffset = 0L;
+        int count = Math.min(effectiveLimit, EXECUTE_QUERY_HARD_LIMIT);
+        boolean fromEnd = false;
+        if (query != null && !query.isBlank()) {
+            try {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> opts = objectMapper.readValue(query.trim(), Map.class);
+                if (opts.containsKey("partition")) {
+                    Object p = opts.get("partition");
+                    partition = p instanceof Number n ? n.intValue() : Integer.parseInt(String.valueOf(p));
+                }
+                if (opts.containsKey("fromOffset")) {
+                    Object o = opts.get("fromOffset");
+                    fromOffset = o instanceof Number n ? n.longValue() : Long.parseLong(String.valueOf(o));
+                }
+                if (opts.containsKey("count")) {
+                    Object c = opts.get("count");
+                    count = Math.min(c instanceof Number n ? n.intValue() : Integer.parseInt(String.valueOf(c)), EXECUTE_QUERY_HARD_LIMIT);
+                }
+                if (opts.containsKey("fromEnd") && Boolean.TRUE.equals(opts.get("fromEnd"))) {
+                    fromEnd = true;
+                }
+            } catch (Exception e) {
+                log.debug("Kafka query JSON parse failed, using defaults: {}", e.getMessage());
+            }
+        }
+        if (entity != null && !entity.isBlank()) {
+            try {
+                partition = Integer.parseInt(entity.trim());
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        List<KafkaRecord> records = fromEnd
+                ? peekRecordsFromEnd(connectionId, topic, partition, count)
+                : peekRecords(connectionId, topic, partition, fromOffset, count);
+        records = truncateRecordValuesForList(records);
+        List<String> columns = List.of("offset", "partition", "key", "value", "timestamp");
+        List<List<Object>> rows = records.stream()
+                .map(r -> List.<Object>of(
+                        r.getOffset(),
+                        r.getPartition(),
+                        r.getKey(),
+                        r.getValue(),
+                        r.getTimestamp()))
+                .toList();
+        boolean hasMore = records.size() >= count;
+        return Optional.of(new QueryResult(columns, null, rows, null, null, offset, count, hasMore));
     }
 
     private static String bootstrapServers(String host, int port) {
