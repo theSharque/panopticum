@@ -1,6 +1,6 @@
 # Artifact Hub repository metadata file
 # Place this file at the root of your Helm repository
-repositoryID: ""
+repositoryID: bcf37ec6-51ef-4272-b33b-be6d447bcbd7
 owners:
   - name: thesharque
     email: thesharque@users.noreply.github.com
