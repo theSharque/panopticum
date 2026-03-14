@@ -1,0 +1,14 @@
+# Artifact Hub repository metadata file
+# Place this file at the root of your Helm repository
+repositoryID: ""
+owners:
+  - name: thesharque
+    email: thesharque@users.noreply.github.com
+# (optional) meaning this version is a pre-release
+# prerelease: false  
+# (optional) disable this repo in the artifacthub UI
+# disabled: false
+# (optional) you can whitelist some users that can claim ownership
+# usersAllowedToClaimOwnership: 
+#   - github-username1
+#   - github-username2
