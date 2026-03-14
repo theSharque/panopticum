@@ -5,7 +5,49 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [7.0.0] - 2025
+## [7.3.0] - 2026-03-12
+
+### Added
+
+- MCP service
+
+## [7.2.0] - 2026-03-11
+
+### Added
+
+- Syntax highlighting to query editors
+- Light theme support to CodeMirror editors
+- Custom light theme styling for CodeMirror editors
+
+### Changed
+
+- Remove margins, padding, and border from query-panel
+- Remove h3 query panel titles to reduce vertical clutter
+- Remove redundant h1 headings from query pages
+
+### Fixed
+
+- Light theme add SQL
+
+## [7.1.1] - 2026-03-11
+
+### Added
+
+- Store tree state in browser
+
+## [7.1.0] - 2026-03-11
+
+### Added
+
+- Connection tree structure
+- Swagger redirect
+
+### Fixed
+
+- Readmes
+- CHANGELOG
+
+## [7.0.0] - 2026-03-08
 
 ### Added
 
