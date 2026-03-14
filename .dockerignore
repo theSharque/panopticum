@@ -9,4 +9,3 @@ build
 *.iml
 .idea
 *.log
-docker-compose.yml
