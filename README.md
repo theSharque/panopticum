@@ -2,151 +2,45 @@
 
 A tool for developers and QA — web interface for viewing and managing database connections. Designed for deployment in Kubernetes or Docker.
 
-## Stack
+## What it does
 
-- **Backend:** Micronaut 4.x
-- **Views:** Thymeleaf + HTMX
-- **API:** REST API for all operations; Swagger/OpenAPI 3.0
-- **Auth:** HTTP Basic (login/password from environment)
-- **Storage:** H2 (Flyway migrations)
-- **i18n:** English and Russian
+- **Connect** to PostgreSQL, MySQL, MongoDB, Redis, ClickHouse, Kafka, Elasticsearch, and [many more](#supported-databases)
+- **Browse** schemas, tables, keys, topics — with pagination and tree view
+- **Query** — run SQL, CQL, MQL; view and edit rows
+- **Compare** — Data Diff for records across Dev / Stage / Prod
+- **Integrate** — MCP endpoint for AI agents (Cursor, Claude Desktop)
+- **Offline** — all assets bundled, no CDN
 
-## Supported databases
+Connections are stored in H2. Add, test, and remove them in Settings. Use `/` in connection names for folders (e.g. `Prod/PG`, `Dev/Mongo`).
 
-| Type | Features |
-|------|----------|
-| **PostgreSQL / CockroachDB / YugabyteDB** | Browse databases, schemas, tables; run SQL; edit rows |
-| **MySQL / MariaDB** | Browse databases and tables; run SQL; edit rows (if table has PK or unique index) |
-| **MS SQL Server** | Browse databases, schemas, tables; run SQL; edit rows (if table has PK or unique index) |
-| **Oracle Database** | Browse schemas and tables; run SQL; edit rows by ROWID |
-| **MongoDB** | Browse databases and collections; run queries |
-| **Redis / Dragonfly / Valkey / KeyDB** | Browse databases and keys; view key types and values |
-| **ClickHouse** | Browse databases and tables; run SQL |
-| **Cassandra / ScyllaDB** | Browse keyspaces and tables; run CQL; edit rows (when table has primary key) |
-| **RabbitMQ** | Browse queues; peek messages (read-only, no edit/delete) |
-| **Kafka** | Browse topics and partitions; peek records (read-only) |
-| **Elasticsearch / OpenSearch** | Browse indices; search (Query DSL); view and edit documents by _id (no delete) |
+## Quick install
 
-Connections are stored in H2. In Settings you can add connections, test them, and delete them. Connection names may contain `/` to organize them into folders in the sidebar (e.g. `Prod/PG`, `Prod/Mongo`). Names must be unique and cannot end with `/`.
-
-## Features
-
-- HTTP Basic Auth (credentials from env)
-- Light and dark theme (toggle in header and on login page)
-- Sidebar with saved connections and quick access to Settings; tree view for connections — use `/` in connection names to create folders (e.g. `Dev/PG`, `Dev/Back/Oracle`), collapsible with state persisted per session
-- Add, test, and remove connections per database type
-- Browse metadata (schemas, tables, collections, keys) with pagination
-- Execute SQL (PostgreSQL / CockroachDB / YugabyteDB, MySQL / MariaDB, MS SQL Server, Oracle, ClickHouse, Cassandra / ScyllaDB CQL) and queries (MongoDB)
-- Edit and save rows in detail view (PostgreSQL by ctid, MySQL/MS SQL Server when table has PK/unique, Oracle by ROWID, MongoDB, Redis / Dragonfly / Valkey / KeyDB, Cassandra / ScyllaDB when table has primary key, Elasticsearch / OpenSearch document by _id)
-- REST API for all database operations (connections, browse, SQL/query execution, row edit, etc.)
-- Swagger UI at `/swagger-ui` for interactive API documentation (OpenAPI 3.0); `/swagger` and `/swagger/index.html` redirect there
-- HTMX for partial updates without full page reloads
-- JSON syntax highlighting (read-only blocks and CodeMirror editor on detail pages)
-- Offline / closed-circuit: all vendor assets (HTMX, Prism, CodeMirror, fonts) are bundled locally — no CDN required
-- Localization: EN and RU (browser or path)
-- **Data Diff:** add records from any detail page to a comparison list (stored in browser localStorage); compare side-by-side across environments (Dev vs Stage vs Prod) or different DB types
-- **MCP (Model Context Protocol):** JSON-RPC endpoint at `/mcp` for AI agents — list data sources, browse catalogs/schemas/tables, run queries, and compare records across databases (Postgres vs Mongo, etc.)
-
-## MCP (Model Context Protocol)
-
-Panopticum exposes an MCP-compatible JSON-RPC endpoint at `/mcp` for AI agents (Cursor, Claude Desktop, etc.). Agents can list connections, browse metadata, run queries, and compare data across different database types. All MCP requests require HTTP Basic Auth (same credentials as the web UI).
-
-**Endpoint:** `POST /mcp`  
-**Auth:** HTTP Basic (same as `PANOPTICUM_USER` / `PANOPTICUM_PASSWORD`)
-
-**Tools:**
-
-| Tool | Description |
-|------|--------------|
-| `list-data-sources` | Safe list of connections (id, name, dbType, queryFormat, hierarchyModel — no credentials) |
-| `list-catalogs` | Databases / keyspaces / topics (Kafka) / db 0–15 (Redis) / indices (Elasticsearch) |
-| `list-namespaces` | Schemas (Postgres, MSSQL, Oracle) |
-| `list-entities` | Tables / collections / partitions (Kafka, catalog=topic) |
-| `query-data` | Execute SQL/CQL/MQL/JSON; returns unified envelope (max 100 rows) |
-| `get-record-detail` | Single record/document for comparison |
-
-**Test with curl:**
+### Docker
 
 ```bash
-# Initialize
-curl -u admin:admin -X POST http://localhost:8080/mcp \
-  -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}'
-
-# List tools
-curl -u admin:admin -X POST http://localhost:8080/mcp \
-  -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}'
-
-# List data sources
-curl -u admin:admin -X POST http://localhost:8080/mcp \
-  -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"list-data-sources","arguments":{}}}'
-
-# List catalogs (Kafka topics, Redis db 0-15, Elasticsearch indices)
-curl -u admin:admin -X POST http://localhost:8080/mcp \
-  -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"list-catalogs","arguments":{"connectionId":481}}}'
-
-# Query Kafka (catalog=topic, query=JSON opts)
-curl -u admin:admin -X POST http://localhost:8080/mcp \
-  -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"query-data","arguments":{"connectionId":481,"catalog":"my-topic","query":"{\"partition\":0,\"fromEnd\":true,\"count\":10}"}}}'
-
-# Query Redis (catalog=dbIndex, query=glob pattern)
-curl -u admin:admin -X POST http://localhost:8080/mcp \
-  -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","id":6,"method":"tools/call","params":{"name":"query-data","arguments":{"connectionId":353,"catalog":"0","query":"user:*"}}}'
-
-# Query Elasticsearch (catalog/entity=index, query=JSON DSL)
-curl -u admin:admin -X POST http://localhost:8080/mcp \
-  -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","id":7,"method":"tools/call","params":{"name":"query-data","arguments":{"connectionId":577,"entity":"my-index","query":"{\"query\":{\"match_all\":{}}}"}}}'
+docker run -d --name panopticum \
+  -p 8080:8080 \
+  -v panopticum-data:/data \
+  -e PANOPTICUM_USER=admin \
+  -e PANOPTICUM_PASSWORD=changeme \
+  ghcr.io/thesharque/panopticum:latest
 ```
 
-**Cursor** (`.cursor/mcp.json` or `~/.cursor/mcp.json`):
+Open **http://localhost:8080**.
 
-```json
-{
-  "mcpServers": {
-    "panopticum": {
-      "url": "http://localhost:8080/mcp",
-      "headers": {
-        "Authorization": "Basic YWRtaW46YWRtaW4="
-      }
-    }
-  }
-}
-```
+Images: [GHCR](https://github.com/thesharque/panopticum/pkgs/container/panopticum) `ghcr.io/thesharque/panopticum:latest`, [Docker Hub](https://hub.docker.com/r/sharque/panopticum) `sharque/panopticum:latest`. For a fixed version use a tag, e.g. `:v4.1.0`.
 
-Replace `YWRtaW46YWRtaW4=` with Base64 of `username:password` (e.g. `echo -n "admin:changeme" | base64`).
-
-**Claude Desktop** (`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS):
-
-```json
-{
-  "mcpServers": {
-    "panopticum": {
-      "url": "http://localhost:8080/mcp",
-      "headers": {
-        "Authorization": "Basic YWRtaW46YWRtaW4="
-      }
-    }
-  }
-}
-```
-
-**Windsurf / other MCP clients:** Use the same `url` + `headers` pattern. Ensure the client supports HTTP POST JSON-RPC (not only stdio or SSE).
-
-## Running
+### Helm
 
 ```bash
-./gradlew run
+helm repo add panopticum https://thesharque.github.io/panopticum
+helm repo update
+helm install my-panopticum panopticum/panopticum
 ```
 
-Application: **http://localhost:8080**
+Then `kubectl port-forward svc/my-panopticum 8080:8080` and open http://localhost:8080.
 
-Swagger UI: **http://localhost:8080/swagger-ui** (or http://localhost:8080/swagger, http://localhost:8080/swagger/index.html)
+See [panopticum-helm-chart/README.md](panopticum-helm-chart/README.md) for configuration (credentials, connections, ingress, persistence).
 
 ## Configuration
 
@@ -154,39 +48,68 @@ Swagger UI: **http://localhost:8080/swagger-ui** (or http://localhost:8080/swagg
 |----------|-------------|---------|
 | `PANOPTICUM_USER` | Basic Auth login | `admin` |
 | `PANOPTICUM_PASSWORD` | Basic Auth password | `admin` |
-| `PANOPTICUM_DB_PATH` | H2 database file path | `./data/panopticum` |
-| `PANOPTICUM_CONNECTIONS_JSON` | JSON array of connections to load on first start (see below) | — |
-| `ADMIN_LOCK` | If `true`, disables adding and deleting connections (UI and API) | `false` |
-| `READ_ONLY` | If `true`, disables editing data on detail pages and related API (row update, Redis key save) | `false` |
+| `PANOPTICUM_DB_PATH` | H2 database path | `./data/panopticum` |
+| `PANOPTICUM_CONNECTIONS_JSON` | JSON array of connections to load on first start | — |
+| `ADMIN_LOCK` | Disable adding/removing connections | `false` |
+| `READ_ONLY` | Disable data editing | `false` |
 
-### Bootstrap connections (first start only)
+### Bootstrap connections
 
-If the `db_connections` table is **empty** at startup, the app reads the environment variable `PANOPTICUM_CONNECTIONS_JSON` and inserts the given connections into H2. If there is already at least one connection in the database, the variable is ignored.
-
-Value: a JSON array of connection objects. Each object can be specified in one of two ways:
-
-1. **Explicit fields:** `name`, `type`, `host`, `port`, `database`, `username`, `password`. Supported `type` values: `postgresql`, `mongodb`, `redis`, `clickhouse`, `mysql`, `sqlserver`, `oracle`, `cassandra`, `rabbitmq`, `kafka`, `elasticsearch`.
-2. **JDBC URL:** `name` and `jdbcUrl` (or `url`). The URL is parsed to derive type, host, port, database, username, and password. Supported for PostgreSQL, MySQL, MS SQL Server, Oracle, and ClickHouse (e.g. `jdbc:postgresql://user:pass@host:5432/dbname`, `jdbc:sqlserver://host:1433;databaseName=db;user=sa;password=secret`, `jdbc:oracle:thin:@//host:1521/XEPDB1`).
-
-Example:
+If `db_connections` is **empty** at startup, the app loads connections from `PANOPTICUM_CONNECTIONS_JSON` (JSON array). Example:
 
 ```json
 [
   {"name": "prod-pg", "jdbcUrl": "jdbc:postgresql://app:secret@pg.svc:5432/mydb"},
-  {"name": "prod-mysql", "jdbcUrl": "jdbc:mysql://app:secret@mysql.svc:3306/mydb"},
-  {"name": "prod-mssql", "jdbcUrl": "jdbc:sqlserver://mssql.svc:1433;databaseName=mydb;user=sa;password=secret"},
-  {"name": "prod-oracle", "jdbcUrl": "jdbc:oracle:thin:app/secret@//oracle.svc:1521/XEPDB1"},
-  {"name": "analytics", "jdbcUrl": "jdbc:clickhouse://clickhouse.svc:8123/default"},
-  {"name": "docs", "type": "mongodb", "host": "mongo.svc", "port": 27017, "database": "mydb", "username": "app", "password": "secret"},
   {"name": "cache", "type": "redis", "host": "redis.svc", "port": 6379},
-  {"name": "events-db", "type": "cassandra", "host": "cassandra.svc", "port": 9042, "database": "mykeyspace", "username": "cassandra", "password": "secret"},
-  {"name": "broker", "type": "rabbitmq", "host": "rabbitmq.svc", "port": 15672, "username": "guest", "password": "guest"},
-  {"name": "streaming", "type": "kafka", "host": "kafka.svc", "port": 9092},
-  {"name": "search", "type": "elasticsearch", "host": "es.svc", "port": 9200, "username": "elastic", "password": "secret"}
+  {"name": "docs", "type": "mongodb", "host": "mongo.svc", "port": 27017, "database": "mydb"}
 ]
 ```
 
-For Helm: put the JSON in a Secret and mount it as the env var `PANOPTICUM_CONNECTIONS_JSON` (e.g. `valueFrom.secretKeyRef`). Use a Secret rather than a ConfigMap if the JSON contains passwords.
+For Helm: use a Secret with `valueFrom.secretKeyRef` if the JSON contains passwords.
+
+## Supported databases
+
+| Type | Features |
+|------|----------|
+| **PostgreSQL / CockroachDB / YugabyteDB** | Browse; SQL; edit rows |
+| **MySQL / MariaDB** | Browse; SQL; edit (with PK/unique) |
+| **MS SQL Server** | Browse; SQL; edit (with PK/unique) |
+| **Oracle Database** | Browse; SQL; edit by ROWID |
+| **MongoDB** | Browse collections; queries |
+| **Redis / Dragonfly / Valkey / KeyDB** | Browse keys; view/edit values |
+| **ClickHouse** | Browse; SQL |
+| **Cassandra / ScyllaDB** | Browse; CQL; edit (with PK) |
+| **RabbitMQ** | Browse queues; peek messages |
+| **Kafka** | Browse topics; peek records |
+| **Elasticsearch / OpenSearch** | Browse indices; Query DSL; edit by _id |
+
+## MCP (AI agents)
+
+MCP-compatible endpoint at `POST /mcp` for Cursor, Claude Desktop, etc. Same HTTP Basic Auth as the UI.
+
+**Cursor** (`.cursor/mcp.json`):
+
+```json
+{
+  "mcpServers": {
+    "panopticum": {
+      "url": "http://localhost:8080/mcp",
+      "headers": { "Authorization": "Basic YWRtaW46YWRtaW4=" }
+    }
+  }
+}
+```
+
+Replace `YWRtaW46YWRtaW4=` with Base64 of `username:password` (`echo -n "admin:changeme" | base64`).
+
+Tools: `list-data-sources`, `list-catalogs`, `list-namespaces`, `list-entities`, `query-data`, `get-record-detail`.
+
+## Stack
+
+- Micronaut 4.x, Thymeleaf, HTMX
+- REST API + Swagger UI (`/swagger-ui`)
+- H2 + Flyway
+- EN/RU i18n
 
 ## Build
 
@@ -196,74 +119,6 @@ For Helm: put the JSON in a Secret and mount it as the env var `PANOPTICUM_CONNE
 
 JAR: `build/libs/panopticum-all.jar`
 
-### Rebuilding editor bundles (optional)
-
-The JSON editor on detail pages and query editors use pre-built bundles. To regenerate them after changing source files or updating CodeMirror:
-
-```bash
-npm install
-npm run build:detail-editor
-npm run build:query-editor
-```
-
-## Docker
-
-### From GitHub Container Registry (GHCR)
-
-Images are published automatically on tag push (see [CI/CD](#cicd)). Pull and run:
-
-```bash
-docker pull ghcr.io/thesharque/panopticum:latest
-docker run -d --name panopticum \
-  -p 8080:8080 \
-  -v panopticum-data:/data \
-  -e PANOPTICUM_USER=admin \
-  -e PANOPTICUM_PASSWORD=changeme \
-  ghcr.io/thesharque/panopticum:latest
-```
-
-Use a version tag for a fixed release, e.g. `ghcr.io/thesharque/panopticum:v4.1.0`. If the package is private, log in first: `echo $GITHUB_TOKEN | docker login ghcr.io -u YOUR_GITHUB_USER --password-stdin`.
-
-### From Docker Hub
-
-Image on [Docker Hub](https://hub.docker.com/r/sharque/panopticum): `sharque/panopticum`
-
-```bash
-docker pull sharque/panopticum:latest
-docker run -d --name panopticum \
-  -p 8080:8080 \
-  -v panopticum-data:/data \
-  -e PANOPTICUM_USER=admin \
-  -e PANOPTICUM_PASSWORD=changeme \
-  sharque/panopticum:latest
-```
-
-### Build locally
-
-```bash
-docker build -t panopticum:latest .
-docker run -d --name panopticum \
-  -p 8080:8080 \
-  -v panopticum-data:/data \
-  -e PANOPTICUM_USER=admin \
-  -e PANOPTICUM_PASSWORD=changeme \
-  panopticum:latest
-```
-
-Open **http://localhost:8080**. For Kubernetes, use the same env vars and mount a volume at `/data` for H2 persistence.
-
 ## CI/CD
 
-Push a version tag (e.g. `v4.1.0`) to trigger a GitHub Actions workflow that builds the Docker image once and pushes it to:
-
-- [GitHub Container Registry](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry): `ghcr.io/<owner>/panopticum:<tag>`
-- [Docker Hub](https://hub.docker.com/r/sharque/panopticum): `<DOCKERHUB_USERNAME>/panopticum:<tag>` (if Docker Hub is enabled via variable and secrets)
-
-```bash
-git tag v4.1.0
-git push origin v4.1.0
-```
-
-**Docker Hub:** to also push to Docker Hub, set a repository variable `ENABLE_DOCKERHUB` = `true` (Settings → Secrets and variables → Actions → Variables) and add secrets `DOCKERHUB_USERNAME` (your Docker Hub login) and `DOCKERHUB_TOKEN` ([access token](https://hub.docker.com/settings/security)). If you don’t set these, the workflow still runs and pushes only to GHCR.
-
-Images will be available as `ghcr.io/<your-org>/panopticum:v0.1` and `ghcr.io/<your-org>/panopticum:latest` (and on Docker Hub as `<DOCKERHUB_USERNAME>/panopticum:v0.1` / `:latest` when configured). To deploy the image (e.g. update a Kubernetes deployment or pull on a server), add a deploy job or a separate workflow using the built image tag.
+Push a version tag (e.g. `v4.1.0`) to trigger a GitHub Actions workflow that builds and pushes Docker images to GHCR and Docker Hub.
