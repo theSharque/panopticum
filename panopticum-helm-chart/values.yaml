@@ -1,0 +1,92 @@
+# Default values for panopticum.
+replicaCount: 1
+
+image:
+  repository: ghcr.io/thesharque/panopticum
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext:
+  fsGroup: 1000
+
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 1000
+
+service:
+  type: ClusterIP
+  port: 8080
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: panopticum.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 250m
+    memory: 512Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# Panopticum specific configuration
+config:
+  # Basic auth credentials
+  user: admin
+  password: changeme
+  
+  # H2 database persistence
+  dbPath: /data/panopticum
+  
+  # Lock settings
+  adminLock: false
+  readOnly: false
+  
+  # Pre-configured connections (JSON array)
+  # connectionsJson: |
+  #   [
+  #     {"name": "prod-pg", "jdbcUrl": "jdbc:postgresql://user:pass@pg.svc:5432/mydb"}
+  #   ]
+
+# Persistence configuration
+persistence:
+  enabled: true
+  storageClass: ""
+  accessMode: ReadWriteOnce
+  size: 1Gi
+  mountPath: /data

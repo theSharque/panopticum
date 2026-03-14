@@ -1,0 +1,42 @@
+apiVersion: v2
+name: panopticum
+description: A tool for developers and QA — web interface for viewing and managing database connections
+version: 1.0.0
+appVersion: "4.1.0"
+type: application
+keywords:
+  - database
+  - postgres
+  - mysql
+  - mongodb
+  - redis
+  - clickhouse
+  - oracle
+  - cassandra
+  - kafka
+  - rabbitmq
+  - elasticsearch
+  - sql
+  - admin
+  - management
+home: https://github.com/thesharque/panopticum
+sources:
+  - https://github.com/thesharque/panopticum
+maintainers:
+  - name: thesharque
+    email: thesharque@users.noreply.github.com
+annotations:
+  artifacthub.io/license: Apache-2.0
+  artifacthub.io/prerelease: "false"
+  artifacthub.io/changes: |
+    - kind: added
+      description: Initial release of Panopticum Helm chart
+  artifacthub.io/links: |
+    - name: Source
+      url: https://github.com/thesharque/panopticum
+    - name: Documentation
+      url: https://github.com/thesharque/panopticum#readme
+  artifacthub.io/maintainers: |
+    - name: thesharque
+      email: thesharque@users.noreply.github.com
+  artifacthub.io/category: integration-delivery
