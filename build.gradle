@@ -35,6 +35,10 @@ configurations.all {
                 details.useVersion("12.10.2.jre11")
                 details.because("CVE fix: 2025-59250")
             }
+            if (details.requested.group == "com.fasterxml.jackson.core" && details.requested.name == "jackson-core") {
+                details.useVersion("2.21.1")
+                details.because("CVE fix: GHSA-72hv-8253-57qq (jackson-core DoS)")
+            }
         }
     }
 }
