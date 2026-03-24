@@ -24,5 +24,9 @@ public class DbConnection {
 
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String password;
+
+    @Builder.Default
+    private boolean useHttps = false;
+
     private String createdAt;
 }

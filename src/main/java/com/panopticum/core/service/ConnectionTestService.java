@@ -36,7 +36,7 @@ public class ConnectionTestService {
     private final ElasticsearchService elasticsearchService;
 
     public Optional<String> test(String type, String host, Integer port, String database,
-                                String username, String password) {
+                                String username, String password, Optional<Long> connectionId) {
         if (type == null || type.isBlank()) {
             return Optional.of("error.specifyHostDbUser");
         }
@@ -77,7 +77,7 @@ public class ConnectionTestService {
                 }
                 yield err;
             }
-            case "elasticsearch" -> elasticsearchService.testConnection(h, p, user, pass);
+            case "elasticsearch" -> elasticsearchService.testConnection(connectionId, h, p, user, pass);
             default -> Optional.of("error.specifyHostDbUser");
         };
     }

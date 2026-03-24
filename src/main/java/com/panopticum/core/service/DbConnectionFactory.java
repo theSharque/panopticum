@@ -30,6 +30,7 @@ public class DbConnectionFactory {
                     .dbName(nullToEmpty(database))
                     .username(nullToEmpty(username))
                     .password(nullToEmpty(password))
+                    .useHttps(false)
                     .build();
         }
         int defaultPort = defaultPortForType(type);
@@ -47,6 +48,7 @@ public class DbConnectionFactory {
                 .dbName(db)
                 .username(user)
                 .password(password != null ? password : "")
+                .useHttps(false)
                 .build();
     }
 

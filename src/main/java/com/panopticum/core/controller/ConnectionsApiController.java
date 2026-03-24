@@ -94,6 +94,7 @@ public class ConnectionsApiController {
             DbConnection conn = dbConnectionFactory.build(type, request.getName(), request.getHost(),
                     request.getPort(), request.getDatabase(), username, pwd);
             conn.setId(id);
+            conn.setUseHttps(existing.isUseHttps());
             return dbConnectionService.save(conn);
         }
         DbConnection conn = dbConnectionFactory.build(type, request.getName(), request.getHost(),
@@ -116,7 +117,8 @@ public class ConnectionsApiController {
         String username = request.getUsername() != null ? request.getUsername() : "";
         String password = resolvePasswordForTest(request.getId(), request.getPassword());
         try {
-            Optional<String> error = connectionTestService.test(type, host, port, database, username, password);
+            Optional<String> error = connectionTestService.test(type, host, port, database, username, password,
+                    Optional.ofNullable(request.getId()));
             boolean success = error.isEmpty();
             String messageKey = error.orElse("connectionTest.success");
             return new ConnectionTestResponse(success, messageKey);

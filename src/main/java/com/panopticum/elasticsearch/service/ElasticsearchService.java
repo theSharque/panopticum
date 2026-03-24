@@ -1,6 +1,7 @@
 package com.panopticum.elasticsearch.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.model.Page;
 import com.panopticum.core.model.QueryResult;
 import com.panopticum.core.service.DbConnectionService;
@@ -36,21 +37,64 @@ public class ElasticsearchService {
     @Value("${panopticum.limits.query-rows:1000}")
     private int queryRowsLimit;
 
-    public Optional<String> testConnection(String host, int port, String username, String password) {
+    public Optional<String> testConnection(Optional<Long> connectionId, String host, Integer port,
+                                          String username, String password) {
         if (host == null || host.isBlank()) {
             return Optional.of("error.specifyHost");
         }
-        String baseUrl = baseUrl(host, port);
-        boolean ok = elasticsearchClient.checkConnection(baseUrl,
-                username != null ? username : "",
-                password != null ? password : "");
+        String user = username != null ? username : "";
+        String pass = password != null ? password : "";
+        int p = port != null && port > 0 ? port : 9200;
+        String h = host.trim();
+        DbConnection probe = elasticsearchProbeConnection(connectionId, h, p, user, pass);
+        String baseUrl = resolveBaseUrl(probe);
+        boolean ok = elasticsearchClient.checkConnection(baseUrl, user, pass);
+
         return ok ? Optional.empty() : Optional.of("connectionTest.failed");
+    }
+
+    private DbConnection elasticsearchProbeConnection(Optional<Long> connectionId, String host, int port,
+                                                     String user, String pass) {
+        if (connectionId.isEmpty()) {
+            return elasticsearchTransientProbe(host, port, user, pass);
+        }
+        Optional<DbConnection> connOpt = dbConnectionService.findById(connectionId.get());
+        if (connOpt.isEmpty() || !"elasticsearch".equalsIgnoreCase(connOpt.get().getType())) {
+            return elasticsearchTransientProbe(host, port, user, pass);
+        }
+        DbConnection stored = connOpt.get();
+
+        return DbConnection.builder()
+                .id(stored.getId())
+                .name(stored.getName())
+                .type(stored.getType())
+                .host(host)
+                .port(port)
+                .dbName(stored.getDbName())
+                .username(user)
+                .password(pass)
+                .useHttps(stored.isUseHttps())
+                .createdAt(stored.getCreatedAt())
+                .build();
+    }
+
+    private static DbConnection elasticsearchTransientProbe(String host, int port, String user, String pass) {
+        return DbConnection.builder()
+                .type("elasticsearch")
+                .name("_")
+                .host(host)
+                .port(port)
+                .dbName("")
+                .username(user)
+                .password(pass)
+                .useHttps(false)
+                .build();
     }
 
     public List<ElasticsearchIndexInfo> listIndices(Long connectionId) {
         return dbConnectionService.findById(connectionId)
                 .map(conn -> elasticsearchClient.listIndices(
-                        baseUrl(conn.getHost(), conn.getPort()),
+                        resolveBaseUrl(conn),
                         conn.getUsername() != null ? conn.getUsername() : "",
                         conn.getPassword() != null ? conn.getPassword() : ""))
                 .orElse(List.of());
@@ -63,6 +107,7 @@ public class ElasticsearchService {
         List<ElasticsearchIndexInfo> sorted = all.stream()
                 .sorted(indexComparator(sortBy, desc))
                 .toList();
+
         return Page.of(sorted, page, size, sortBy, order != null ? order : "asc");
     }
 
@@ -76,13 +121,14 @@ public class ElasticsearchService {
                     i -> i.getIndex() != null ? i.getIndex() : "",
                     String.CASE_INSENSITIVE_ORDER);
         };
+
         return desc ? c.reversed() : c;
     }
 
     public Optional<Map<String, Object>> getMapping(Long connectionId, String indexName) {
         return dbConnectionService.findById(connectionId)
                 .map(conn -> elasticsearchClient.getMapping(
-                        baseUrl(conn.getHost(), conn.getPort()),
+                        resolveBaseUrl(conn),
                         indexName,
                         conn.getUsername() != null ? conn.getUsername() : "",
                         conn.getPassword() != null ? conn.getPassword() : ""))
@@ -100,11 +146,12 @@ public class ElasticsearchService {
         return dbConnectionService.findById(connectionId)
                 .map(conn -> {
                     SearchResponseDto response = elasticsearchClient.search(
-                            baseUrl(conn.getHost(), conn.getPort()),
+                            resolveBaseUrl(conn),
                             indexName,
                             searchBody,
                             conn.getUsername() != null ? conn.getUsername() : "",
                             conn.getPassword() != null ? conn.getPassword() : "");
+
                     return searchResponseToQueryResult(response, off, lim);
                 })
                 .filter(r -> r != null);
@@ -142,6 +189,7 @@ public class ElasticsearchService {
             rows.add(row);
         }
         boolean hasMore = hits.size() >= limit;
+
         return new QueryResult(columnList, null, rows, docIds, null, offset, limit, hasMore);
     }
 
@@ -158,9 +206,11 @@ public class ElasticsearchService {
             }
             body.put("from", from);
             body.put("size", size);
+
             return objectMapper.writeValueAsString(body);
         } catch (Exception e) {
             log.debug("Failed to parse query DSL, using match_all: {}", e.getMessage());
+
             return String.format("{\"query\":{\"match_all\":{}},\"from\":%d,\"size\":%d}", from, size);
         }
     }
@@ -169,7 +219,7 @@ public class ElasticsearchService {
         return dbConnectionService.findById(connectionId)
                 .flatMap(conn -> {
                     Map<String, Object> doc = elasticsearchClient.getDocument(
-                            baseUrl(conn.getHost(), conn.getPort()),
+                            resolveBaseUrl(conn),
                             indexName, docId,
                             conn.getUsername() != null ? conn.getUsername() : "",
                             conn.getPassword() != null ? conn.getPassword() : "");
@@ -202,17 +252,56 @@ public class ElasticsearchService {
         }
         boolean updated = dbConnectionService.findById(connectionId)
                 .map(conn -> elasticsearchClient.updateDocument(
-                        baseUrl(conn.getHost(), conn.getPort()),
+                        resolveBaseUrl(conn),
                         indexName, docId, sourceJson,
                         conn.getUsername() != null ? conn.getUsername() : "",
                         conn.getPassword() != null ? conn.getPassword() : ""))
                 .orElse(false);
+
         return updated ? Optional.empty() : Optional.of("error.queryExecutionFailed");
     }
 
-    private static String baseUrl(String host, int port) {
-        String h = host != null && !host.isBlank() ? host : "localhost";
-        int p = port > 0 ? port : 9200;
-        return "http://" + h + ":" + p;
+    private String resolveBaseUrl(DbConnection conn) {
+        String host = conn.getHost() != null && !conn.getHost().isBlank() ? conn.getHost().trim() : "localhost";
+        int port = conn.getPort() > 0 ? conn.getPort() : 9200;
+        String user = conn.getUsername() != null ? conn.getUsername() : "";
+        String pass = conn.getPassword() != null ? conn.getPassword() : "";
+        String httpUrl = "http://" + host + ":" + port;
+        String httpsUrl = "https://" + host + ":" + port;
+
+        if (conn.isUseHttps()) {
+            if (elasticsearchClient.probeTransport(httpsUrl, user, pass)) {
+                return httpsUrl;
+            }
+            if (elasticsearchClient.probeTransport(httpUrl, user, pass)) {
+                persistUseHttps(conn, false);
+
+                return httpUrl;
+            }
+
+            return httpsUrl;
+        }
+
+        if (elasticsearchClient.probeTransport(httpUrl, user, pass)) {
+            return httpUrl;
+        }
+        if (elasticsearchClient.probeTransport(httpsUrl, user, pass)) {
+            persistUseHttps(conn, true);
+
+            return httpsUrl;
+        }
+
+        return httpUrl;
+    }
+
+    private void persistUseHttps(DbConnection conn, boolean useHttps) {
+        if (conn.getId() == null) {
+            return;
+        }
+        if (conn.isUseHttps() == useHttps) {
+            return;
+        }
+        conn.setUseHttps(useHttps);
+        dbConnectionService.save(conn);
     }
 }
