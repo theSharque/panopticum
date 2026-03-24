@@ -47,8 +47,16 @@ public class ElasticsearchService {
         int p = port != null && port > 0 ? port : 9200;
         String h = host.trim();
         DbConnection probe = elasticsearchProbeConnection(connectionId, h, p, user, pass);
-        String baseUrl = resolveBaseUrl(probe);
+        log.info("Elasticsearch connection test: host={} port={} connectionId={} useHttpsStored={} userSet={}",
+                h, p, connectionId.orElse(null), probe.isUseHttps(), user != null && !user.isBlank());
+        String baseUrl = resolveBaseUrl(probe, true);
+        log.info("Elasticsearch connection test: resolved baseUrl={}", baseUrl);
         boolean ok = elasticsearchClient.checkConnection(baseUrl, user, pass);
+        if (ok) {
+            log.info("Elasticsearch connection test: success baseUrl={}", baseUrl);
+        } else {
+            log.info("Elasticsearch connection test: failed baseUrl={} (checkConnection returned false)", baseUrl);
+        }
 
         return ok ? Optional.empty() : Optional.of("connectionTest.failed");
     }
@@ -94,7 +102,7 @@ public class ElasticsearchService {
     public List<ElasticsearchIndexInfo> listIndices(Long connectionId) {
         return dbConnectionService.findById(connectionId)
                 .map(conn -> elasticsearchClient.listIndices(
-                        resolveBaseUrl(conn),
+                        resolveBaseUrl(conn, false),
                         conn.getUsername() != null ? conn.getUsername() : "",
                         conn.getPassword() != null ? conn.getPassword() : ""))
                 .orElse(List.of());
@@ -128,7 +136,7 @@ public class ElasticsearchService {
     public Optional<Map<String, Object>> getMapping(Long connectionId, String indexName) {
         return dbConnectionService.findById(connectionId)
                 .map(conn -> elasticsearchClient.getMapping(
-                        resolveBaseUrl(conn),
+                        resolveBaseUrl(conn, false),
                         indexName,
                         conn.getUsername() != null ? conn.getUsername() : "",
                         conn.getPassword() != null ? conn.getPassword() : ""))
@@ -146,7 +154,7 @@ public class ElasticsearchService {
         return dbConnectionService.findById(connectionId)
                 .map(conn -> {
                     SearchResponseDto response = elasticsearchClient.search(
-                            resolveBaseUrl(conn),
+                            resolveBaseUrl(conn, false),
                             indexName,
                             searchBody,
                             conn.getUsername() != null ? conn.getUsername() : "",
@@ -219,7 +227,7 @@ public class ElasticsearchService {
         return dbConnectionService.findById(connectionId)
                 .flatMap(conn -> {
                     Map<String, Object> doc = elasticsearchClient.getDocument(
-                            resolveBaseUrl(conn),
+                            resolveBaseUrl(conn, false),
                             indexName, docId,
                             conn.getUsername() != null ? conn.getUsername() : "",
                             conn.getPassword() != null ? conn.getPassword() : "");
@@ -252,7 +260,7 @@ public class ElasticsearchService {
         }
         boolean updated = dbConnectionService.findById(connectionId)
                 .map(conn -> elasticsearchClient.updateDocument(
-                        resolveBaseUrl(conn),
+                        resolveBaseUrl(conn, false),
                         indexName, docId, sourceJson,
                         conn.getUsername() != null ? conn.getUsername() : "",
                         conn.getPassword() != null ? conn.getPassword() : ""))
@@ -261,7 +269,7 @@ public class ElasticsearchService {
         return updated ? Optional.empty() : Optional.of("error.queryExecutionFailed");
     }
 
-    private String resolveBaseUrl(DbConnection conn) {
+    private String resolveBaseUrl(DbConnection conn, boolean logDetails) {
         String host = conn.getHost() != null && !conn.getHost().isBlank() ? conn.getHost().trim() : "localhost";
         int port = conn.getPort() > 0 ? conn.getPort() : 9200;
         String user = conn.getUsername() != null ? conn.getUsername() : "";
@@ -269,26 +277,55 @@ public class ElasticsearchService {
         String httpUrl = "http://" + host + ":" + port;
         String httpsUrl = "https://" + host + ":" + port;
 
+        if (logDetails) {
+            log.info("Elasticsearch resolve: try host={} port={} useHttpsStored={} http={} https={}",
+                    host, port, conn.isUseHttps(), httpUrl, httpsUrl);
+        }
+
         if (conn.isUseHttps()) {
-            if (elasticsearchClient.probeTransport(httpsUrl, user, pass)) {
+            boolean httpsOk = elasticsearchClient.probeTransport(httpsUrl, user, pass, logDetails);
+            if (logDetails) {
+                log.info("Elasticsearch resolve: stored useHttps=true probe https {} -> {}", httpsUrl, httpsOk);
+            }
+            if (httpsOk) {
                 return httpsUrl;
             }
-            if (elasticsearchClient.probeTransport(httpUrl, user, pass)) {
+            boolean httpOk = elasticsearchClient.probeTransport(httpUrl, user, pass, logDetails);
+            if (logDetails) {
+                log.info("Elasticsearch resolve: probe http {} -> {}", httpUrl, httpOk);
+            }
+            if (httpOk) {
                 persistUseHttps(conn, false);
 
                 return httpUrl;
             }
 
+            if (logDetails) {
+                log.info("Elasticsearch resolve: both probes failed, fallback {}", httpsUrl);
+            }
+
             return httpsUrl;
         }
 
-        if (elasticsearchClient.probeTransport(httpUrl, user, pass)) {
+        boolean httpFirst = elasticsearchClient.probeTransport(httpUrl, user, pass, logDetails);
+        if (logDetails) {
+            log.info("Elasticsearch resolve: stored useHttps=false probe http {} -> {}", httpUrl, httpFirst);
+        }
+        if (httpFirst) {
             return httpUrl;
         }
-        if (elasticsearchClient.probeTransport(httpsUrl, user, pass)) {
+        boolean httpsSecond = elasticsearchClient.probeTransport(httpsUrl, user, pass, logDetails);
+        if (logDetails) {
+            log.info("Elasticsearch resolve: probe https {} -> {}", httpsUrl, httpsSecond);
+        }
+        if (httpsSecond) {
             persistUseHttps(conn, true);
 
             return httpsUrl;
+        }
+
+        if (logDetails) {
+            log.info("Elasticsearch resolve: both probes failed, fallback {}", httpUrl);
         }
 
         return httpUrl;
@@ -303,5 +340,6 @@ public class ElasticsearchService {
         }
         conn.setUseHttps(useHttps);
         dbConnectionService.save(conn);
+        log.info("Elasticsearch: saved use_https={} for connection id={}", useHttps, conn.getId());
     }
 }
