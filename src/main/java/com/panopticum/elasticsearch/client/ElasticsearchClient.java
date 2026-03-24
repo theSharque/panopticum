@@ -35,15 +35,20 @@ public class ElasticsearchClient {
     private final HttpClient httpClient;
 
     public boolean probeTransport(String baseUrl, String username, String password) {
+        return probeTransport(baseUrl, username, password, false);
+    }
+
+    public boolean probeTransport(String baseUrl, String username, String password, boolean logFailuresAtInfo) {
         String root = normalizeBaseUrl(baseUrl);
         String url = root + "/";
         if (isHttps(root)) {
             try {
                 java.net.http.HttpResponse<String> r = ElasticsearchJdkHttps.get(url, username, password);
+                int code = r.statusCode();
 
-                return r.statusCode() >= 200;
+                return isProbeSuccessHttpStatus(code);
             } catch (Exception e) {
-                log.debug("Elasticsearch probe transport failed for {}: {}", url, e.getMessage());
+                logProbeTransportFailure(url, e.getMessage(), logFailuresAtInfo);
 
                 return false;
             }
@@ -55,17 +60,46 @@ public class ElasticsearchClient {
 
             return true;
         } catch (HttpClientResponseException e) {
+            int code = e.getStatus().getCode();
+            if (isProbeSuccessHttpStatus(code)) {
+                return true;
+            }
+            if (logFailuresAtInfo) {
+                log.info("Elasticsearch probe: HTTP status {} for {} is not treated as reachable (e.g. nginx TLS mismatch)", code, url);
+            }
 
-            return true;
+            return false;
         } catch (HttpClientException e) {
-            log.debug("Elasticsearch probe transport failed for {}: {}", url, e.getMessage());
+            logProbeTransportFailure(url, e.getMessage(), logFailuresAtInfo);
 
             return false;
         } catch (Exception e) {
-            log.debug("Elasticsearch probe transport failed for {}: {}", url, e.getMessage());
+            logProbeTransportFailure(url, e.getMessage(), logFailuresAtInfo);
 
             return false;
         }
+    }
+
+    private static void logProbeTransportFailure(String url, String message, boolean logFailuresAtInfo) {
+        if (logFailuresAtInfo) {
+            log.info("Elasticsearch probe transport failed for {}: {}", url, message);
+        } else {
+            log.debug("Elasticsearch probe transport failed for {}: {}", url, message);
+        }
+    }
+
+    private static boolean isProbeSuccessHttpStatus(int code) {
+        if (code >= 200 && code < 300) {
+            return true;
+        }
+        if (code == 401 || code == 403) {
+            return true;
+        }
+        if (code >= 500) {
+            return true;
+        }
+
+        return false;
     }
 
     public List<ElasticsearchIndexInfo> listIndices(String baseUrl, String username, String password) {
@@ -274,7 +308,7 @@ public class ElasticsearchClient {
 
                 return r.statusCode() >= 200 && r.statusCode() < 300;
             } catch (Exception e) {
-                log.warn("Failed to connect to Elasticsearch {}: {}", url, e.getMessage());
+                log.info("Failed to connect to Elasticsearch {}: {}", url, e.getMessage());
 
                 return false;
             }
@@ -286,11 +320,11 @@ public class ElasticsearchClient {
 
             return true;
         } catch (HttpClientResponseException e) {
-            log.debug("Elasticsearch checkConnection failed for {}: {}", url, e.getMessage());
+            log.info("Elasticsearch checkConnection HTTP response error for {}: {}", url, e.getMessage());
 
             return false;
         } catch (HttpClientException e) {
-            log.warn("Failed to connect to Elasticsearch {}: {}", url, e.getMessage());
+            log.info("Failed to connect to Elasticsearch {}: {}", url, e.getMessage());
 
             return false;
         }
