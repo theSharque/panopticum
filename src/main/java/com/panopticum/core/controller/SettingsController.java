@@ -376,6 +376,7 @@ public class SettingsController {
             String pwd = (password != null && !password.isBlank()) ? password : existing.getPassword();
             DbConnection conn = dbConnectionFactory.build(expectedType, name, host, port, database, username, pwd);
             conn.setId(id.get());
+            conn.setUseHttps(existing.isUseHttps());
             return dbConnectionService.save(conn);
         }
         DbConnection conn = dbConnectionFactory.build(expectedType, name, host, port, database, username, password);
@@ -414,7 +415,7 @@ public class SettingsController {
         String pwd = resolvePasswordForTest(id, password);
         Map<String, Object> model = new HashMap<>();
         try {
-            var error = connectionTestService.test(type, host, port, database, username, pwd);
+            var error = connectionTestService.test(type, host, port, database, username, pwd, id);
             model.put("success", error.isEmpty());
             String messageKey = error.orElse("connectionTest.success");
             model.put("message", messageKey);

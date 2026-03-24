@@ -1,5 +1,6 @@
 package com.panopticum.elasticsearch.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.micronaut.serde.annotation.Serdeable;
 import lombok.Data;
@@ -8,6 +9,7 @@ import java.util.List;
 
 @Data
 @Serdeable
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class SearchResponseDto {
 
     @JsonProperty("hits")
@@ -15,6 +17,7 @@ public class SearchResponseDto {
 
     @Data
     @Serdeable
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class HitsDto {
         @JsonProperty("total")
         private TotalDto total;
@@ -24,6 +27,7 @@ public class SearchResponseDto {
 
         @Data
         @Serdeable
+        @JsonIgnoreProperties(ignoreUnknown = true)
         public static class TotalDto {
             @JsonProperty("value")
             private Long value;

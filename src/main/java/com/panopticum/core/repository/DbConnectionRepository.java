@@ -29,6 +29,7 @@ public class DbConnectionRepository {
                     + "db_name VARCHAR(255) NOT NULL, "
                     + "username VARCHAR(255) NOT NULL, "
                     + "password VARCHAR(255), "
+                    + "use_https BOOLEAN NOT NULL DEFAULT FALSE, "
                     + "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL"
                     + ")";
 
@@ -52,7 +53,7 @@ public class DbConnectionRepository {
     public List<DbConnection> findAll() {
         ensureTableExists();
 
-        String sql = "SELECT id, name, type, host, port, db_name, username, password, created_at FROM db_connections ORDER BY name LIMIT 500";
+        String sql = "SELECT id, name, type, host, port, db_name, username, password, use_https, created_at FROM db_connections ORDER BY name LIMIT 500";
         List<DbConnection> result = new ArrayList<>();
 
         try (Connection conn = dataSource.getConnection();
@@ -72,7 +73,7 @@ public class DbConnectionRepository {
     public Optional<DbConnection> findById(Long id) {
         ensureTableExists();
 
-        String sql = "SELECT id, name, type, host, port, db_name, username, password, created_at FROM db_connections WHERE id = ?";
+        String sql = "SELECT id, name, type, host, port, db_name, username, password, use_https, created_at FROM db_connections WHERE id = ?";
         try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setLong(1, id);
@@ -92,7 +93,7 @@ public class DbConnectionRepository {
     public Optional<DbConnection> findByName(String name) {
         ensureTableExists();
 
-        String sql = "SELECT id, name, type, host, port, db_name, username, password, created_at FROM db_connections WHERE name = ? LIMIT 1";
+        String sql = "SELECT id, name, type, host, port, db_name, username, password, use_https, created_at FROM db_connections WHERE name = ? LIMIT 1";
         try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, name);
@@ -133,7 +134,7 @@ public class DbConnectionRepository {
     private DbConnection insert(DbConnection c) {
         ensureTableExists();
 
-        String sql = "INSERT INTO db_connections (name, type, host, port, db_name, username, password) VALUES (?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO db_connections (name, type, host, port, db_name, username, password, use_https) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             stmt.setString(1, c.getName());
@@ -143,6 +144,7 @@ public class DbConnectionRepository {
             stmt.setString(5, c.getDbName());
             stmt.setString(6, c.getUsername());
             stmt.setString(7, c.getPassword());
+            stmt.setBoolean(8, c.isUseHttps());
             stmt.executeUpdate();
 
             try (ResultSet keys = stmt.getGeneratedKeys()) {
@@ -158,7 +160,7 @@ public class DbConnectionRepository {
     }
 
     private void update(DbConnection c) {
-        String sql = "UPDATE db_connections SET name = ?, type = ?, host = ?, port = ?, db_name = ?, username = ?, password = ? WHERE id = ?";
+        String sql = "UPDATE db_connections SET name = ?, type = ?, host = ?, port = ?, db_name = ?, username = ?, password = ?, use_https = ? WHERE id = ?";
         try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, c.getName());
@@ -168,7 +170,8 @@ public class DbConnectionRepository {
             stmt.setString(5, c.getDbName());
             stmt.setString(6, c.getUsername());
             stmt.setString(7, c.getPassword());
-            stmt.setLong(8, c.getId());
+            stmt.setBoolean(8, c.isUseHttps());
+            stmt.setLong(9, c.getId());
             stmt.executeUpdate();
         } catch (SQLException e) {
             throw new RuntimeException("Failed to update connection", e);
@@ -185,6 +188,7 @@ public class DbConnectionRepository {
                 .dbName(rs.getString("db_name"))
                 .username(rs.getString("username"))
                 .password(rs.getString("password"))
+                .useHttps(rs.getBoolean("use_https"))
                 .createdAt(rs.getString("created_at"))
                 .build();
     }
