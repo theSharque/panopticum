@@ -8,6 +8,7 @@ import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.core.util.StringUtils;
 import com.panopticum.elasticsearch.client.ElasticsearchClient;
 import com.panopticum.elasticsearch.model.ElasticsearchIndexInfo;
+import com.panopticum.elasticsearch.model.ElasticsearchSearchResult;
 import com.panopticum.elasticsearch.model.SearchHitDto;
 import com.panopticum.elasticsearch.model.SearchResponseDto;
 import io.micronaut.context.annotation.Value;
@@ -153,14 +154,20 @@ public class ElasticsearchService {
 
         return dbConnectionService.findById(connectionId)
                 .map(conn -> {
-                    SearchResponseDto response = elasticsearchClient.search(
+                    ElasticsearchSearchResult sr = elasticsearchClient.search(
                             resolveBaseUrl(conn, false),
                             indexName,
                             searchBody,
                             conn.getUsername() != null ? conn.getUsername() : "",
                             conn.getPassword() != null ? conn.getPassword() : "");
+                    if (sr.failureMessage() != null) {
+                        return QueryResult.error(sr.failureMessage());
+                    }
+                    if (sr.response() == null) {
+                        return QueryResult.error("error.queryExecutionFailed");
+                    }
 
-                    return searchResponseToQueryResult(response, off, lim);
+                    return searchResponseToQueryResult(sr.response(), off, lim);
                 })
                 .filter(r -> r != null);
     }

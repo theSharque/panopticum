@@ -1,11 +1,13 @@
 package com.panopticum.elasticsearch.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.micronaut.serde.annotation.Serdeable;
 import lombok.Data;
 
 @Data
 @Serdeable
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class ElasticsearchIndexInfo {
 
     private String index;

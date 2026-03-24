@@ -1,8 +1,10 @@
 package com.panopticum.elasticsearch.client;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.panopticum.elasticsearch.model.ElasticsearchIndexInfo;
+import com.panopticum.elasticsearch.model.ElasticsearchSearchResult;
 import com.panopticum.elasticsearch.model.SearchResponseDto;
 import io.micronaut.core.type.Argument;
 import io.micronaut.http.HttpRequest;
@@ -20,7 +22,9 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
@@ -104,26 +108,77 @@ public class ElasticsearchClient {
 
     public List<ElasticsearchIndexInfo> listIndices(String baseUrl, String username, String password) {
         String root = normalizeBaseUrl(baseUrl);
-        String url = root + "/_cat/indices?format=json&h=index,docs.count,store.size";
         if (isHttps(root)) {
-            try {
-                java.net.http.HttpResponse<String> r = ElasticsearchJdkHttps.get(url, username, password);
-                if (r.statusCode() < 200 || r.statusCode() >= 300) {
-                    log.debug("Elasticsearch listIndices failed for {}: status {}", url, r.statusCode());
-
-                    return Collections.emptyList();
-                }
-
-                return objectMapper.readValue(r.body(), new TypeReference<List<ElasticsearchIndexInfo>>() {
-                });
-            } catch (Exception e) {
-                log.warn("Failed to connect to Elasticsearch {}: {}", url, e.getMessage());
-
-                return Collections.emptyList();
-            }
+            return listIndicesHttpsChain(root, username, password);
         }
+
+        return listIndicesHttpChain(root, username, password);
+    }
+
+    private List<ElasticsearchIndexInfo> listIndicesHttpsChain(String root, String username, String password) {
+        String urlFull = root + "/_cat/indices?format=json&h=index,docs.count,store.size";
+        try {
+            java.net.http.HttpResponse<String> r = ElasticsearchJdkHttps.get(urlFull, username, password);
+            int code = r.statusCode();
+            String body = r.body() != null ? r.body() : "";
+            if (code == 200) {
+                return objectMapper.readValue(body, new TypeReference<List<ElasticsearchIndexInfo>>() {
+                });
+            }
+            if (code == 403 || code == 401) {
+                log.debug("Elasticsearch listIndices cat(full) HTTP {} for {}, trying fallbacks", code, urlFull);
+
+                return listIndicesHttpsFallbacks(root, username, password);
+            }
+            log.warn("Elasticsearch listIndices HTTP {} for {} body snippet: {}", code, urlFull,
+                    truncateForLog(body));
+
+            return Collections.emptyList();
+        } catch (Exception e) {
+            log.warn("Elasticsearch listIndices parse or request failed for {}: {}", urlFull, e.getMessage());
+
+            return Collections.emptyList();
+        }
+    }
+
+    private List<ElasticsearchIndexInfo> listIndicesHttpsFallbacks(String root, String username, String password) {
+        String urlIndex = root + "/_cat/indices?format=json&h=index";
+        try {
+            java.net.http.HttpResponse<String> r = ElasticsearchJdkHttps.get(urlIndex, username, password);
+            String body = r.body() != null ? r.body() : "";
+            if (r.statusCode() == 200) {
+                log.info("Elasticsearch listIndices: used cat h=index fallback");
+
+                return objectMapper.readValue(body, new TypeReference<List<ElasticsearchIndexInfo>>() {
+                });
+            }
+            log.debug("Elasticsearch listIndices cat(index-only) HTTP {} for {}", r.statusCode(), urlIndex);
+        } catch (Exception e) {
+            log.debug("Elasticsearch listIndices cat(index-only) failed: {}", e.getMessage());
+        }
+
+        String urlAliases = root + "/_aliases";
+        try {
+            java.net.http.HttpResponse<String> r = ElasticsearchJdkHttps.get(urlAliases, username, password);
+            String body = r.body() != null ? r.body() : "";
+            if (r.statusCode() == 200) {
+                log.info("Elasticsearch listIndices: used _aliases fallback");
+
+                return indicesFromAliasesJson(body);
+            }
+            log.warn("Elasticsearch listIndices _aliases HTTP {} for {} body snippet: {}", r.statusCode(), urlAliases,
+                    truncateForLog(body));
+        } catch (Exception e) {
+            log.warn("Elasticsearch listIndices _aliases failed for {}: {}", urlAliases, e.getMessage());
+        }
+
+        return Collections.emptyList();
+    }
+
+    private List<ElasticsearchIndexInfo> listIndicesHttpChain(String root, String username, String password) {
+        String urlFull = root + "/_cat/indices?format=json&h=index,docs.count,store.size";
         BlockingHttpClient client = httpClient.toBlocking();
-        MutableHttpRequest<?> request = request(url, username, password);
+        MutableHttpRequest<?> request = request(urlFull, username, password);
         try {
             HttpResponse<List<ElasticsearchIndexInfo>> response = client.exchange(
                     request,
@@ -132,14 +187,88 @@ public class ElasticsearchClient {
 
             return response.getBody().orElse(Collections.emptyList());
         } catch (HttpClientResponseException e) {
-            log.debug("Elasticsearch listIndices failed for {}: {}", url, e.getMessage());
+            int code = e.getStatus().getCode();
+            if (code == 403 || code == 401) {
+                log.debug("Elasticsearch listIndices cat(full) HTTP {}, trying fallbacks", code);
+
+                return listIndicesHttpFallbacks(root, username, password);
+            }
+            log.warn("Elasticsearch listIndices HTTP {} for {}: {}", code, urlFull, e.getMessage());
 
             return Collections.emptyList();
         } catch (HttpClientException e) {
-            log.warn("Failed to connect to Elasticsearch {}: {}", url, e.getMessage());
+            log.warn("Failed to connect to Elasticsearch {}: {}", urlFull, e.getMessage());
 
             return Collections.emptyList();
         }
+    }
+
+    private List<ElasticsearchIndexInfo> listIndicesHttpFallbacks(String root, String username, String password) {
+        BlockingHttpClient client = httpClient.toBlocking();
+        String urlIndex = root + "/_cat/indices?format=json&h=index";
+        try {
+            HttpResponse<List<ElasticsearchIndexInfo>> response = client.exchange(
+                    request(urlIndex, username, password),
+                    Argument.listOf(ElasticsearchIndexInfo.class)
+            );
+            log.info("Elasticsearch listIndices: used cat h=index fallback");
+
+            return response.getBody().orElse(Collections.emptyList());
+        } catch (HttpClientResponseException e) {
+            log.debug("Elasticsearch listIndices cat(index-only) HTTP {} for {}", e.getStatus().getCode(), urlIndex);
+        } catch (HttpClientException e) {
+            log.debug("Elasticsearch listIndices cat(index-only) failed: {}", e.getMessage());
+        }
+
+        String urlAliases = root + "/_aliases";
+        try {
+            HttpResponse<Map<String, Object>> response = client.exchange(
+                    request(urlAliases, username, password),
+                    Argument.mapOf(String.class, Object.class)
+            );
+            Map<String, Object> map = response.getBody().orElse(Collections.emptyMap());
+            log.info("Elasticsearch listIndices: used _aliases fallback");
+
+            return indicesFromAliasesMap(map);
+        } catch (HttpClientResponseException e) {
+            log.warn("Elasticsearch listIndices _aliases HTTP {} for {}: {}", e.getStatus().getCode(), urlAliases,
+                    e.getMessage());
+        } catch (HttpClientException e) {
+            log.warn("Elasticsearch listIndices _aliases failed for {}: {}", urlAliases, e.getMessage());
+        }
+
+        return Collections.emptyList();
+    }
+
+    private List<ElasticsearchIndexInfo> indicesFromAliasesJson(String body) throws Exception {
+        Map<String, Object> m = objectMapper.readValue(body, new TypeReference<Map<String, Object>>() {
+        });
+
+        return indicesFromAliasesMap(m);
+    }
+
+    private List<ElasticsearchIndexInfo> indicesFromAliasesMap(Map<String, Object> m) {
+        List<ElasticsearchIndexInfo> out = new ArrayList<>();
+        for (String name : m.keySet()) {
+            ElasticsearchIndexInfo info = new ElasticsearchIndexInfo();
+            info.setIndex(name);
+            out.add(info);
+        }
+        out.sort(Comparator.comparing(i -> i.getIndex() != null ? i.getIndex() : "", String.CASE_INSENSITIVE_ORDER));
+
+        return out;
+    }
+
+    private static String truncateForLog(String body) {
+        if (body == null) {
+            return "";
+        }
+        String t = body.replace('\n', ' ').trim();
+        if (t.length() > 400) {
+            return t.substring(0, 400) + "…";
+        }
+
+        return t;
     }
 
     public Map<String, Object> getMapping(String baseUrl, String indexName, String username, String password) {
@@ -180,25 +309,28 @@ public class ElasticsearchClient {
         }
     }
 
-    public SearchResponseDto search(String baseUrl, String indexName, String searchBody,
-                                    String username, String password) {
+    public ElasticsearchSearchResult search(String baseUrl, String indexName, String searchBody,
+                                            String username, String password) {
         String root = normalizeBaseUrl(baseUrl);
         String url = root + "/" + encodePath(indexName) + "/_search";
         String body = searchBody != null && !searchBody.isBlank() ? searchBody : "{}";
         if (isHttps(root)) {
             try {
                 java.net.http.HttpResponse<String> r = ElasticsearchJdkHttps.post(url, body, username, password);
-                if (r.statusCode() < 200 || r.statusCode() >= 300) {
-                    log.debug("Elasticsearch search failed for {}: status {}", url, r.statusCode());
+                int code = r.statusCode();
+                String respBody = r.body() != null ? r.body() : "";
+                if (code < 200 || code >= 300) {
+                    log.warn("Elasticsearch search HTTP {} for {} body snippet: {}", code, url, truncateForLog(respBody));
 
-                    return null;
+                    return ElasticsearchSearchResult.fail(
+                            searchFailureMessage(code, respBody));
                 }
 
-                return objectMapper.readValue(r.body(), SearchResponseDto.class);
+                return ElasticsearchSearchResult.ok(objectMapper.readValue(respBody, SearchResponseDto.class));
             } catch (Exception e) {
-                log.warn("Failed to connect to Elasticsearch {}: {}", url, e.getMessage());
+                log.warn("Elasticsearch search failed for {}: {}", url, e.getMessage());
 
-                return null;
+                return ElasticsearchSearchResult.fail(e.getMessage());
             }
         }
         BlockingHttpClient client = httpClient.toBlocking();
@@ -210,17 +342,71 @@ public class ElasticsearchClient {
         }
         try {
             HttpResponse<SearchResponseDto> response = client.exchange(request, Argument.of(SearchResponseDto.class));
+            SearchResponseDto dto = response.getBody().orElse(null);
+            if (dto == null) {
+                return ElasticsearchSearchResult.fail("error.queryExecutionFailed");
+            }
 
-            return response.getBody().orElse(null);
+            return ElasticsearchSearchResult.ok(dto);
         } catch (HttpClientResponseException e) {
-            log.debug("Elasticsearch search failed for {}: {}", url, e.getMessage());
+            int code = e.getStatus().getCode();
+            String errBody = httpErrorBodyAsString(e);
+            log.warn("Elasticsearch search HTTP {} for {}: {}", code, url, truncateForLog(errBody));
 
-            return null;
+            return ElasticsearchSearchResult.fail(searchFailureMessage(code, errBody));
         } catch (HttpClientException e) {
             log.warn("Failed to connect to Elasticsearch {}: {}", url, e.getMessage());
 
+            return ElasticsearchSearchResult.fail(e.getMessage());
+        }
+    }
+
+    private String httpErrorBodyAsString(HttpClientResponseException e) {
+        try {
+            return e.getResponse().getBody(String.class).orElse("");
+        } catch (Exception ex) {
+            return e.getMessage() != null ? e.getMessage() : "";
+        }
+    }
+
+    private String searchFailureMessage(int httpStatus, String body) {
+        String fromJson = extractOpenSearchErrorReason(body);
+        if (fromJson != null && !fromJson.isBlank()) {
+            return fromJson;
+        }
+
+        return "HTTP " + httpStatus;
+    }
+
+    private String extractOpenSearchErrorReason(String body) {
+        if (body == null || body.isBlank()) {
             return null;
         }
+        try {
+            JsonNode root = objectMapper.readTree(body);
+            JsonNode err = root.get("error");
+            if (err == null || err.isNull()) {
+                return null;
+            }
+            if (err.isTextual()) {
+                return err.asText();
+            }
+            JsonNode reason = err.get("reason");
+            if (reason != null && reason.isTextual()) {
+                return reason.asText();
+            }
+            JsonNode rc = err.get("root_cause");
+            if (rc != null && rc.isArray() && rc.size() > 0) {
+                JsonNode first = rc.get(0);
+                JsonNode r = first.get("reason");
+                if (r != null && r.isTextual()) {
+                    return r.asText();
+                }
+            }
+        } catch (Exception ignored) {
+        }
+
+        return null;
     }
 
     public Map<String, Object> getDocument(String baseUrl, String indexName, String docId,
@@ -230,13 +416,15 @@ public class ElasticsearchClient {
         if (isHttps(root)) {
             try {
                 java.net.http.HttpResponse<String> r = ElasticsearchJdkHttps.get(url, username, password);
+                String b = r.body() != null ? r.body() : "";
                 if (r.statusCode() < 200 || r.statusCode() >= 300) {
-                    log.debug("Elasticsearch getDocument failed for {}: status {}", url, r.statusCode());
+                    log.warn("Elasticsearch getDocument HTTP {} for {} body snippet: {}", r.statusCode(), url,
+                            truncateForLog(b));
 
                     return null;
                 }
 
-                return objectMapper.readValue(r.body(), new TypeReference<Map<String, Object>>() {
+                return objectMapper.readValue(b, new TypeReference<Map<String, Object>>() {
                 });
             } catch (Exception e) {
                 log.warn("Failed to connect to Elasticsearch {}: {}", url, e.getMessage());
@@ -252,7 +440,7 @@ public class ElasticsearchClient {
 
             return response.getBody().orElse(null);
         } catch (HttpClientResponseException e) {
-            log.debug("Elasticsearch getDocument failed for {}: {}", url, e.getMessage());
+            log.warn("Elasticsearch getDocument HTTP {} for {}: {}", e.getStatus().getCode(), url, e.getMessage());
 
             return null;
         } catch (HttpClientException e) {
