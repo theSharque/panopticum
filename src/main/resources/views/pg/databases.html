@@ -9,8 +9,8 @@
         <div class="query-pagination-info">
             <span class="query-pagination-range" th:text="${msg['common.rowsRange'] + fromRow + '–' + toRow}"></span>
             <span class="query-pagination-nav">
-                <a th:if="${hasPrev}" th:href="@{/pg/{id}(id=${connectionId})}(page=${page - 1}, size=${size}, sort=${sort}, order=${order})" class="query-pagination-btn" th:text="${'← ' + msg['common.prev']}">← Back</a>
-                <a th:if="${hasMore}" th:href="@{/pg/{id}(id=${connectionId})}(page=${page + 1}, size=${size}, sort=${sort}, order=${order})" class="query-pagination-btn" th:text="${msg['common.next'] + ' →'}">Next →</a>
+                <a th:if="${hasPrev}" th:href="@{/pg/{id}(id=${connectionId}, page=${page - 1}, size=${size}, sort=${sort}, order=${order})}" class="query-pagination-btn" th:text="${'← ' + msg['common.prev']}">← Back</a>
+                <a th:if="${hasMore}" th:href="@{/pg/{id}(id=${connectionId}, page=${page + 1}, size=${size}, sort=${sort}, order=${order})}" class="query-pagination-btn" th:text="${msg['common.next'] + ' →'}">Next →</a>
             </span>
         </div>
         <div class="query-table-wrapper">
