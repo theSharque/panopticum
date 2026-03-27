@@ -1,11 +1,11 @@
 package com.panopticum.i18n;
 
+import lombok.experimental.UtilityClass;
+
 import java.util.Map;
 
-public final class MessagesPg {
-
-    private MessagesPg() {
-    }
+@UtilityClass
+public class MessagesPg {
 
     public static final Map<String, String> EN = Map.ofEntries(
             Map.entry("pg.tablesAndViews", "Tables and views"),

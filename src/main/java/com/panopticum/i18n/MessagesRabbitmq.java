@@ -1,11 +1,11 @@
 package com.panopticum.i18n;
 
+import lombok.experimental.UtilityClass;
+
 import java.util.Map;
 
-public final class MessagesRabbitmq {
-
-    private MessagesRabbitmq() {
-    }
+@UtilityClass
+public class MessagesRabbitmq {
 
     public static final Map<String, String> EN = Map.ofEntries(
             Map.entry("rabbitmq.queuesTitle", "Queues"),

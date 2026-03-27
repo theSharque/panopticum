@@ -1,14 +1,14 @@
 package com.panopticum.i18n;
 
+import lombok.experimental.UtilityClass;
+
 import java.util.HashMap;
 import java.util.Map;
 
-public final class Messages {
+@UtilityClass
+public class Messages {
 
-    private Messages() {
-    }
-
-    public static Map<String, String> forLocale(String locale) {
+    public Map<String, String> forLocale(String locale) {
         Map<String, String> merged = new HashMap<>();
         if ("ru".equalsIgnoreCase(locale)) {
             merged.putAll(MessagesCommon.RU);

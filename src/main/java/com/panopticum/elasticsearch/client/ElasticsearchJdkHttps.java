@@ -15,14 +15,14 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 
+import lombok.experimental.UtilityClass;
+
+@UtilityClass
 final class ElasticsearchJdkHttps {
 
     private static final HttpClient CLIENT = buildClient();
 
-    private ElasticsearchJdkHttps() {
-    }
-
-    private static HttpClient buildClient() {
+    private HttpClient buildClient() {
         try {
             TrustManager[] trustAll = new TrustManager[]{
                     new X509TrustManager() {
@@ -52,7 +52,7 @@ final class ElasticsearchJdkHttps {
         }
     }
 
-    static HttpResponse<String> get(String url, String username, String password) throws Exception {
+    HttpResponse<String> get(String url, String username, String password) throws Exception {
         HttpRequest.Builder b = HttpRequest.newBuilder(URI.create(url))
                 .GET()
                 .header("Accept", "application/json")
@@ -62,7 +62,7 @@ final class ElasticsearchJdkHttps {
         return CLIENT.send(b.build(), HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
     }
 
-    static HttpResponse<String> post(String url, String body, String username, String password) throws Exception {
+    HttpResponse<String> post(String url, String body, String username, String password) throws Exception {
         HttpRequest.Builder b = HttpRequest.newBuilder(URI.create(url))
                 .POST(HttpRequest.BodyPublishers.ofString(body != null ? body : "{}", StandardCharsets.UTF_8))
                 .header("Content-Type", "application/json")
@@ -73,7 +73,7 @@ final class ElasticsearchJdkHttps {
         return CLIENT.send(b.build(), HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
     }
 
-    static HttpResponse<String> put(String url, String body, String username, String password) throws Exception {
+    HttpResponse<String> put(String url, String body, String username, String password) throws Exception {
         HttpRequest.Builder b = HttpRequest.newBuilder(URI.create(url))
                 .PUT(HttpRequest.BodyPublishers.ofString(body != null ? body : "{}", StandardCharsets.UTF_8))
                 .header("Content-Type", "application/json")
@@ -84,7 +84,7 @@ final class ElasticsearchJdkHttps {
         return CLIENT.send(b.build(), HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
     }
 
-    private static void basicAuth(HttpRequest.Builder b, String username, String password) {
+    private void basicAuth(HttpRequest.Builder b, String username, String password) {
         if (username != null && !username.isBlank()) {
             String p = password != null ? password : "";
             String raw = username + ":" + p;

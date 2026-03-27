@@ -9,22 +9,20 @@ import io.micronaut.http.annotation.Produces;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import io.micronaut.views.View;
+import lombok.RequiredArgsConstructor;
 
 import java.util.HashMap;
 import java.util.Map;
 
 @Controller("/")
 @Secured(SecurityRule.IS_AUTHENTICATED)
+@RequiredArgsConstructor
 public class HomeController {
 
     private final DbConnectionService dbConnectionService;
 
     @Value("${panopticum.admin-lock:false}")
     private boolean adminLock;
-
-    public HomeController(DbConnectionService dbConnectionService) {
-        this.dbConnectionService = dbConnectionService;
-    }
 
     @Produces(MediaType.TEXT_HTML)
     @Get

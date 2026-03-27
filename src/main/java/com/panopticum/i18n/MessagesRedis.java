@@ -1,11 +1,11 @@
 package com.panopticum.i18n;
 
+import lombok.experimental.UtilityClass;
+
 import java.util.Map;
 
-public final class MessagesRedis {
-
-    private MessagesRedis() {
-    }
+@UtilityClass
+public class MessagesRedis {
 
     public static final Map<String, String> EN = Map.ofEntries(
             Map.entry("redis.dbNumber", "DB number"),

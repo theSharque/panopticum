@@ -1,11 +1,11 @@
 package com.panopticum.i18n;
 
+import lombok.experimental.UtilityClass;
+
 import java.util.Map;
 
-public final class MessagesKafka {
-
-    private MessagesKafka() {
-    }
+@UtilityClass
+public class MessagesKafka {
 
     public static final Map<String, String> EN = Map.ofEntries(
             Map.entry("kafka.topicsTitle", "Topics"),

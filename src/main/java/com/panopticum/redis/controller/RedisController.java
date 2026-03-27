@@ -10,6 +10,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.panopticum.redis.model.RedisKeyDetail;
 import com.panopticum.redis.model.RedisKeyInfo;
+import com.panopticum.redis.RedisScanCursors;
 import com.panopticum.redis.model.RedisKeysPage;
 import com.panopticum.redis.service.RedisMetadataService;
 import io.micronaut.context.annotation.Value;
@@ -96,6 +97,7 @@ public class RedisController {
         Map<String, Object> model = ControllerModelHelper.baseModel(id, dbConnectionService);
         Optional<DbConnection> conn = dbConnectionService.findById(id);
         if (conn.isEmpty()) {
+            model.put("redisKeysPrevEnabled", false);
             return model;
         }
 
@@ -110,7 +112,9 @@ public class RedisController {
         model.put("dbIndex", dbIndex);
         model.put("searchTerm", searchTerm);
 
-        RedisKeysPage page = redisMetadataService.listKeys(id, dbIndex, pattern, cursor, size);
+        String scanCursor = RedisScanCursors.normalize(cursor);
+
+        RedisKeysPage page = redisMetadataService.listKeys(id, dbIndex, pattern, scanCursor, size);
         List<RedisKeyInfo> items = redisMetadataService.sortKeys(page.getKeys(), sort, order);
         String orderVal = order != null ? order : "asc";
         String sortBy = sort != null ? sort : "key";
@@ -122,7 +126,8 @@ public class RedisController {
         model.put("orderTtl", "ttl".equals(sortBy) && "asc".equals(orderVal) ? "desc" : "asc");
         model.put("nextCursor", page.getNextCursor());
         model.put("hasMore", page.isHasMore());
-        model.put("cursor", cursor != null ? cursor : "0");
+        model.put("cursor", scanCursor);
+        model.put("redisKeysPrevEnabled", !RedisScanCursors.isAtStart(scanCursor));
 
         return model;
     }

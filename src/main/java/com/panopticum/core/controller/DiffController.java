@@ -10,6 +10,7 @@ import io.micronaut.http.server.types.files.StreamedFile;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import io.micronaut.views.View;
+import lombok.RequiredArgsConstructor;
 
 import java.io.InputStream;
 import java.util.HashMap;
@@ -17,6 +18,7 @@ import java.util.Map;
 
 @Controller("/")
 @Secured(SecurityRule.IS_AUTHENTICATED)
+@RequiredArgsConstructor
 public class DiffController {
 
     private static final String DIFF_JS_RESOURCE = "static/js/diff.js";
@@ -25,10 +27,6 @@ public class DiffController {
 
     @Value("${panopticum.admin-lock:false}")
     private boolean adminLock;
-
-    public DiffController(DbConnectionService dbConnectionService) {
-        this.dbConnectionService = dbConnectionService;
-    }
 
     @Get("/diff")
     @View("diff/diff")

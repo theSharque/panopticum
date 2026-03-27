@@ -1,11 +1,11 @@
 package com.panopticum.i18n;
 
+import lombok.experimental.UtilityClass;
+
 import java.util.Map;
 
-public final class MessagesElasticsearch {
-
-    private MessagesElasticsearch() {
-    }
+@UtilityClass
+public class MessagesElasticsearch {
 
     public static final Map<String, String> EN = Map.ofEntries(
             Map.entry("elasticsearch.indices", "Indices"),
