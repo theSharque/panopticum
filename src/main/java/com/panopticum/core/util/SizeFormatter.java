@@ -1,11 +1,11 @@
 package com.panopticum.core.util;
 
-public final class SizeFormatter {
+import lombok.experimental.UtilityClass;
 
-    private SizeFormatter() {
-    }
+@UtilityClass
+public class SizeFormatter {
 
-    public static String formatSize(long bytes) {
+    public String formatSize(long bytes) {
         if (bytes < 1024) {
             return bytes + " B";
         }

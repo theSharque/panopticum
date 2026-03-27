@@ -3,18 +3,17 @@ package com.panopticum.core.util;
 import com.panopticum.core.model.BreadcrumbItem;
 import com.panopticum.core.model.Page;
 import com.panopticum.core.service.DbConnectionService;
+import lombok.experimental.UtilityClass;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public final class ControllerModelHelper {
+@UtilityClass
+public class ControllerModelHelper {
 
-    private ControllerModelHelper() {
-    }
-
-    public static Map<String, Object> baseModel(Long id, DbConnectionService dbConnectionService) {
+    public Map<String, Object> baseModel(Long id, DbConnectionService dbConnectionService) {
         Map<String, Object> model = new HashMap<>();
         model.put("connections", dbConnectionService.findAll());
         dbConnectionService.findById(id).ifPresent(conn -> model.put("connection", conn));
@@ -22,23 +21,23 @@ public final class ControllerModelHelper {
         return model;
     }
 
-    public static void addBreadcrumbs(Map<String, Object> model, List<BreadcrumbItem> breadcrumbs) {
+    public void addBreadcrumbs(Map<String, Object> model, List<BreadcrumbItem> breadcrumbs) {
         List<BreadcrumbItem> list = breadcrumbs != null ? breadcrumbs : List.of();
         model.put("breadcrumbs", list);
         putBreadcrumbPath(model, list);
     }
 
-    public static void refreshBreadcrumbPath(Map<String, Object> model) {
+    public void refreshBreadcrumbPath(Map<String, Object> model) {
         @SuppressWarnings("unchecked")
         List<BreadcrumbItem> list = (List<BreadcrumbItem>) model.get("breadcrumbs");
         putBreadcrumbPath(model, list != null ? list : List.of());
     }
 
-    private static void putBreadcrumbPath(Map<String, Object> model, List<BreadcrumbItem> breadcrumbs) {
+    private void putBreadcrumbPath(Map<String, Object> model, List<BreadcrumbItem> breadcrumbs) {
         model.put("breadcrumbPath", joinBreadcrumbLabels(breadcrumbs));
     }
 
-    private static String joinBreadcrumbLabels(List<BreadcrumbItem> breadcrumbs) {
+    private String joinBreadcrumbLabels(List<BreadcrumbItem> breadcrumbs) {
         if (breadcrumbs == null || breadcrumbs.isEmpty()) {
             return "";
         }
@@ -47,7 +46,7 @@ public final class ControllerModelHelper {
                 .collect(Collectors.joining("/"));
     }
 
-    public static <T> void addPagination(Map<String, Object> model, Page<T> page, String itemsKey) {
+    public <T> void addPagination(Map<String, Object> model, Page<T> page, String itemsKey) {
         if (page == null) {
             return;
         }
@@ -64,8 +63,8 @@ public final class ControllerModelHelper {
         model.put("nextOffset", page.getNextOffset());
     }
 
-    public static void addOrderToggles(Map<String, Object> model, String sort, String order,
-                                       Map<String, String> sortColumnToOrderKey) {
+    public void addOrderToggles(Map<String, Object> model, String sort, String order,
+                                Map<String, String> sortColumnToOrderKey) {
         if (sort == null) {
             sort = "name";
         }

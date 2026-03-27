@@ -1,14 +1,14 @@
 package com.panopticum.core.util;
 
-public final class StringUtils {
+import lombok.experimental.UtilityClass;
+
+@UtilityClass
+public class StringUtils {
 
     private static final int MAX_CELL_LENGTH = 200;
     private static final String ELLIPSIS = "\u2026";
 
-    private StringUtils() {
-    }
-
-    public static Object truncateCell(Object value) {
+    public Object truncateCell(Object value) {
         if (value == null) {
             return null;
         }
@@ -19,7 +19,7 @@ public final class StringUtils {
         return s.substring(0, MAX_CELL_LENGTH) + ELLIPSIS;
     }
 
-    public static String truncate(String s) {
+    public String truncate(String s) {
         if (s == null) {
             return null;
         }

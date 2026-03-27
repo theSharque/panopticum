@@ -1,13 +1,13 @@
 package com.panopticum.i18n;
 
-public final class RedirectHelper {
+import lombok.experimental.UtilityClass;
+
+@UtilityClass
+public class RedirectHelper {
 
     private static final String POST_ONLY_SUFFIX = "/detail/update";
 
-    private RedirectHelper() {
-    }
-
-    public static String getRedirectForGet(String path) {
+    public String getRedirectForGet(String path) {
         if (path == null || !path.endsWith(POST_ONLY_SUFFIX)) {
             return path;
         }

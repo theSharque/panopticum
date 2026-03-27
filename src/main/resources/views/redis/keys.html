@@ -16,8 +16,9 @@
     <div th:if="${items != null and !items.isEmpty()}" class="query-result-data">
         <div class="query-pagination-info">
             <span class="query-pagination-nav">
-                <a th:if="${cursor != '0'}" th:href="@{/redis/{id}/{dbIndex}(id=${connectionId}, dbIndex=${dbIndex}, cursor='0', search=${searchTerm}, size=${size}, sort=${sort}, order=${order})}" class="query-pagination-btn" th:aria-label="${msg['redis.toStart']}" th:title="${msg['redis.toStart']}"><svg th:replace="~{fragments/pagination-arrows :: arrowPrev}"></svg></a>
-                <a th:if="${hasMore}" th:href="@{/redis/{id}/{dbIndex}(id=${connectionId}, dbIndex=${dbIndex}, cursor=${nextCursor}, search=${searchTerm}, size=${size}, sort=${sort}, order=${order})}" class="query-pagination-btn" th:aria-label="${msg['common.next']}" th:title="${msg['common.next']}"><svg th:replace="~{fragments/pagination-arrows :: arrowNext}"></svg></a>
+                <th:block th:with="prevUrl=@{/redis/{id}/{dbIndex}(id=${connectionId}, dbIndex=${dbIndex}, cursor='0', search=${searchTerm}, size=${size}, sort=${sort}, order=${order})}, nextUrl=@{/redis/{id}/{dbIndex}(id=${connectionId}, dbIndex=${dbIndex}, cursor=${nextCursor}, search=${searchTerm}, size=${size}, sort=${sort}, order=${order})}, prevLabel=${msg['redis.toStart']}, nextLabel=${msg['common.next']}">
+                    <th:block th:replace="~{fragments/pagination-list-nav :: arrows(hasPrev=${redisKeysPrevEnabled}, prevUrl=${prevUrl}, hasMore=${hasMore}, nextUrl=${nextUrl}, prevLabel=${prevLabel}, nextLabel=${nextLabel})}" />
+                </th:block>
             </span>
         </div>
         <div class="query-table-wrapper">

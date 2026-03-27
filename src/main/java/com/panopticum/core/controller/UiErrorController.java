@@ -12,10 +12,13 @@ import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Error;
 import io.micronaut.http.annotation.Produces;
 import io.micronaut.views.ModelAndView;
+import lombok.RequiredArgsConstructor;
+
 import java.util.HashMap;
 import java.util.Map;
 
 @Controller("/__panopticum-ui-error")
+@RequiredArgsConstructor
 public class UiErrorController {
 
     private static final String HX_REQUEST = "HX-Request";
@@ -24,10 +27,6 @@ public class UiErrorController {
 
     @Value("${panopticum.admin-lock:false}")
     private boolean adminLock;
-
-    public UiErrorController(DbConnectionService dbConnectionService) {
-        this.dbConnectionService = dbConnectionService;
-    }
 
     @Error(global = true, exception = ConnectionUnavailableException.class)
     @Produces(MediaType.TEXT_HTML)

@@ -1,6 +1,7 @@
 package com.panopticum.redis.controller;
 
 import com.panopticum.core.service.DbConnectionService;
+import com.panopticum.redis.RedisScanCursors;
 import com.panopticum.redis.model.RedisDbInfo;
 import com.panopticum.redis.model.RedisKeyDetail;
 import com.panopticum.redis.model.RedisKeyInfo;
@@ -80,12 +81,15 @@ public class RedisApiController {
             @QueryValue(value = "order", defaultValue = "asc") String order) {
         ensureConnectionExists(id);
         String pattern = search != null && !search.isBlank() ? "*" + search.trim() + "*" : "*";
-        RedisKeysPage page = redisMetadataService.listKeys(id, dbIndex, pattern, cursor, size);
+        String scanCursor = RedisScanCursors.normalize(cursor);
+        RedisKeysPage page = redisMetadataService.listKeys(id, dbIndex, pattern, scanCursor, size);
         List<RedisKeyInfo> items = redisMetadataService.sortKeys(page.getKeys(), sort, order);
         Map<String, Object> result = new HashMap<>();
         result.put("items", items);
+        result.put("cursor", scanCursor);
         result.put("nextCursor", page.getNextCursor());
         result.put("hasMore", page.isHasMore());
+        result.put("atScanStart", RedisScanCursors.isAtStart(scanCursor));
         return result;
     }
 

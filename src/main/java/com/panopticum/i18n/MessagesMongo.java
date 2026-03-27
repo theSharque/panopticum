@@ -1,11 +1,11 @@
 package com.panopticum.i18n;
 
+import lombok.experimental.UtilityClass;
+
 import java.util.Map;
 
-public final class MessagesMongo {
-
-    private MessagesMongo() {
-    }
+@UtilityClass
+public class MessagesMongo {
 
     public static final Map<String, String> EN = Map.ofEntries(
             Map.entry("mongo.collections", "Collections"),

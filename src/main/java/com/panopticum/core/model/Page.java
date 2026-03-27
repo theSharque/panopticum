@@ -39,14 +39,15 @@ public class Page<T> {
 
     public static <T> Page<T> of(List<T> sortedItems, int page, int size, String sort, String order) {
         int limit = Math.min(Math.max(1, size), 500);
-        int offset = Math.max(0, (page - 1) * limit);
+        int p = page < 1 ? 1 : page;
+        int offset = (p - 1) * limit;
         List<T> pageItems = offset < sortedItems.size()
                 ? sortedItems.subList(offset, Math.min(offset + limit, sortedItems.size()))
                 : List.of();
         int from = sortedItems.isEmpty() ? 0 : offset + 1;
         int to = offset + pageItems.size();
-        return new Page<>(pageItems, page, limit, sort, order,
-                from, to, page > 1, offset + pageItems.size() < sortedItems.size(),
+        return new Page<>(pageItems, p, limit, sort, order,
+                from, to, p > 1, offset + pageItems.size() < sortedItems.size(),
                 Math.max(0, offset - limit), offset + limit);
     }
 }

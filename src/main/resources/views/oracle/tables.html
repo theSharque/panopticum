@@ -8,8 +8,9 @@
     <div th:if="${tables != null and !tables.isEmpty()}" class="query-result-data">
         <div class="query-pagination-info">
             <span class="query-pagination-nav">
-                <a th:if="${hasPrev}" th:href="@{/oracle/{id}/{schema}(id=${connectionId}, schema=${schema}, page=${page - 1}, size=${size}, sort=${sort}, order=${order})}" class="query-pagination-btn" th:aria-label="${msg['common.prev']}" th:title="${msg['common.prev']}"><svg th:replace="~{fragments/pagination-arrows :: arrowPrev}"></svg></a>
-                <a th:if="${hasMore}" th:href="@{/oracle/{id}/{schema}(id=${connectionId}, schema=${schema}, page=${page + 1}, size=${size}, sort=${sort}, order=${order})}" class="query-pagination-btn" th:aria-label="${msg['common.next']}" th:title="${msg['common.next']}"><svg th:replace="~{fragments/pagination-arrows :: arrowNext}"></svg></a>
+                <th:block th:with="prevUrl=@{/oracle/{id}/{schema}(id=${connectionId}, schema=${schema}, page=${page - 1}, size=${size}, sort=${sort}, order=${order})}, nextUrl=@{/oracle/{id}/{schema}(id=${connectionId}, schema=${schema}, page=${page + 1}, size=${size}, sort=${sort}, order=${order})}, prevLabel=${msg['common.prev']}, nextLabel=${msg['common.next']}">
+                    <th:block th:replace="~{fragments/pagination-list-nav :: arrows(hasPrev=${hasPrev}, prevUrl=${prevUrl}, hasMore=${hasMore}, nextUrl=${nextUrl}, prevLabel=${prevLabel}, nextLabel=${nextLabel})}" />
+                </th:block>
             </span>
             <span class="query-pagination-range" th:text="${msg['common.rowsRange'] + fromRow + '–' + toRow}"></span>
         </div>

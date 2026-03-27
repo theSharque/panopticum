@@ -1,11 +1,11 @@
 package com.panopticum.i18n;
 
+import lombok.experimental.UtilityClass;
+
 import java.util.Map;
 
-public final class MessagesSettings {
-
-    private MessagesSettings() {
-    }
+@UtilityClass
+public class MessagesSettings {
 
     public static final Map<String, String> EN = Map.ofEntries(
             Map.entry("settings.title", "Add connection"),

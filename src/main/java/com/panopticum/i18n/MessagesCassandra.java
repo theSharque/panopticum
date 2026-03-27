@@ -1,11 +1,11 @@
 package com.panopticum.i18n;
 
+import lombok.experimental.UtilityClass;
+
 import java.util.Map;
 
-public final class MessagesCassandra {
-
-    private MessagesCassandra() {
-    }
+@UtilityClass
+public class MessagesCassandra {
 
     public static final Map<String, String> EN = Map.ofEntries(
             Map.entry("cassandra.durableWrites", "Durable writes"),
