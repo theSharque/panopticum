@@ -13,6 +13,11 @@ FROM eclipse-temurin:17-jre
 ARG APP_VERSION=dev
 ENV APP_VERSION=$APP_VERSION
 
+RUN apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get upgrade -y \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN groupadd -g 1001 app && useradd -u 1001 -g app -s /bin/false app
 
 WORKDIR /app

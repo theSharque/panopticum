@@ -39,6 +39,10 @@ configurations.all {
                 details.useVersion("2.21.1")
                 details.because("CVE fix: GHSA-72hv-8253-57qq (jackson-core DoS)")
             }
+            if (details.requested.group == "io.netty") {
+                details.useVersion("4.2.11.Final")
+                details.because("CVE-2026-33871: netty-codec-http2; align Netty with patched release")
+            }
         }
     }
 }
