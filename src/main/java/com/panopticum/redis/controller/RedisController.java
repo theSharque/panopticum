@@ -3,6 +3,7 @@ package com.panopticum.redis.controller;
 import com.panopticum.core.model.BreadcrumbItem;
 import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.service.DbConnectionService;
+import com.panopticum.core.ui.AppAlerts;
 import com.panopticum.core.util.ControllerModelHelper;
 import com.panopticum.redis.model.RedisDbInfo;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -82,7 +83,7 @@ public class RedisController {
 
         return model;
     }
-/*  */
+
     @Produces(MediaType.TEXT_HTML)
     @Get("/{id}/{dbIndex}")
     @View("redis/keys")
@@ -206,7 +207,8 @@ public class RedisController {
             Map<String, Object> model = ControllerModelHelper.baseModel(id, dbConnectionService);
             Optional<DbConnection> conn = dbConnectionService.findById(id);
             if (conn.isEmpty()) {
-                model.put("error", err.get());
+                ControllerModelHelper.addBreadcrumbs(model, List.of());
+                AppAlerts.fromControllerMessage(model, err.get());
                 model.put("connectionId", id);
                 model.put("dbIndex", dbIndex);
                 model.put("key", key != null ? key : "");
@@ -226,7 +228,7 @@ public class RedisController {
             model.put("key", key != null ? key : "");
             Optional<RedisKeyDetail> keyDetailOpt = redisMetadataService.getKeyDetail(id, dbIndex, key);
             model.put("keyDetail", keyDetailOpt.orElse(null));
-            model.put("error", err.get());
+            AppAlerts.fromControllerMessage(model, err.get());
             model.put("readOnly", readOnly);
             if (keyDetailOpt.isPresent()) {
                 try {

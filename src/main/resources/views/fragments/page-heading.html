@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="pageHeading(items)" class="page-heading-row">
+    <div class="page-heading-breadcrumbs">
+        <div th:replace="~{fragments/breadcrumbs :: breadcrumbs(items=${items})}"></div>
+    </div>
+    <div th:replace="~{fragments/app-alert :: slot}"></div>
+</div>
+</body>
+</html>

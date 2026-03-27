@@ -7,6 +7,7 @@ import com.panopticum.core.model.QueryResult;
 import com.panopticum.core.model.SchemaInfo;
 import com.panopticum.core.model.TableInfo;
 import com.panopticum.core.service.DbConnectionService;
+import com.panopticum.core.ui.AppAlerts;
 import com.panopticum.core.util.ControllerModelHelper;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -162,6 +163,8 @@ public class OracleController {
         if (breadcrumbs != null && !breadcrumbs.isEmpty()) {
             breadcrumbs.set(breadcrumbs.size() - 1, new BreadcrumbItem(tableClean != null ? tableClean : "", null));
         }
+        ControllerModelHelper.refreshBreadcrumbPath(model);
+
         return model;
     }
 
@@ -190,13 +193,14 @@ public class OracleController {
         model.put("tableDetailActionUrl", tableSegment != null && !tableSegment.isBlank()
                 ? "/oracle/" + id + "/" + (schemaClean != null ? schemaClean : "") + "/" + tableSegment + "/detail"
                 : "/oracle/" + id + "/" + (schemaClean != null ? schemaClean : "") + "/detail");
+        model.put("includeAlertOob", false);
 
         int off = offset != null ? Math.max(0, offset) : 0;
         int lim = limit != null && limit > 0 ? Math.min(limit, 1000) : 100;
         model.put("size", lim);
 
         if (sql == null || sql.isBlank()) {
-            model.put("error", null);
+            AppAlerts.clear(model);
             model.put("columns", List.<String>of());
             model.put("columnTypes", List.<String>of());
             model.put("rows", List.<List<Object>>of());
@@ -221,7 +225,7 @@ public class OracleController {
 
     private void putQueryResultIntoModel(Map<String, Object> model, QueryResult result, String sql,
                                          String sort, String order) {
-        model.put("error", result.hasError() ? result.getError() : null);
+        AppAlerts.fromControllerMessage(model, result.hasError() ? result.getError() : null);
         model.put("columns", result.getColumns());
         model.put("columnTypes", result.getColumnTypes() != null ? result.getColumnTypes() : List.<String>of());
         model.put("rows", result.getRows());
@@ -252,11 +256,12 @@ public class OracleController {
         model.put("connectionId", id);
         model.put("schema", schemaClean != null ? schemaClean : "");
         model.put("dbName", schemaClean);
+        model.put("includeAlertOob", true);
         String searchTerm = search != null && !search.isBlank() ? search.trim() : "";
         model.put("searchTerm", searchTerm);
 
         if (sql == null || sql.isBlank()) {
-            model.put("error", "Empty query");
+            AppAlerts.raw(model, "Empty query");
             model.put("queryActionUrl", "/oracle/" + id + "/query");
             model.put("tableQueryActionUrl", "/oracle/" + id + "/query");
             model.put("tableDetailActionUrl", "/oracle/" + id + "/" + (schemaClean != null ? schemaClean : "") + "/detail");
@@ -412,14 +417,14 @@ public class OracleController {
         Optional<String> qualifiedTable = oracleMetadataService.parseTableFromSql(sql);
         if (qualifiedTable.isEmpty()) {
             Map<String, Object> model = rowDetail(id, schema, sql, rowNum, sort, order, searchParam, tableParam);
-            model.put("error", "Could not determine table from SQL.");
+            AppAlerts.raw(model, "Could not determine table from SQL.");
             return new ModelAndView<>("oracle/detail", model);
         }
 
         Optional<String> err = oracleMetadataService.executeUpdateByRowid(id, unquotePgIdentifier(schema), qualifiedTable.get(), rowid, columnValues);
         if (err.isPresent()) {
             Map<String, Object> model = rowDetail(id, schema, sql, rowNum, sort, order, searchParam, tableParam);
-            model.put("error", err.get());
+            AppAlerts.fromControllerMessage(model, err.get());
             return new ModelAndView<>("oracle/detail", model);
         }
 

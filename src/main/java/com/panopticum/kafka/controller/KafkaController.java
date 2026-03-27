@@ -4,6 +4,7 @@ import com.panopticum.core.model.BreadcrumbItem;
 import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.model.Page;
 import com.panopticum.core.service.DbConnectionService;
+import com.panopticum.core.ui.AppAlerts;
 import com.panopticum.core.util.ControllerModelHelper;
 import com.panopticum.kafka.model.KafkaRecord;
 import com.panopticum.kafka.model.KafkaTopicInfo;
@@ -171,7 +172,7 @@ public class KafkaController {
         Optional<KafkaRecord> record = kafkaService.getRecordByOffset(id, topicDecoded, partition, offset);
         model.put("record", record.orElse(null));
         if (record.isEmpty()) {
-            model.put("error", "kafka.recordNotFound");
+            AppAlerts.i18n(model, "kafka.recordNotFound");
         } else {
             String label = conn.get().getName() + " / " + topicDecoded + " / " + partition + " / " + offset;
             try {

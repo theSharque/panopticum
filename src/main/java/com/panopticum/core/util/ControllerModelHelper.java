@@ -7,6 +7,7 @@ import com.panopticum.core.service.DbConnectionService;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public final class ControllerModelHelper {
 
@@ -22,7 +23,28 @@ public final class ControllerModelHelper {
     }
 
     public static void addBreadcrumbs(Map<String, Object> model, List<BreadcrumbItem> breadcrumbs) {
-        model.put("breadcrumbs", breadcrumbs != null ? breadcrumbs : List.of());
+        List<BreadcrumbItem> list = breadcrumbs != null ? breadcrumbs : List.of();
+        model.put("breadcrumbs", list);
+        putBreadcrumbPath(model, list);
+    }
+
+    public static void refreshBreadcrumbPath(Map<String, Object> model) {
+        @SuppressWarnings("unchecked")
+        List<BreadcrumbItem> list = (List<BreadcrumbItem>) model.get("breadcrumbs");
+        putBreadcrumbPath(model, list != null ? list : List.of());
+    }
+
+    private static void putBreadcrumbPath(Map<String, Object> model, List<BreadcrumbItem> breadcrumbs) {
+        model.put("breadcrumbPath", joinBreadcrumbLabels(breadcrumbs));
+    }
+
+    private static String joinBreadcrumbLabels(List<BreadcrumbItem> breadcrumbs) {
+        if (breadcrumbs == null || breadcrumbs.isEmpty()) {
+            return "";
+        }
+        return breadcrumbs.stream()
+                .map(b -> b.getLabel() != null ? b.getLabel() : "")
+                .collect(Collectors.joining("/"));
     }
 
     public static <T> void addPagination(Map<String, Object> model, Page<T> page, String itemsKey) {

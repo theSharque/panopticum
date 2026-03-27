@@ -5,6 +5,7 @@ import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.model.Page;
 import com.panopticum.core.model.QueryResult;
 import com.panopticum.core.service.DbConnectionService;
+import com.panopticum.core.ui.AppAlerts;
 import com.panopticum.core.util.ControllerModelHelper;
 import com.panopticum.elasticsearch.model.ElasticsearchIndexInfo;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -124,13 +125,14 @@ public class ElasticsearchController {
         model.put("indexName", indexName != null ? indexName : "");
         model.put("indexNameEncoded", indexName != null ? encodePath(indexName) : "");
         model.put("query", query != null && !query.isBlank() ? query : DEFAULT_QUERY);
+        model.put("includeAlertOob", false);
         int off = offset != null ? Math.max(0, offset) : 0;
         int lim = limit != null && limit > 0 ? Math.min(limit, 1000) : DEFAULT_SIZE;
         model.put("size", lim);
         model.put("offset", off);
 
         if (indexName == null || indexName.isBlank()) {
-            model.put("error", null);
+            AppAlerts.clear(model);
             model.put("columns", List.<String>of());
             model.put("rows", List.<List<Object>>of());
             model.put("docIds", List.<String>of());
@@ -143,7 +145,7 @@ public class ElasticsearchController {
         } else {
             var result = elasticsearchService.executeQuery(id, indexName, query, off, lim)
                     .orElse(QueryResult.error("error.queryExecutionFailed"));
-            model.put("error", result.hasError() ? result.getError() : null);
+            AppAlerts.fromControllerMessage(model, result.hasError() ? result.getError() : null);
             model.put("columns", result.getColumns());
             model.put("rows", result.getRows());
             model.put("docIds", result.getDocIds() != null ? result.getDocIds() : List.<String>of());
@@ -187,7 +189,7 @@ public class ElasticsearchController {
 
         String json = elasticsearchService.getDocument(id, indexName, docId).orElse("{}");
         model.put("prettyJson", json);
-        model.put("error", null);
+        AppAlerts.clear(model);
 
         String label = conn.get().getName() + " / " + (indexName != null ? indexName : "") + " / " + (docId != null ? docId : "");
         try {
@@ -224,9 +226,9 @@ public class ElasticsearchController {
                 model.put("docId", docId != null ? docId : "");
                 model.put("docIdEncoded", encodePath(docId != null ? docId : ""));
                 model.put("prettyJson", body != null ? body : "{}");
-                model.put("error", err.get());
+                AppAlerts.fromControllerMessage(model, err.get());
                 model.put("readOnly", readOnly);
-                model.put("breadcrumbs", List.<BreadcrumbItem>of());
+                ControllerModelHelper.addBreadcrumbs(model, List.of());
                 return new ModelAndView<>("elasticsearch/detail", model);
             }
 
@@ -243,7 +245,7 @@ public class ElasticsearchController {
             model.put("docIdEncoded", docId != null ? encodePath(docId) : "");
             model.put("readOnly", readOnly);
             model.put("prettyJson", body != null ? body : "{}");
-            model.put("error", err.get());
+            AppAlerts.fromControllerMessage(model, err.get());
             try {
                 String label = conn.get().getName() + " / " + (indexName != null ? indexName : "") + " / " + (docId != null ? docId : "");
                 Map<String, Object> payload = Map.of(
@@ -275,11 +277,12 @@ public class ElasticsearchController {
         model.put("indexName", indexName != null ? indexName : "");
         model.put("indexNameEncoded", indexName != null ? encodePath(indexName) : "");
         model.put("query", query != null && !query.isBlank() ? query : DEFAULT_QUERY);
+        model.put("includeAlertOob", true);
         int off = offset != null ? Math.max(0, offset) : 0;
         int lim = limit != null && limit > 0 ? Math.min(limit, 1000) : DEFAULT_SIZE;
 
         if (indexName == null || indexName.isBlank()) {
-            model.put("error", "error.specifyIndex");
+            AppAlerts.i18n(model, "error.specifyIndex");
             model.put("docIds", List.<String>of());
             model.put("columns", List.<String>of());
             model.put("rows", List.<List<Object>>of());
@@ -297,7 +300,7 @@ public class ElasticsearchController {
         var result = elasticsearchService.executeQuery(id, indexName, query, off, lim)
                 .orElse(QueryResult.error("error.queryExecutionFailed"));
 
-        model.put("error", result.hasError() ? result.getError() : null);
+        AppAlerts.fromControllerMessage(model, result.hasError() ? result.getError() : null);
         model.put("columns", result.getColumns());
         model.put("rows", result.getRows());
         model.put("docIds", result.getDocIds() != null ? result.getDocIds() : List.<String>of());

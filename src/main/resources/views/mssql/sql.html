@@ -3,7 +3,7 @@
 <head></head>
 <body>
 <main th:fragment="main" class="main-content">
-    <div th:replace="~{fragments/breadcrumbs :: breadcrumbs(items=${breadcrumbs})}"></div>
+    <div th:replace="~{fragments/page-heading :: pageHeading(items=${breadcrumbs})}"></div>
     <section class="query-panel query-panel-table">
         <form th:action="@{/mssql/{id}/query(id=${connectionId})}"
               method="post"

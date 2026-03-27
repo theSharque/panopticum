@@ -1,4 +1,4 @@
-import { EditorView } from '@codemirror/view';
+import { EditorView, placeholder } from '@codemirror/view';
 import { EditorState } from '@codemirror/state';
 import { syntaxHighlighting, defaultHighlightStyle } from '@codemirror/language';
 import { sql } from '@codemirror/lang-sql';
@@ -33,6 +33,7 @@ function initEditor(textarea) {
     textarea.style.overflow = 'hidden';
 
     var languageExtension = lang === 'json' ? json() : sql();
+    var placeholderText = textarea.getAttribute('placeholder') || '';
     var extensions = [
         isDark() ? oneDark : syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
         languageExtension,
@@ -40,9 +41,17 @@ function initEditor(textarea) {
         EditorView.theme({
             '&': { fontSize: '13px' },
             '&.cm-editor': { minHeight: '120px' },
-            '&.cm-scroller': { fontFamily: 'var(--font-mono), "JetBrains Mono", monospace' }
+            '&.cm-scroller': { fontFamily: 'var(--font-mono), "JetBrains Mono", monospace' },
+            '.cm-placeholder': {
+                color: 'var(--text-dim)',
+                opacity: '0.85'
+            }
         })
     ];
+
+    if (placeholderText) {
+        extensions.push(placeholder(placeholderText));
+    }
 
     var state = EditorState.create({
         doc: content,
@@ -55,13 +64,17 @@ function initEditor(textarea) {
     });
 
     textarea.dataset.cmInitialized = 'true';
-    textarea.dataset.cmView = 'view';
+    textarea._panopticumCmView = view;
 
     var form = textarea.closest('form');
     if (form) {
-        form.addEventListener('submit', function () {
-            textarea.value = view.state.doc.toString();
-        });
+        form.addEventListener(
+            'submit',
+            function () {
+                textarea.value = view.state.doc.toString();
+            },
+            true
+        );
     }
 
     textarea.addEventListener('panopticum:query-apply', function (ev) {
@@ -87,7 +100,38 @@ function init(container) {
     });
 }
 
+function patchCmIntoHtmxRequest(ev) {
+    var elt = ev.detail && ev.detail.elt;
+    if (!elt) {
+        return;
+    }
+    var form = elt.tagName === 'FORM' ? elt : elt.closest('form');
+    if (!form) {
+        return;
+    }
+    var ta = form.querySelector('textarea.cm-replaced[name="sql"], textarea.cm-replaced[name="query"]');
+    if (!ta || !ta._panopticumCmView) {
+        return;
+    }
+    var text = ta._panopticumCmView.state.doc.toString();
+    ta.value = text;
+    var params = ev.detail.parameters;
+    if (!params) {
+        return;
+    }
+    if (ta.getAttribute('name') === 'sql') {
+        params.sql = text;
+    }
+    if (ta.getAttribute('name') === 'query') {
+        params.query = text;
+    }
+}
+
 function run() {
+    if (document.body) {
+        document.body.addEventListener('htmx:configRequest', patchCmIntoHtmxRequest);
+    }
+
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', function () {
             init();

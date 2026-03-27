@@ -199,11 +199,7 @@ public class CassandraMetadataService {
 
     public Optional<QueryResult> executeQuery(Long connectionId, String keyspaceName, String cql, int offset, int limit, boolean truncateCells) {
         int lim = Math.min(limit > 0 ? limit : 100, queryRowsLimit);
-        Optional<QueryResultData> dataOpt = cassandraMetadataRepository.executeCql(connectionId, keyspaceName, cql, lim);
-        if (dataOpt.isEmpty()) {
-            return Optional.of(QueryResult.error("error.connectionNotAvailable"));
-        }
-        QueryResultData data = dataOpt.get();
+        QueryResultData data = cassandraMetadataRepository.executeCql(connectionId, keyspaceName, cql, lim).orElseThrow();
         boolean hasMore = data.getRows() != null && data.getRows().size() == lim;
         List<List<Object>> rows = data.getRows() != null ? new ArrayList<>(data.getRows()) : List.of();
         if (truncateCells) {

@@ -5,6 +5,7 @@ import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.model.Page;
 import com.panopticum.core.model.QueryResult;
 import com.panopticum.core.service.DbConnectionService;
+import com.panopticum.core.ui.AppAlerts;
 import com.panopticum.core.util.ControllerModelHelper;
 import com.panopticum.core.model.DatabaseInfo;
 import com.panopticum.core.model.TableInfo;
@@ -152,6 +153,8 @@ public class ClickHouseController {
         if (breadcrumbs != null && !breadcrumbs.isEmpty()) {
             breadcrumbs.set(breadcrumbs.size() - 1, new BreadcrumbItem(tableClean != null ? tableClean : "", null));
         }
+        ControllerModelHelper.refreshBreadcrumbPath(model);
+
         return model;
     }
 
@@ -176,13 +179,14 @@ public class ClickHouseController {
         model.put("sql", sql != null ? sql : "");
         model.put("tableQueryActionUrl", "/clickhouse/" + id + "/query");
         model.put("tableDetailActionUrl", "/clickhouse/" + id + "/" + dbName + "/detail");
+        model.put("includeAlertOob", false);
 
         int off = offset != null ? Math.max(0, offset) : 0;
         int lim = limit != null && limit > 0 ? Math.min(limit, 1000) : 100;
         model.put("size", lim);
 
         if (sql == null || sql.isBlank()) {
-            model.put("error", null);
+            AppAlerts.clear(model);
             model.put("columns", List.<String>of());
             model.put("columnTypes", List.<String>of());
             model.put("rows", List.<List<Object>>of());
@@ -199,7 +203,7 @@ public class ClickHouseController {
         } else {
             var result = clickHouseMetadataService.executeQuery(id, dbName, sql, off, lim, sort, order, searchTerm)
                     .orElse(QueryResult.error("error.queryExecutionFailed"));
-            model.put("error", result.hasError() ? result.getError() : null);
+            AppAlerts.fromControllerMessage(model, result.hasError() ? result.getError() : null);
             model.put("columns", result.getColumns());
             model.put("columnTypes", result.getColumnTypes() != null ? result.getColumnTypes() : List.<String>of());
             model.put("rows", result.getRows());
@@ -227,10 +231,11 @@ public class ClickHouseController {
         Map<String, Object> model = new HashMap<>();
         model.put("connectionId", id);
         model.put("dbName", dbName);
+        model.put("includeAlertOob", true);
         String searchTerm = search != null && !search.isBlank() ? search.trim() : "";
         model.put("searchTerm", searchTerm);
         if (sql == null || sql.isBlank()) {
-            model.put("error", "Empty query");
+            AppAlerts.raw(model, "Empty query");
             model.put("queryActionUrl", "/clickhouse/" + id + "/query");
             model.put("tableQueryActionUrl", "/clickhouse/" + id + "/query");
             model.put("tableDetailActionUrl", "/clickhouse/" + id + "/" + dbName + "/detail");
@@ -247,7 +252,7 @@ public class ClickHouseController {
         int lim = limit != null && limit > 0 ? limit : 100;
         var result = clickHouseMetadataService.executeQuery(id, dbName, sql, off, lim, sort, order, searchTerm)
                 .orElse(QueryResult.error("Execution failed"));
-        model.put("error", result.hasError() ? result.getError() : null);
+        AppAlerts.fromControllerMessage(model, result.hasError() ? result.getError() : null);
         model.put("columns", result.getColumns());
         model.put("columnTypes", result.getColumnTypes() != null ? result.getColumnTypes() : List.<String>of());
         model.put("rows", result.getRows());

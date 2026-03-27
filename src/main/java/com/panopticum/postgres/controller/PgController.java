@@ -8,6 +8,7 @@ import com.panopticum.core.model.QueryResult;
 import com.panopticum.core.model.SchemaInfo;
 import com.panopticum.core.model.TableInfo;
 import com.panopticum.core.service.DbConnectionService;
+import com.panopticum.core.ui.AppAlerts;
 import com.panopticum.core.util.ControllerModelHelper;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -230,13 +231,14 @@ public class PgController {
                 .map(PgController::simpleTableName)
                 .orElse("sql");
         model.put("tableDetailActionUrl", "/pg/" + id + "/" + dbName + "/" + (schemaClean != null ? schemaClean : "") + "/" + tableSegment + "/detail");
+        model.put("includeAlertOob", false);
 
         int off = offset != null ? Math.max(0, offset) : 0;
         int lim = limit != null && limit > 0 ? Math.min(limit, 1000) : 100;
         model.put("size", lim);
 
         if (sql == null || sql.isBlank()) {
-            model.put("error", null);
+            AppAlerts.clear(model);
             model.put("columns", List.<String>of());
             model.put("columnTypes", List.<String>of());
             model.put("rows", List.<List<Object>>of());
@@ -261,7 +263,7 @@ public class PgController {
 
     private void putQueryResultIntoModel(Map<String, Object> model, QueryResult result, String sql,
                                         String sort, String order) {
-        model.put("error", result.hasError() ? result.getError() : null);
+        AppAlerts.fromControllerMessage(model, result.hasError() ? result.getError() : null);
         model.put("columns", result.getColumns());
         model.put("columnTypes", result.getColumnTypes() != null ? result.getColumnTypes() : List.<String>of());
         model.put("rows", result.getRows());
@@ -291,11 +293,12 @@ public class PgController {
         model.put("connectionId", id);
         model.put("dbName", dbName);
         model.put("schema", schemaClean != null ? schemaClean : "");
+        model.put("includeAlertOob", true);
         String searchTerm = search != null && !search.isBlank() ? search.trim() : "";
         model.put("searchTerm", searchTerm);
 
         if (sql == null || sql.isBlank()) {
-            model.put("error", "Empty query");
+            AppAlerts.raw(model, "Empty query");
             model.put("queryActionUrl", "/pg/" + id + "/query");
             model.put("tableQueryActionUrl", "/pg/" + id + "/query");
             model.put("tableDetailActionUrl", "/pg/" + id + "/" + dbName + "/" + (schemaClean != null ? schemaClean : "") + "/detail");
@@ -385,7 +388,8 @@ public class PgController {
         if (sql != null && !sql.isBlank() && rowNum != null && rowNum >= 0) {
             var result = pgMetadataService.getDetailRowWithCtid(id, dbName, schemaClean, sql, Math.max(0, rowNum), sort, order);
             if (result.containsKey("error")) {
-                model.put("error", result.get("error"));
+                Object errVal = result.get("error");
+                AppAlerts.fromControllerMessage(model, errVal != null ? String.valueOf(errVal) : null);
             } else {
                 @SuppressWarnings("unchecked")
                 List<Map<String, String>> rows = (List<Map<String, String>>) result.get("detailRows");
@@ -465,7 +469,7 @@ public class PgController {
         Optional<String> qualifiedTable = pgMetadataService.parseTableFromSql(sql);
         if (qualifiedTable.isEmpty()) {
             Map<String, Object> model = rowDetail(id, dbName, schema, sql, rowNum, sort, order, searchParam, tableParam);
-            model.put("error", "Could not determine table from SQL.");
+            AppAlerts.raw(model, "Could not determine table from SQL.");
 
             return new ModelAndView<>("pg/detail", model);
         }
@@ -473,7 +477,7 @@ public class PgController {
         Optional<String> err = pgMetadataService.executeUpdateByCtid(id, dbName, qualifiedTable.get(), ctid, columnValues);
         if (err.isPresent()) {
             Map<String, Object> model = rowDetail(id, dbName, schema, sql, rowNum, sort, order, searchParam, tableParam);
-            model.put("error", err.get());
+            AppAlerts.fromControllerMessage(model, err.get());
 
             return new ModelAndView<>("pg/detail", model);
         }

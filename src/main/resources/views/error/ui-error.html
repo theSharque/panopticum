@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(~{::main})}">
+<head></head>
+<body>
+<main th:fragment="main" class="main-content">
+    <div class="page-heading-row">
+        <div class="page-heading-breadcrumbs"></div>
+        <div th:replace="~{fragments/app-alert :: slot}"></div>
+    </div>
+    <p class="text-dim"><a th:href="@{/}" th:text="${msg['login.goHome']}">Home</a></p>
+</main>
+</body>
+</html>

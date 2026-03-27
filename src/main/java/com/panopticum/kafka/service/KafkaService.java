@@ -1,6 +1,8 @@
 package com.panopticum.kafka.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.panopticum.core.error.ConnectionSupport;
+import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.model.Page;
 import com.panopticum.core.model.QueryResult;
 import com.panopticum.core.service.DbConnectionService;
@@ -45,9 +47,8 @@ public class KafkaService {
     }
 
     public List<KafkaTopicInfo> listTopics(Long connectionId) {
-        return dbConnectionService.findById(connectionId)
-                .map(conn -> kafkaClient.listTopics(bootstrapServers(conn.getHost(), conn.getPort())))
-                .orElse(List.of());
+        DbConnection conn = requireKafkaConnection(connectionId);
+        return kafkaClient.listTopics(bootstrapServers(conn.getHost(), conn.getPort()));
     }
 
     public Page<KafkaTopicInfo> listTopicsPaged(Long connectionId, int page, int size, String sort, String order) {
@@ -73,23 +74,25 @@ public class KafkaService {
     }
 
     public List<KafkaPartitionInfo> getPartitions(Long connectionId, String topic) {
-        return dbConnectionService.findById(connectionId)
-                .map(conn -> kafkaClient.getPartitions(bootstrapServers(conn.getHost(), conn.getPort()), topic))
-                .orElse(List.of());
+        DbConnection conn = requireKafkaConnection(connectionId);
+        return kafkaClient.getPartitions(bootstrapServers(conn.getHost(), conn.getPort()), topic);
     }
 
     public List<KafkaRecord> peekRecords(Long connectionId, String topic, int partition, long fromOffset, int count) {
         int safeCount = count > 0 ? Math.min(count, PEEK_MAX_COUNT) : defaultPeekCount;
-        return dbConnectionService.findById(connectionId)
-                .map(conn -> kafkaClient.peekRecords(bootstrapServers(conn.getHost(), conn.getPort()), topic, partition, fromOffset, safeCount))
-                .orElse(List.of());
+        DbConnection conn = requireKafkaConnection(connectionId);
+        return kafkaClient.peekRecords(bootstrapServers(conn.getHost(), conn.getPort()), topic, partition, fromOffset, safeCount);
     }
 
     public List<KafkaRecord> peekRecordsFromEnd(Long connectionId, String topic, int partition, int count) {
         int safeCount = count > 0 ? Math.min(count, PEEK_MAX_COUNT) : defaultPeekCount;
-        return dbConnectionService.findById(connectionId)
-                .map(conn -> kafkaClient.peekRecordsFromEnd(bootstrapServers(conn.getHost(), conn.getPort()), topic, partition, safeCount))
-                .orElse(List.of());
+        DbConnection conn = requireKafkaConnection(connectionId);
+        return kafkaClient.peekRecordsFromEnd(bootstrapServers(conn.getHost(), conn.getPort()), topic, partition, safeCount);
+    }
+
+    private DbConnection requireKafkaConnection(Long connectionId) {
+        return ConnectionSupport.require(
+                dbConnectionService.findById(connectionId).filter(c -> "kafka".equalsIgnoreCase(c.getType())));
     }
 
     public Optional<KafkaRecord> getRecordByOffset(Long connectionId, String topic, int partition, long offset) {

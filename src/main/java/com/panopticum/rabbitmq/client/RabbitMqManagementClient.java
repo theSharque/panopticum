@@ -1,5 +1,6 @@
 package com.panopticum.rabbitmq.client;
 
+import com.panopticum.core.error.MetadataAccessException;
 import com.panopticum.rabbitmq.model.RabbitMqGetMessagesRequest;
 import com.panopticum.rabbitmq.model.RabbitMqMessage;
 import com.panopticum.rabbitmq.model.RabbitMqQueueInfo;
@@ -46,10 +47,10 @@ public class RabbitMqManagementClient {
             return response.getBody().orElse(Collections.emptyList());
         } catch (HttpClientResponseException | ReadTimeoutException e) {
             log.debug("RabbitMQ listQueues failed for {}: {}", url, e.getMessage());
-            return Collections.emptyList();
+            throw new MetadataAccessException(e.getMessage(), e);
         } catch (HttpClientException e) {
             log.warn("Failed to connect to RabbitMQ {}: {}", url, e.getMessage());
-            return Collections.emptyList();
+            throw new MetadataAccessException(e.getMessage(), e);
         }
     }
 
@@ -67,10 +68,10 @@ public class RabbitMqManagementClient {
             return response.getBody().orElse(null);
         } catch (HttpClientResponseException | ReadTimeoutException e) {
             log.debug("RabbitMQ getQueue failed for {}: {}", url, e.getMessage());
-            return null;
+            throw new MetadataAccessException(e.getMessage(), e);
         } catch (HttpClientException e) {
             log.warn("Failed to connect to RabbitMQ {}: {}", url, e.getMessage());
-            return null;
+            throw new MetadataAccessException(e.getMessage(), e);
         }
     }
 
@@ -97,10 +98,10 @@ public class RabbitMqManagementClient {
             return response.getBody().orElse(Collections.emptyList());
         } catch (HttpClientResponseException | ReadTimeoutException e) {
             log.debug("RabbitMQ getMessages failed for {}: {}", url, e.getMessage());
-            return Collections.emptyList();
+            throw new MetadataAccessException(e.getMessage(), e);
         } catch (HttpClientException e) {
             log.warn("Failed to connect to RabbitMQ {}: {}", url, e.getMessage());
-            return Collections.emptyList();
+            throw new MetadataAccessException(e.getMessage(), e);
         }
     }
 
