@@ -1,5 +1,7 @@
 package com.panopticum.rabbitmq.service;
 
+import com.panopticum.core.error.ConnectionSupport;
+import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.model.Page;
 import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.core.util.StringUtils;
@@ -37,12 +39,11 @@ public class RabbitMqService {
     }
 
     public List<RabbitMqQueueInfo> listQueues(Long connectionId) {
-        return dbConnectionService.findById(connectionId)
-                .map(conn -> managementClient.listQueues(
-                        managementBaseUrl(conn.getHost(), conn.getPort()),
-                        conn.getUsername() != null ? conn.getUsername() : "",
-                        conn.getPassword() != null ? conn.getPassword() : ""))
-                .orElse(List.of());
+        DbConnection conn = requireRabbitConnection(connectionId);
+        return managementClient.listQueues(
+                managementBaseUrl(conn.getHost(), conn.getPort()),
+                conn.getUsername() != null ? conn.getUsername() : "",
+                conn.getPassword() != null ? conn.getPassword() : "");
     }
 
     public Page<RabbitMqQueueInfo> listQueuesPaged(Long connectionId, int page, int size, String sort, String order) {
@@ -80,24 +81,27 @@ public class RabbitMqService {
     }
 
     public Optional<RabbitMqQueueInfo> getQueueDetails(Long connectionId, String vhost, String queue) {
-        return dbConnectionService.findById(connectionId)
-                .map(conn -> managementClient.getQueue(
+        DbConnection conn = requireRabbitConnection(connectionId);
+        return Optional.ofNullable(managementClient.getQueue(
                         managementBaseUrl(conn.getHost(), conn.getPort()),
                         vhost, queue,
                         conn.getUsername() != null ? conn.getUsername() : "",
-                        conn.getPassword() != null ? conn.getPassword() : ""))
-                .filter(q -> q != null);
+                        conn.getPassword() != null ? conn.getPassword() : ""));
     }
 
     public List<RabbitMqMessage> peekMessages(Long connectionId, String vhost, String queue, int count) {
         int safeCount = count > 0 ? Math.min(count, PEEK_MAX_COUNT) : defaultPeekCount;
-        return dbConnectionService.findById(connectionId)
-                .map(conn -> managementClient.getMessages(
-                        managementBaseUrl(conn.getHost(), conn.getPort()),
-                        vhost, queue, safeCount,
-                        conn.getUsername() != null ? conn.getUsername() : "",
-                        conn.getPassword() != null ? conn.getPassword() : ""))
-                .orElse(List.of());
+        DbConnection conn = requireRabbitConnection(connectionId);
+        return managementClient.getMessages(
+                managementBaseUrl(conn.getHost(), conn.getPort()),
+                vhost, queue, safeCount,
+                conn.getUsername() != null ? conn.getUsername() : "",
+                conn.getPassword() != null ? conn.getPassword() : "");
+    }
+
+    private DbConnection requireRabbitConnection(Long connectionId) {
+        return ConnectionSupport.require(
+                dbConnectionService.findById(connectionId).filter(c -> "rabbitmq".equalsIgnoreCase(c.getType())));
     }
 
     public List<RabbitMqMessage> sortMessages(List<RabbitMqMessage> messages, String sort, String order) {

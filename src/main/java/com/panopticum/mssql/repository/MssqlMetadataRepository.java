@@ -5,6 +5,8 @@ import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.model.QueryResultData;
 import com.panopticum.core.model.SchemaInfo;
 import com.panopticum.core.model.TableInfo;
+import com.panopticum.core.error.ConnectionSupport;
+import com.panopticum.core.error.MetadataAccessException;
 import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.core.util.SizeFormatter;
 import jakarta.inject.Singleton;
@@ -93,10 +95,7 @@ public class MssqlMetadataRepository {
     }
 
     public List<DatabaseInfo> listDatabaseInfos(Long connectionId) {
-        try (Connection conn = getConnection(connectionId).orElse(null)) {
-            if (conn == null) {
-                throw new RuntimeException("Connection not available");
-            }
+        try (Connection conn = ConnectionSupport.require(getConnection(connectionId))) {
             List<DatabaseInfo> infos = new ArrayList<>();
             try (PreparedStatement ps = conn.prepareStatement(LIST_DATABASES_SQL);
                  ResultSet rs = ps.executeQuery()) {
@@ -109,15 +108,12 @@ public class MssqlMetadataRepository {
             return infos;
         } catch (SQLException e) {
             log.warn("listDatabaseInfos failed: {}", e.getMessage());
-            throw new RuntimeException(e.getMessage(), e);
+            throw new MetadataAccessException(e.getMessage(), e);
         }
     }
 
     public List<SchemaInfo> listSchemaInfos(Long connectionId, String dbName) {
-        try (Connection conn = getConnection(connectionId, dbName).orElse(null)) {
-            if (conn == null) {
-                throw new RuntimeException("Connection not available");
-            }
+        try (Connection conn = ConnectionSupport.require(getConnection(connectionId, dbName))) {
             List<SchemaInfo> infos = new ArrayList<>();
             try (PreparedStatement ps = conn.prepareStatement(LIST_SCHEMAS_SQL);
                  ResultSet rs = ps.executeQuery()) {
@@ -131,18 +127,15 @@ public class MssqlMetadataRepository {
             return infos;
         } catch (SQLException e) {
             log.warn("listSchemaInfos failed: {}", e.getMessage());
-            throw new RuntimeException(e.getMessage(), e);
+            throw new MetadataAccessException(e.getMessage(), e);
         }
     }
 
     public List<TableInfo> listTableInfos(Long connectionId, String dbName, String schema) {
-        try (Connection conn = getConnection(connectionId, dbName).orElse(null)) {
-            if (conn == null) {
-                throw new RuntimeException("Connection not available");
-            }
-            if (schema == null || schema.isBlank()) {
-                return List.of();
-            }
+        if (schema == null || schema.isBlank()) {
+            return List.of();
+        }
+        try (Connection conn = ConnectionSupport.require(getConnection(connectionId, dbName))) {
             List<TableInfo> tables = new ArrayList<>();
             try (PreparedStatement ps = conn.prepareStatement(LIST_TABLES_SQL)) {
                 ps.setString(1, schema);
@@ -159,15 +152,12 @@ public class MssqlMetadataRepository {
             return tables;
         } catch (SQLException e) {
             log.warn("listTableInfos failed: {}", e.getMessage());
-            throw new RuntimeException(e.getMessage(), e);
+            throw new MetadataAccessException(e.getMessage(), e);
         }
     }
 
     public Optional<QueryResultData> executeQuery(Long connectionId, String dbName, String sql) {
-        try (Connection conn = getConnection(connectionId, dbName).orElse(null)) {
-            if (conn == null) {
-                return Optional.empty();
-            }
+        try (Connection conn = ConnectionSupport.require(getConnection(connectionId, dbName))) {
             try (Statement stmt = conn.createStatement();
                  ResultSet rs = stmt.executeQuery(sql)) {
                 ResultSetMetaData meta = rs.getMetaData();
@@ -194,7 +184,7 @@ public class MssqlMetadataRepository {
             }
         } catch (SQLException e) {
             log.warn("executeQuery failed: {}", e.getMessage());
-            return Optional.empty();
+            throw new MetadataAccessException(e.getMessage(), e);
         }
     }
 
@@ -202,10 +192,7 @@ public class MssqlMetadataRepository {
         if (params == null || params.isEmpty()) {
             return executeQuery(connectionId, dbName, sql);
         }
-        try (Connection conn = getConnection(connectionId, dbName).orElse(null)) {
-            if (conn == null) {
-                return Optional.empty();
-            }
+        try (Connection conn = ConnectionSupport.require(getConnection(connectionId, dbName))) {
             try (PreparedStatement ps = conn.prepareStatement(sql)) {
                 for (int i = 0; i < params.size(); i++) {
                     ps.setObject(i + 1, params.get(i));
@@ -236,7 +223,7 @@ public class MssqlMetadataRepository {
             }
         } catch (SQLException e) {
             log.warn("executeQuery with params failed: {}", e.getMessage());
-            return Optional.empty();
+            throw new MetadataAccessException(e.getMessage(), e);
         }
     }
 
@@ -244,10 +231,7 @@ public class MssqlMetadataRepository {
         if (schema == null || schema.isBlank() || table == null || table.isBlank()) {
             return Map.of();
         }
-        try (Connection conn = getConnection(connectionId, dbName).orElse(null)) {
-            if (conn == null) {
-                return Map.of();
-            }
+        try (Connection conn = ConnectionSupport.require(getConnection(connectionId, dbName))) {
             Map<String, String> types = new LinkedHashMap<>();
             try (PreparedStatement ps = conn.prepareStatement(COLUMN_TYPES_SQL)) {
                 ps.setString(1, schema);
@@ -261,7 +245,7 @@ public class MssqlMetadataRepository {
             return types;
         } catch (SQLException e) {
             log.warn("getColumnTypes failed: {}", e.getMessage());
-            return Map.of();
+            throw new MetadataAccessException(e.getMessage(), e);
         }
     }
 
@@ -269,10 +253,7 @@ public class MssqlMetadataRepository {
         if (schema == null || schema.isBlank() || table == null || table.isBlank()) {
             return List.of();
         }
-        try (Connection conn = getConnection(connectionId, dbName).orElse(null)) {
-            if (conn == null) {
-                return List.of();
-            }
+        try (Connection conn = ConnectionSupport.require(getConnection(connectionId, dbName))) {
             List<String> columns = new ArrayList<>();
             String qualName = "[" + schema + "].[" + table + "]";
             try (PreparedStatement ps = conn.prepareStatement(
@@ -291,15 +272,12 @@ public class MssqlMetadataRepository {
             return columns;
         } catch (SQLException e) {
             log.warn("getUniqueKeyColumns failed: {}", e.getMessage());
-            return List.of();
+            throw new MetadataAccessException(e.getMessage(), e);
         }
     }
 
     public Optional<Map<String, Object>> executeQuerySingleRow(Long connectionId, String dbName, String sql) {
-        try (Connection conn = getConnection(connectionId, dbName).orElse(null)) {
-            if (conn == null) {
-                return Optional.empty();
-            }
+        try (Connection conn = ConnectionSupport.require(getConnection(connectionId, dbName))) {
             try (Statement stmt = conn.createStatement();
                  ResultSet rs = stmt.executeQuery(sql)) {
                 ResultSetMetaData meta = rs.getMetaData();
@@ -315,7 +293,7 @@ public class MssqlMetadataRepository {
             }
         } catch (SQLException e) {
             log.warn("executeQuerySingleRow failed: {}", e.getMessage());
-            return Optional.empty();
+            throw new MetadataAccessException(e.getMessage(), e);
         }
     }
 
@@ -323,10 +301,7 @@ public class MssqlMetadataRepository {
         if (params == null) {
             return Optional.of("Missing params");
         }
-        try (Connection conn = getConnection(connectionId, dbName).orElse(null)) {
-            if (conn == null) {
-                return Optional.of("error.connectionNotAvailable");
-            }
+        try (Connection conn = ConnectionSupport.require(getConnection(connectionId, dbName))) {
             try (PreparedStatement ps = conn.prepareStatement(updateSql)) {
                 for (int i = 0; i < params.size(); i++) {
                     ps.setObject(i + 1, params.get(i));
@@ -339,7 +314,7 @@ public class MssqlMetadataRepository {
             }
         } catch (SQLException e) {
             log.warn("executeUpdate failed: {}", e.getMessage());
-            return Optional.of(e.getMessage());
+            throw new MetadataAccessException(e.getMessage(), e);
         }
     }
 }

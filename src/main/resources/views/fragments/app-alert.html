@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="slot" id="app-global-alert" class="app-global-alert" th:classappend="${appAlert == null} ? ' app-global-alert--empty' : ''"
+     role="alert" aria-live="polite">
+    <th:block th:if="${appAlert != null}">
+        <span th:if="${appAlert.i18nKey != null}"
+              th:text="${msg != null && msg[appAlert.i18nKey] != null ? msg[appAlert.i18nKey] : appAlert.i18nKey}">Alert</span>
+        <span th:if="${appAlert.rawText != null}" th:text="${appAlert.rawText}">Alert</span>
+    </th:block>
+</div>
+<div th:fragment="htmxOob" id="app-global-alert" hx-swap-oob="true" class="app-global-alert"
+     th:classappend="${appAlert == null} ? ' app-global-alert--empty' : ''" role="alert" aria-live="polite">
+    <th:block th:if="${appAlert != null}">
+        <span th:if="${appAlert.i18nKey != null}"
+              th:text="${msg != null && msg[appAlert.i18nKey] != null ? msg[appAlert.i18nKey] : appAlert.i18nKey}">Alert</span>
+        <span th:if="${appAlert.rawText != null}" th:text="${appAlert.rawText}">Alert</span>
+    </th:block>
+</div>
+</body>
+</html>

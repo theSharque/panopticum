@@ -5,6 +5,7 @@ import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.model.Page;
 import com.panopticum.core.model.QueryResult;
 import com.panopticum.core.service.DbConnectionService;
+import com.panopticum.core.ui.AppAlerts;
 import com.panopticum.core.util.ControllerModelHelper;
 import com.panopticum.cassandra.model.CassandraKeyspaceInfo;
 import com.panopticum.cassandra.model.CassandraTableInfo;
@@ -155,13 +156,14 @@ public class CassandraController {
         model.put("connectionId", id);
         model.put("keyspaceName", keyspaceName);
         model.put("sql", sql != null ? sql : "");
+        model.put("includeAlertOob", false);
 
         int off = offset != null ? Math.max(0, offset) : 0;
         int lim = limit != null && limit > 0 ? Math.min(limit, 1000) : 100;
         model.put("size", lim);
 
         if (sql == null || sql.isBlank()) {
-            model.put("error", null);
+            AppAlerts.clear(model);
             model.put("columns", List.<String>of());
             model.put("columnTypes", List.<String>of());
             model.put("rows", List.<List<Object>>of());
@@ -178,7 +180,7 @@ public class CassandraController {
         } else {
             var result = cassandraMetadataService.executeQuery(id, keyspaceName, sql, off, lim)
                     .orElse(QueryResult.error("error.queryExecutionFailed"));
-            model.put("error", result.hasError() ? result.getError() : null);
+            AppAlerts.fromControllerMessage(model, result.hasError() ? result.getError() : null);
             model.put("columns", result.getColumns());
             model.put("columnTypes", result.getColumnTypes() != null ? result.getColumnTypes() : List.<String>of());
             model.put("rows", result.getRows());
@@ -206,8 +208,9 @@ public class CassandraController {
         Map<String, Object> model = new HashMap<>();
         model.put("connectionId", id);
         model.put("keyspaceName", keyspaceName);
+        model.put("includeAlertOob", true);
         if (sql == null || sql.isBlank()) {
-            model.put("error", "Empty query");
+            AppAlerts.raw(model, "Empty query");
 
             return "table".equals(target)
                     ? new ModelAndView<>("partials/cassandra-table-view-result", model)
@@ -218,7 +221,7 @@ public class CassandraController {
         int lim = limit != null && limit > 0 ? limit : 100;
         var result = cassandraMetadataService.executeQuery(id, keyspaceName, sql, off, lim)
                 .orElse(QueryResult.error("Execution failed"));
-        model.put("error", result.hasError() ? result.getError() : null);
+        AppAlerts.fromControllerMessage(model, result.hasError() ? result.getError() : null);
         model.put("columns", result.getColumns());
         model.put("columnTypes", result.getColumnTypes() != null ? result.getColumnTypes() : List.<String>of());
         model.put("rows", result.getRows());
@@ -346,7 +349,7 @@ public class CassandraController {
         Optional<String> tableOpt = cassandraMetadataService.parseTableFromCql(sql);
         if (tableOpt.isEmpty()) {
             Map<String, Object> model = rowDetail(id, keyspaceName, sql, rowNum, sort, order);
-            model.put("error", "Could not determine table from SQL.");
+            AppAlerts.raw(model, "Could not determine table from SQL.");
             return new ModelAndView<>("cassandra/detail", model);
         }
 
@@ -354,7 +357,7 @@ public class CassandraController {
                 uniqueKeyColumns, keyValues, columnValues);
         if (err.isPresent()) {
             Map<String, Object> model = rowDetail(id, keyspaceName, sql, rowNum, sort, order);
-            model.put("error", err.get());
+            AppAlerts.fromControllerMessage(model, err.get());
             return new ModelAndView<>("cassandra/detail", model);
         }
 

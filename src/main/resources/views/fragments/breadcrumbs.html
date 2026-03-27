@@ -1,14 +1,31 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
-<nav th:fragment="breadcrumbs(items)" class="breadcrumbs" aria-label="Breadcrumb">
-    <ol class="breadcrumbs-list">
-        <li th:each="item, stat : ${items}">
-            <a th:if="${item.url}" th:href="${item.url}" th:text="${item.label}">Label</a>
-            <span th:unless="${item.url}" th:text="${item.label}" class="breadcrumbs-current">Label</span>
-            <span th:if="${!stat.last}" class="breadcrumbs-sep">/</span>
-        </li>
-    </ol>
-</nav>
+<div th:fragment="breadcrumbs(items)" class="breadcrumbs-bar">
+    <button type="button" class="breadcrumbs-copy-btn" th:if="${breadcrumbPath != null and !breadcrumbPath.isEmpty()}"
+            th:attr="data-copy-text=${breadcrumbPath}"
+            aria-label="Copy breadcrumb path" title="Copy path">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+             class="breadcrumbs-copy-btn-icon-copy" aria-hidden="true">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+        </svg>
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+             class="breadcrumbs-copy-btn-icon-done" aria-hidden="true">
+            <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+    </button>
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <ol class="breadcrumbs-list" th:if="${items != null}">
+            <li th:each="item, stat : ${items}">
+                <a th:if="${item.url}" th:href="${item.url}" th:text="${item.label}">Label</a>
+                <span th:unless="${item.url}" th:text="${item.label}" class="breadcrumbs-current">Label</span>
+                <span th:if="${!stat.last}" class="breadcrumbs-sep">/</span>
+            </li>
+        </ol>
+    </nav>
+</div>
 </body>
 </html>

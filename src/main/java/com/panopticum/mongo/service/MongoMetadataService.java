@@ -100,9 +100,6 @@ public class MongoMetadataService {
         if (collectionName == null || collectionName.isBlank()) {
             return Optional.of(QueryResult.error("error.specifyCollection"));
         }
-        if (mongoMetadataRepository.createClient(connectionId).isEmpty()) {
-            return Optional.of(QueryResult.error("error.connectionNotAvailable"));
-        }
         if (dbName == null || dbName.isBlank()) {
             return Optional.of(QueryResult.error("error.specifyDatabase"));
         }

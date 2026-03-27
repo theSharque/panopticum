@@ -57,10 +57,10 @@ public class RedisMetadataService {
         List<RedisDbInfo> result = new ArrayList<>();
         for (int i = 0; i < DEFAULT_DATABASES; i++) {
             int dbIndex = i;
-            redisMetadataRepository.withConnection(connectionId, dbIndex, (cmd, dbCmd) -> {
+            result.add(redisMetadataRepository.withConnection(connectionId, dbIndex, (cmd, dbCmd) -> {
                 long size = dbCmd.dbsize();
                 return new RedisDbInfo(dbIndex, size);
-            }).ifPresent(result::add);
+            }));
         }
         boolean desc = "desc".equalsIgnoreCase(order);
         String sortBy = sort != null ? sort : "dbIndex";
@@ -138,14 +138,14 @@ public class RedisMetadataService {
             return new RedisKeysPage(infos,
                     scanResult.getCursor() != null ? scanResult.getCursor() : "0",
                     !scanResult.isFinished());
-        }).orElse(RedisKeysPage.empty());
+        });
     }
 
     public Optional<RedisKeyDetail> getKeyDetail(Long connectionId, int dbIndex, String key) {
         if (key == null || key.isBlank()) {
             return Optional.empty();
         }
-        return redisMetadataRepository.withConnection(connectionId, dbIndex, (cmd, dbCmd) -> {
+        return Optional.ofNullable(redisMetadataRepository.withConnection(connectionId, dbIndex, (cmd, dbCmd) -> {
             String type = cmd.type(key);
             if (type == null || "none".equalsIgnoreCase(type)) {
                 return null;
@@ -163,31 +163,31 @@ public class RedisMetadataService {
                 default -> null;
             };
             return new RedisKeyDetail(key, type, ttl, value);
-        });
+        }));
     }
 
     public Optional<String> setKey(Long connectionId, int dbIndex, String key, String value) {
         if (key == null || key.isBlank()) {
             return Optional.of("Key is required.");
         }
-        Optional<Object> ok = redisMetadataRepository.withConnection(connectionId, dbIndex, (cmd, dbCmd) -> {
+        redisMetadataRepository.withConnection(connectionId, dbIndex, (cmd, dbCmd) -> {
             cmd.set(key, value != null ? value : "");
             return null;
         });
-        return ok.isEmpty() ? Optional.of("error.connectionNotAvailable") : Optional.empty();
+        return Optional.empty();
     }
 
     public Optional<String> setHash(Long connectionId, int dbIndex, String key, Map<String, String> fields) {
         if (key == null || key.isBlank()) {
             return Optional.of("Key is required.");
         }
-        Optional<Object> ok = redisMetadataRepository.withConnection(connectionId, dbIndex, (cmd, dbCmd) -> {
+        redisMetadataRepository.withConnection(connectionId, dbIndex, (cmd, dbCmd) -> {
             cmd.del(key);
             if (fields != null && !fields.isEmpty()) {
                 cmd.hset(key, fields);
             }
             return null;
         });
-        return ok.isEmpty() ? Optional.of("error.connectionNotAvailable") : Optional.empty();
+        return Optional.empty();
     }
 }

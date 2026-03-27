@@ -4,6 +4,7 @@ import com.panopticum.core.model.BreadcrumbItem;
 import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.model.Page;
 import com.panopticum.core.service.DbConnectionService;
+import com.panopticum.core.ui.AppAlerts;
 import com.panopticum.core.util.ControllerModelHelper;
 import com.panopticum.rabbitmq.model.RabbitMqMessage;
 import com.panopticum.rabbitmq.model.RabbitMqQueueInfo;
@@ -151,7 +152,7 @@ public class RabbitMqController {
         model.put("message", message.orElse(null));
         model.put("vhostForUrl", vhostForUrl(vhostDecoded));
         if (message.isEmpty()) {
-            model.put("error", "rabbitmq.messageNotFound");
+            AppAlerts.i18n(model, "rabbitmq.messageNotFound");
         } else {
             String label = conn.get().getName() + " / " + queueBreadcrumbLabel(vhostDecoded, queueName) + " / #" + (index + 1);
             try {

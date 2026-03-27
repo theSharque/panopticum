@@ -5,6 +5,7 @@ import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.model.Page;
 import com.panopticum.core.model.QueryResult;
 import com.panopticum.core.service.DbConnectionService;
+import com.panopticum.core.ui.AppAlerts;
 import com.panopticum.core.util.ControllerModelHelper;
 import com.panopticum.mongo.model.MongoCollectionInfo;
 import com.panopticum.core.model.DatabaseInfo;
@@ -165,9 +166,10 @@ public class MongoController {
         String orderVal = order != null && !order.isBlank() ? order : "asc";
         model.put("sort", sortVal);
         model.put("order", orderVal);
+        model.put("includeAlertOob", false);
 
         if (collection == null || collection.isBlank()) {
-            model.put("error", null);
+            AppAlerts.clear(model);
             model.put("columns", List.<String>of());
             model.put("rows", List.<List<Object>>of());
             model.put("docIds", List.<String>of());
@@ -183,7 +185,7 @@ public class MongoController {
             String queryText = query != null && !query.isBlank() ? query : "{}";
             var result = mongoMetadataService.executeQuery(id, dbName, collection, queryText, off, lim, sortVal, orderVal)
                     .orElse(QueryResult.error("error.queryExecutionFailed"));
-            model.put("error", result.hasError() ? result.getError() : null);
+            AppAlerts.fromControllerMessage(model, result.hasError() ? result.getError() : null);
             model.put("columns", result.getColumns());
             model.put("rows", result.getRows());
             model.put("docIds", result.getDocIds() != null ? result.getDocIds() : List.<String>of());
@@ -263,7 +265,7 @@ public class MongoController {
 
             if (conn.isEmpty()) {
                 model.put("prettyJson", body != null ? body : "{}");
-                model.put("error", err.get());
+                AppAlerts.fromControllerMessage(model, err.get());
                 return new ModelAndView<>("mongo/detail", model);
             }
 
@@ -281,7 +283,7 @@ public class MongoController {
             model.put("collection", collection != null ? collection : "");
             model.put("docId", docId != null ? docId : "");
             model.put("prettyJson", body != null ? body : "{}");
-            model.put("error", err.get());
+            AppAlerts.fromControllerMessage(model, err.get());
             try {
                 String label = conn.get().getName() + " / " + dbName + " / " + (collection != null ? collection : "") + " / " + (docId != null ? docId : "");
                 Map<String, Object> payload = Map.of(
@@ -319,8 +321,9 @@ public class MongoController {
         String orderVal = order != null && !order.isBlank() ? order : "asc";
         model.put("sort", sortVal);
         model.put("order", orderVal);
+        model.put("includeAlertOob", true);
         if (collection == null || collection.isBlank()) {
-            model.put("error", "error.specifyCollection");
+            AppAlerts.i18n(model, "error.specifyCollection");
             model.put("docIds", List.<String>of());
 
             return "table".equals(target)
@@ -334,7 +337,7 @@ public class MongoController {
         var result = mongoMetadataService.executeQuery(id, dbName, collection, queryText, off, lim, sortVal, orderVal)
                 .orElse(QueryResult.error("error.queryExecutionFailed"));
 
-        model.put("error", result.hasError() ? result.getError() : null);
+        AppAlerts.fromControllerMessage(model, result.hasError() ? result.getError() : null);
         model.put("columns", result.getColumns());
         model.put("rows", result.getRows());
         model.put("docIds", result.getDocIds() != null ? result.getDocIds() : List.<String>of());

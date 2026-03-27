@@ -1,5 +1,7 @@
 package com.panopticum.redis.repository;
 
+import com.panopticum.core.error.ConnectionSupport;
+import com.panopticum.core.error.MetadataAccessException;
 import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.redis.model.RedisConnectionCallback;
@@ -10,8 +12,6 @@ import io.lettuce.core.api.sync.RedisServerCommands;
 import jakarta.inject.Singleton;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
-import java.util.Optional;
 
 @Singleton
 @Slf4j
@@ -33,22 +33,18 @@ public class RedisMetadataRepository {
         return builder.build();
     }
 
-    public <T> Optional<T> withConnection(Long connectionId, int dbIndex, RedisConnectionCallback<T> callback) {
-        Optional<DbConnection> connOpt = dbConnectionService.findById(connectionId)
-                .filter(c -> "redis".equalsIgnoreCase(c.getType()));
-        if (connOpt.isEmpty()) {
-            return Optional.empty();
-        }
-        DbConnection conn = connOpt.get();
+    public <T> T withConnection(Long connectionId, int dbIndex, RedisConnectionCallback<T> callback) {
+        DbConnection conn = ConnectionSupport.require(
+                dbConnectionService.findById(connectionId).filter(c -> "redis".equalsIgnoreCase(c.getType())));
         RedisURI uri = buildUri(conn.getHost(), conn.getPort(), conn.getUsername(), conn.getPassword(), dbIndex);
         try (var client = io.lettuce.core.RedisClient.create(uri);
              StatefulRedisConnection<String, String> connection = client.connect()) {
             RedisCommands<String, String> cmd = connection.sync();
             RedisServerCommands<String, String> dbCmd = connection.sync();
-            return Optional.of(callback.apply(cmd, dbCmd));
+            return callback.apply(cmd, dbCmd);
         } catch (Exception e) {
             log.warn("Redis operation failed for {}: {}", conn.getName(), e.getMessage());
-            return Optional.empty();
+            throw new MetadataAccessException(e.getMessage(), e);
         }
     }
 }

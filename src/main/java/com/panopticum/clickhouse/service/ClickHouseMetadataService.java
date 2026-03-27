@@ -114,15 +114,8 @@ public class ClickHouseMetadataService {
 
     public Optional<@NonNull QueryResult> executeQuery(Long connectionId, String dbName, String sql, int offset, int limit,
                                                        String sortBy, String sortOrder, boolean truncateCells) {
-        if (clickHouseMetadataRepository.getConnection(connectionId, dbName).isEmpty()) {
-            return Optional.of(QueryResult.error("Connection not available"));
-        }
         String pagedSql = wrapWithLimitOffset(sql.trim(), limit, offset, sortBy, sortOrder);
-        Optional<QueryResultData> dataOpt = clickHouseMetadataRepository.executeQuery(connectionId, dbName, pagedSql);
-        if (dataOpt.isEmpty()) {
-            return Optional.of(QueryResult.error("Connection not available"));
-        }
-        QueryResultData data = dataOpt.get();
+        QueryResultData data = clickHouseMetadataRepository.executeQuery(connectionId, dbName, pagedSql).orElseThrow();
         boolean hasMore = data.getRows().size() == limit;
         List<List<Object>> rows = data.getRows();
         if (truncateCells) {
@@ -141,20 +134,17 @@ public class ClickHouseMetadataService {
 
     private Optional<QueryResult> executeQueryWithSearch(Long connectionId, String dbName, String sql, int offset, int limit,
                                                          String sortBy, String sortOrder, String searchTerm) {
-        if (clickHouseMetadataRepository.getConnection(connectionId, dbName).isEmpty()) {
-            return Optional.of(QueryResult.error("Connection not available"));
-        }
         String trimmed = sql.strip().replaceFirst(";+\\s*$", "");
         String upper = trimmed.toUpperCase().stripLeading();
         if (!upper.startsWith("SELECT") || upper.startsWith("SELECT INTO")) {
             return executeQuery(connectionId, dbName, sql, offset, limit, sortBy, sortOrder, true);
         }
         String innerWithOrder = buildWrappedQueryWithOrder(trimmed, sortBy, sortOrder);
-        Optional<QueryResultData> metaOpt = clickHouseMetadataRepository.executeQuery(connectionId, dbName, innerWithOrder + " LIMIT 0");
-        if (metaOpt.isEmpty() || metaOpt.get().getColumns() == null || metaOpt.get().getColumns().isEmpty()) {
-            return Optional.of(QueryResult.error("Connection not available"));
+        QueryResultData meta = clickHouseMetadataRepository.executeQuery(connectionId, dbName, innerWithOrder + " LIMIT 0").orElseThrow();
+        if (meta.getColumns() == null || meta.getColumns().isEmpty()) {
+            return Optional.of(QueryResult.error("error.queryExecutionFailed"));
         }
-        List<String> columns = metaOpt.get().getColumns();
+        List<String> columns = meta.getColumns();
         String concatExpr = columns.stream()
                 .map(c -> "toString(`_sub`.`" + c.replace("`", "``") + "`)")
                 .reduce((a, b) -> "concat(" + a + ", ':', " + b + ")")
@@ -164,11 +154,7 @@ public class ClickHouseMetadataService {
         String likePattern = "%" + escapeForLike(searchTerm) + "%";
         int maxLimit = Math.min(limit, queryRowsLimit);
         List<Object> params = List.of(likePattern, maxLimit, Math.max(0, offset));
-        Optional<QueryResultData> dataOpt = clickHouseMetadataRepository.executeQuery(connectionId, dbName, searchSql, params);
-        if (dataOpt.isEmpty()) {
-            return Optional.of(QueryResult.error("Connection not available"));
-        }
-        QueryResultData data = dataOpt.get();
+        QueryResultData data = clickHouseMetadataRepository.executeQuery(connectionId, dbName, searchSql, params).orElseThrow();
         boolean hasMore = data.getRows().size() == limit;
         List<List<Object>> rows = data.getRows().size() > limit ? data.getRows().subList(0, limit) : data.getRows();
         List<List<Object>> truncated = new ArrayList<>();

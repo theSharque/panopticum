@@ -4,6 +4,8 @@ import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.model.QueryResultData;
 import com.panopticum.core.model.SchemaInfo;
 import com.panopticum.core.model.TableInfo;
+import com.panopticum.core.error.ConnectionSupport;
+import com.panopticum.core.error.MetadataAccessException;
 import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.core.util.SizeFormatter;
 import jakarta.inject.Singleton;
@@ -102,10 +104,7 @@ public class OracleMetadataRepository {
     }
 
     public List<SchemaInfo> listSchemaInfos(Long connectionId) {
-        try (Connection conn = getConnection(connectionId).orElse(null)) {
-            if (conn == null) {
-                throw new RuntimeException("Connection not available");
-            }
+        try (Connection conn = ConnectionSupport.require(getConnection(connectionId))) {
             List<SchemaInfo> infos = new ArrayList<>();
             try (PreparedStatement ps = conn.prepareStatement(LIST_SCHEMAS_SQL);
                  ResultSet rs = ps.executeQuery()) {
@@ -118,18 +117,15 @@ public class OracleMetadataRepository {
             return infos;
         } catch (SQLException e) {
             log.warn("listSchemaInfos failed: {}", firstLineOf(e.getMessage()));
-            throw new RuntimeException(e.getMessage(), e);
+            throw new MetadataAccessException(e.getMessage(), e);
         }
     }
 
     public List<TableInfo> listTableInfos(Long connectionId, String schema) {
-        try (Connection conn = getConnection(connectionId, schema).orElse(null)) {
-            if (conn == null) {
-                throw new RuntimeException("Connection not available");
-            }
-            if (schema == null || schema.isBlank()) {
-                return List.of();
-            }
+        if (schema == null || schema.isBlank()) {
+            return List.of();
+        }
+        try (Connection conn = ConnectionSupport.require(getConnection(connectionId, schema))) {
             List<TableInfo> tables = new ArrayList<>();
             Map<String, Long> sizeByTable = loadTableSizes(conn, schema);
             try (PreparedStatement ps = conn.prepareStatement(LIST_TABLES_SQL)) {
@@ -149,7 +145,7 @@ public class OracleMetadataRepository {
             return tables;
         } catch (SQLException e) {
             log.warn("listTableInfos failed: {}", firstLineOf(e.getMessage()));
-            throw new RuntimeException(e.getMessage(), e);
+            throw new MetadataAccessException(e.getMessage(), e);
         }
     }
 
@@ -182,10 +178,7 @@ public class OracleMetadataRepository {
     }
 
     public Optional<QueryResultData> executeQuery(Long connectionId, String schema, String sql) {
-        try (Connection conn = getConnection(connectionId, schema).orElse(null)) {
-            if (conn == null) {
-                return Optional.empty();
-            }
+        try (Connection conn = ConnectionSupport.require(getConnection(connectionId, schema))) {
             try (Statement stmt = conn.createStatement();
                  ResultSet rs = stmt.executeQuery(sql)) {
                 ResultSetMetaData meta = rs.getMetaData();
@@ -212,7 +205,7 @@ public class OracleMetadataRepository {
             }
         } catch (SQLException e) {
             log.warn("executeQuery failed: {}", firstLineOf(e.getMessage()));
-            throw new RuntimeException("Query failed: " + firstLineOf(e.getMessage()), e);
+            throw new MetadataAccessException("Query failed: " + firstLineOf(e.getMessage()), e);
         }
     }
 
@@ -220,10 +213,7 @@ public class OracleMetadataRepository {
         if (params == null || params.isEmpty()) {
             return executeQuery(connectionId, schema, sql);
         }
-        try (Connection conn = getConnection(connectionId, schema).orElse(null)) {
-            if (conn == null) {
-                return Optional.empty();
-            }
+        try (Connection conn = ConnectionSupport.require(getConnection(connectionId, schema))) {
             try (PreparedStatement ps = conn.prepareStatement(sql)) {
                 for (int i = 0; i < params.size(); i++) {
                     ps.setObject(i + 1, params.get(i));
@@ -254,7 +244,7 @@ public class OracleMetadataRepository {
             }
         } catch (SQLException e) {
             log.warn("executeQuery with params failed: {}", firstLineOf(e.getMessage()));
-            throw new RuntimeException("Query failed: " + firstLineOf(e.getMessage()), e);
+            throw new MetadataAccessException("Query failed: " + firstLineOf(e.getMessage()), e);
         }
     }
 
@@ -262,10 +252,7 @@ public class OracleMetadataRepository {
         if (schema == null || schema.isBlank() || table == null || table.isBlank()) {
             return Map.of();
         }
-        try (Connection conn = getConnection(connectionId, schema).orElse(null)) {
-            if (conn == null) {
-                return Map.of();
-            }
+        try (Connection conn = ConnectionSupport.require(getConnection(connectionId, schema))) {
             Map<String, String> types = new LinkedHashMap<>();
             try (PreparedStatement ps = conn.prepareStatement(COLUMN_TYPES_SQL)) {
                 ps.setString(1, schema);
@@ -279,15 +266,12 @@ public class OracleMetadataRepository {
             return types;
         } catch (SQLException e) {
             log.warn("getColumnTypes failed: {}", firstLineOf(e.getMessage()));
-            return Map.of();
+            throw new MetadataAccessException(e.getMessage(), e);
         }
     }
 
     public Optional<Map<String, Object>> executeQuerySingleRow(Long connectionId, String schema, String sql) {
-        try (Connection conn = getConnection(connectionId, schema).orElse(null)) {
-            if (conn == null) {
-                return Optional.empty();
-            }
+        try (Connection conn = ConnectionSupport.require(getConnection(connectionId, schema))) {
             try (Statement stmt = conn.createStatement();
                  ResultSet rs = stmt.executeQuery(sql)) {
                 ResultSetMetaData meta = rs.getMetaData();
@@ -303,7 +287,7 @@ public class OracleMetadataRepository {
             }
         } catch (SQLException e) {
             log.warn("executeQuerySingleRow failed: {}", firstLineOf(e.getMessage()));
-            throw new RuntimeException("Query failed: " + firstLineOf(e.getMessage()), e);
+            throw new MetadataAccessException("Query failed: " + firstLineOf(e.getMessage()), e);
         }
     }
 
@@ -311,10 +295,7 @@ public class OracleMetadataRepository {
         if (params == null) {
             return Optional.of("Missing params");
         }
-        try (Connection conn = getConnection(connectionId, schema).orElse(null)) {
-            if (conn == null) {
-                return Optional.of("error.connectionNotAvailable");
-            }
+        try (Connection conn = ConnectionSupport.require(getConnection(connectionId, schema))) {
             try (PreparedStatement ps = conn.prepareStatement(updateSql)) {
                 for (int i = 0; i < params.size(); i++) {
                     ps.setObject(i + 1, params.get(i));
@@ -328,7 +309,7 @@ public class OracleMetadataRepository {
         } catch (SQLException e) {
             log.warn("executeUpdate failed: {}", firstLineOf(e.getMessage()));
             String err = firstLineOf(e.getMessage());
-            return Optional.of(err != null ? err : "Error");
+            throw new MetadataAccessException(err != null ? err : "Error", e);
         }
     }
 }

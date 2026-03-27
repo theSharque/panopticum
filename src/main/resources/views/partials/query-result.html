@@ -1,8 +1,6 @@
 <div id="query-result" class="query-result">
-    <p th:if="${error}" th:text="${msg != null && msg[error] != null ? msg[error] : error}" class="query-error"></p>
-    <div th:if="${error == null and columns != null and !columns.isEmpty()}" class="query-result-data">
+    <div th:if="${appAlert == null and columns != null and !columns.isEmpty()}" class="query-result-data">
         <div class="query-pagination-info" th:if="${rows != null and !rows.isEmpty()}">
-            <span class="query-pagination-range" th:text="${msg['common.rowsRange'] + fromRow + '–' + toRow}"></span>
             <span class="query-pagination-nav">
                 <form class="query-pagination-form"
                       th:attr="hx-post=${queryActionUrl}"
@@ -13,7 +11,7 @@
                     <input th:if="${schema != null}" type="hidden" name="schema" th:value="${schema}"/>
                     <input type="hidden" name="limit" th:value="${limit}"/>
                     <input type="hidden" name="offset" th:value="${prevOffset}"/>
-                    <button type="submit" class="query-pagination-btn" th:classappend="${!hasPrev} ? 'query-pagination-btn-disabled' : ''" th:disabled="${!hasPrev}" th:text="${'← ' + msg['common.prev']}">← Back</button>
+                    <button type="submit" class="query-pagination-btn" th:classappend="${!hasPrev} ? 'query-pagination-btn-disabled' : ''" th:disabled="${!hasPrev}" th:aria-label="${msg['common.prev']}" th:title="${msg['common.prev']}"><svg th:replace="~{fragments/pagination-arrows :: arrowPrev}"></svg></button>
                 </form>
                 <form class="query-pagination-form"
                       th:attr="hx-post=${queryActionUrl}"
@@ -24,9 +22,10 @@
                     <input th:if="${schema != null}" type="hidden" name="schema" th:value="${schema}"/>
                     <input type="hidden" name="limit" th:value="${limit}"/>
                     <input type="hidden" name="offset" th:value="${nextOffset}"/>
-                    <button type="submit" class="query-pagination-btn" th:classappend="${!hasMore} ? 'query-pagination-btn-disabled' : ''" th:disabled="${!hasMore}" th:text="${msg['common.next'] + ' →'}">Next →</button>
+                    <button type="submit" class="query-pagination-btn" th:classappend="${!hasMore} ? 'query-pagination-btn-disabled' : ''" th:disabled="${!hasMore}" th:aria-label="${msg['common.next']}" th:title="${msg['common.next']}"><svg th:replace="~{fragments/pagination-arrows :: arrowNext}"></svg></button>
                 </form>
             </span>
+            <span class="query-pagination-range" th:text="${msg['common.rowsRange'] + fromRow + '–' + toRow}"></span>
         </div>
         <div class="query-table-wrapper">
             <table class="query-table">
@@ -75,3 +74,4 @@
         </div>
     </div>
 </div>
+<th:block th:if="${includeAlertOob}" th:replace="~{fragments/app-alert :: htmxOob}"/>

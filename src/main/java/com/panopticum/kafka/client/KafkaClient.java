@@ -1,5 +1,6 @@
 package com.panopticum.kafka.client;
 
+import com.panopticum.core.error.MetadataAccessException;
 import com.panopticum.kafka.model.KafkaPartitionInfo;
 import com.panopticum.kafka.model.KafkaRecord;
 import com.panopticum.kafka.model.KafkaTopicInfo;
@@ -79,10 +80,10 @@ public class KafkaClient {
             return topics;
         } catch (ExecutionException e) {
             log.debug("Kafka listTopics failed for {}: {}", bootstrapServers, e.getCause() != null ? e.getCause().getMessage() : e.getMessage());
-            return List.of();
+            throw metadataFailure(bootstrapServers, e);
         } catch (Exception e) {
             log.warn("Failed to list Kafka topics {}: {}", bootstrapServers, e.getMessage());
-            return List.of();
+            throw metadataFailure(bootstrapServers, e);
         }
     }
 
@@ -103,10 +104,10 @@ public class KafkaClient {
             return partitions;
         } catch (ExecutionException e) {
             log.debug("Kafka getPartitions failed for {} {}: {}", bootstrapServers, topic, e.getCause() != null ? e.getCause().getMessage() : e.getMessage());
-            return List.of();
+            throw metadataFailure(bootstrapServers + " " + topic, e);
         } catch (Exception e) {
             log.warn("Failed to get partitions for {} {}: {}", bootstrapServers, topic, e.getMessage());
-            return List.of();
+            throw metadataFailure(bootstrapServers + " " + topic, e);
         }
     }
 
@@ -134,7 +135,7 @@ public class KafkaClient {
             return records;
         } catch (Exception e) {
             log.warn("Failed to peek records for {} {}:{}: {}", bootstrapServers, topic, partition, e.getMessage());
-            return List.of();
+            throw metadataFailure(bootstrapServers + " " + topic + ":" + partition, e);
         }
     }
 
@@ -168,8 +169,15 @@ public class KafkaClient {
             return records;
         } catch (Exception e) {
             log.warn("Failed to peek records from end for {} {}:{}: {}", bootstrapServers, topic, partition, e.getMessage());
-            return List.of();
+            throw metadataFailure(bootstrapServers + " " + topic + ":" + partition, e);
         }
+    }
+
+    private static MetadataAccessException metadataFailure(String context, Throwable e) {
+        Throwable root = e instanceof ExecutionException && e.getCause() != null ? e.getCause() : e;
+        String msg = root.getMessage() != null ? root.getMessage() : e.getMessage();
+        String prefix = context != null && !context.isBlank() ? context + ": " : "";
+        return new MetadataAccessException(prefix + (msg != null ? msg : "error.queryExecutionFailed"), root);
     }
 
     private static KafkaRecord toKafkaRecord(ConsumerRecord<byte[], byte[]> rec) {

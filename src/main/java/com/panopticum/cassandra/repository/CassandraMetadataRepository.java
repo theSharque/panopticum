@@ -6,6 +6,8 @@ import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
+import com.panopticum.core.error.ConnectionSupport;
+import com.panopticum.core.error.MetadataAccessException;
 import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.cassandra.model.CassandraKeyspaceInfo;
@@ -43,11 +45,7 @@ public class CassandraMetadataRepository {
     private final DbConnectionService dbConnectionService;
 
     public List<CassandraKeyspaceInfo> listKeyspaceInfos(Long connectionId) {
-        Optional<CqlSession> sessionOpt = createSession(connectionId, null);
-        if (sessionOpt.isEmpty()) {
-            throw new RuntimeException("Connection not available");
-        }
-        try (CqlSession session = sessionOpt.get()) {
+        try (CqlSession session = ConnectionSupport.require(createSession(connectionId, null))) {
             ResultSet rs = session.execute(SimpleStatement.newInstance(LIST_KEYSPACES));
             List<CassandraKeyspaceInfo> list = new ArrayList<>();
             for (Row row : rs) {
@@ -61,7 +59,7 @@ public class CassandraMetadataRepository {
             return list;
         } catch (Exception e) {
             log.warn("listKeyspaceInfos failed: {}", e.getMessage());
-            throw new RuntimeException(e.getMessage(), e);
+            throw new MetadataAccessException(e.getMessage(), e);
         }
     }
 
@@ -69,11 +67,7 @@ public class CassandraMetadataRepository {
         if (keyspaceName == null || keyspaceName.isBlank()) {
             return List.of();
         }
-        Optional<CqlSession> sessionOpt = createSession(connectionId, keyspaceName);
-        if (sessionOpt.isEmpty()) {
-            throw new RuntimeException("Connection not available");
-        }
-        try (CqlSession session = sessionOpt.get()) {
+        try (CqlSession session = ConnectionSupport.require(createSession(connectionId, keyspaceName))) {
             ResultSet rs = session.execute(SimpleStatement.newInstance(LIST_TABLES, keyspaceName));
             List<CassandraTableInfo> list = new ArrayList<>();
             for (Row row : rs) {
@@ -88,19 +82,16 @@ public class CassandraMetadataRepository {
             return list;
         } catch (Exception e) {
             log.warn("listTableInfos failed: {}", e.getMessage());
-            throw new RuntimeException(e.getMessage(), e);
+            throw new MetadataAccessException(e.getMessage(), e);
         }
     }
 
     public Optional<QueryResultData> executeCql(Long connectionId, String keyspaceName, String cql, int limit) {
-        Optional<CqlSession> sessionOpt = createSession(connectionId, keyspaceName != null && !keyspaceName.isBlank() ? keyspaceName : null);
-        if (sessionOpt.isEmpty()) {
-            return Optional.empty();
+        if (cql == null || cql.isBlank()) {
+            return Optional.of(new QueryResultData(List.of(), List.of(), List.of()));
         }
-        try (CqlSession session = sessionOpt.get()) {
-            if (cql == null || cql.isBlank()) {
-                return Optional.empty();
-            }
+        try (CqlSession session = ConnectionSupport.require(
+                createSession(connectionId, keyspaceName != null && !keyspaceName.isBlank() ? keyspaceName : null))) {
             String trimmed = cql.trim();
             SimpleStatement stmt = SimpleStatement.newInstance(trimmed).setPageSize(limit);
             ResultSet rs = session.execute(stmt);
@@ -126,7 +117,7 @@ public class CassandraMetadataRepository {
             return Optional.of(new QueryResultData(columns, columnTypes, rows));
         } catch (Exception e) {
             log.warn("executeCql failed: {}", e.getMessage());
-            return Optional.empty();
+            throw new MetadataAccessException(e.getMessage(), e);
         }
     }
 
@@ -134,11 +125,7 @@ public class CassandraMetadataRepository {
         if (keyspaceName == null || keyspaceName.isBlank() || tableName == null || tableName.isBlank()) {
             return List.of();
         }
-        Optional<CqlSession> sessionOpt = createSession(connectionId, null);
-        if (sessionOpt.isEmpty()) {
-            return List.of();
-        }
-        try (CqlSession session = sessionOpt.get()) {
+        try (CqlSession session = ConnectionSupport.require(createSession(connectionId, null))) {
             ResultSet rs = session.execute(SimpleStatement.newInstance(LIST_COLUMNS, keyspaceName, tableName));
             List<Row> rows = new ArrayList<>();
             rs.forEach(rows::add);
@@ -153,7 +140,7 @@ public class CassandraMetadataRepository {
                     .collect(Collectors.toList());
         } catch (Exception e) {
             log.warn("getPrimaryKeyColumns failed: {}", e.getMessage());
-            return List.of();
+            throw new MetadataAccessException(e.getMessage(), e);
         }
     }
 
@@ -161,11 +148,7 @@ public class CassandraMetadataRepository {
         if (keyspaceName == null || keyspaceName.isBlank() || tableName == null || tableName.isBlank()) {
             return Map.of();
         }
-        Optional<CqlSession> sessionOpt = createSession(connectionId, null);
-        if (sessionOpt.isEmpty()) {
-            return Map.of();
-        }
-        try (CqlSession session = sessionOpt.get()) {
+        try (CqlSession session = ConnectionSupport.require(createSession(connectionId, null))) {
             ResultSet rs = session.execute(SimpleStatement.newInstance(LIST_COLUMNS, keyspaceName, tableName));
             Map<String, String> out = new LinkedHashMap<>();
             for (Row row : rs) {
@@ -178,7 +161,7 @@ public class CassandraMetadataRepository {
             return out;
         } catch (Exception e) {
             log.warn("getColumnTypes failed: {}", e.getMessage());
-            return Map.of();
+            throw new MetadataAccessException(e.getMessage(), e);
         }
     }
 
@@ -197,11 +180,7 @@ public class CassandraMetadataRepository {
         if (setCols.isEmpty()) {
             return Optional.empty();
         }
-        Optional<CqlSession> sessionOpt = createSession(connectionId, keyspaceName);
-        if (sessionOpt.isEmpty()) {
-            return Optional.of("Connection not available.");
-        }
-        try (CqlSession session = sessionOpt.get()) {
+        try (CqlSession session = ConnectionSupport.require(createSession(connectionId, keyspaceName))) {
             String ks = quoteId(keyspaceName);
             String tbl = quoteId(tableName);
             List<String> setParts = new ArrayList<>();
@@ -231,7 +210,7 @@ public class CassandraMetadataRepository {
             return Optional.empty();
         } catch (Exception e) {
             log.warn("executeUpdate failed: {}", e.getMessage());
-            return Optional.of(e.getMessage());
+            throw new MetadataAccessException(e.getMessage(), e);
         }
     }
 

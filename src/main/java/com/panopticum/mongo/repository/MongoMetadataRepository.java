@@ -4,6 +4,8 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import com.panopticum.core.error.ConnectionSupport;
+import com.panopticum.core.error.MetadataAccessException;
 import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.core.util.SizeFormatter;
@@ -78,10 +80,7 @@ public class MongoMetadataRepository {
     }
 
     public List<DatabaseInfo> listDatabaseInfos(Long connectionId) {
-        try (MongoClient client = createClient(connectionId).orElse(null)) {
-            if (client == null) {
-                throw new RuntimeException("Connection not available");
-            }
+        try (MongoClient client = ConnectionSupport.require(createClient(connectionId))) {
             List<DatabaseInfo> infos = new ArrayList<>();
             for (Document doc : client.listDatabases()) {
                 String name = doc.getString("name");
@@ -91,18 +90,15 @@ public class MongoMetadataRepository {
             return infos;
         } catch (Exception e) {
             log.warn("listDatabaseInfos failed: {}", e.getMessage());
-            throw new RuntimeException(e.getMessage(), e);
+            throw new MetadataAccessException(e.getMessage(), e);
         }
     }
 
     public List<String> listCollections(Long connectionId, String dbName, int offset, int limit) {
-        try (MongoClient client = createClient(connectionId).orElse(null)) {
-            if (client == null) {
-                throw new RuntimeException("Connection not available");
-            }
-            if (dbName == null || dbName.isBlank()) {
-                return List.of();
-            }
+        if (dbName == null || dbName.isBlank()) {
+            return List.of();
+        }
+        try (MongoClient client = ConnectionSupport.require(createClient(connectionId))) {
             MongoDatabase database = client.getDatabase(dbName);
             List<String> all = StreamSupport.stream(database.listCollectionNames().spliterator(), false).collect(Collectors.toList());
             int maxItems = Math.min(limit, Math.max(0, collectionsLimit - offset));
@@ -110,7 +106,7 @@ public class MongoMetadataRepository {
             return offset < all.size() ? all.subList(offset, end) : List.of();
         } catch (Exception e) {
             log.warn("listCollections failed: {}", e.getMessage());
-            throw new RuntimeException(e.getMessage(), e);
+            throw new MetadataAccessException(e.getMessage(), e);
         }
     }
 
@@ -118,13 +114,10 @@ public class MongoMetadataRepository {
         if (collectionNames == null || collectionNames.isEmpty()) {
             return List.of();
         }
-        try (MongoClient client = createClient(connectionId).orElse(null)) {
-            if (client == null) {
-                throw new RuntimeException("Connection not available");
-            }
-            if (dbName == null || dbName.isBlank()) {
-                return List.of();
-            }
+        if (dbName == null || dbName.isBlank()) {
+            return List.of();
+        }
+        try (MongoClient client = ConnectionSupport.require(createClient(connectionId))) {
             MongoDatabase database = client.getDatabase(dbName);
             List<MongoCollectionInfo> infos = new ArrayList<>();
             for (String name : collectionNames) {
@@ -143,16 +136,16 @@ public class MongoMetadataRepository {
             return infos;
         } catch (Exception e) {
             log.warn("listCollectionInfos failed: {}", e.getMessage());
-            throw new RuntimeException(e.getMessage(), e);
+            throw new MetadataAccessException(e.getMessage(), e);
         }
     }
 
     public List<Document> findDocuments(Long connectionId, String dbName, String collectionName,
                                         Bson filter, int offset, int limit, String sortField, int sortDirection) {
-        try (MongoClient client = createClient(connectionId).orElse(null)) {
-            if (client == null || dbName == null || dbName.isBlank() || collectionName == null || collectionName.isBlank()) {
-                return List.of();
-            }
+        if (dbName == null || dbName.isBlank() || collectionName == null || collectionName.isBlank()) {
+            return List.of();
+        }
+        try (MongoClient client = ConnectionSupport.require(createClient(connectionId))) {
             MongoCollection<Document> collection = client.getDatabase(dbName).getCollection(collectionName);
             int lim = Math.min(limit, queryRowsLimit);
             String sortKey = sortField != null && !sortField.isBlank() ? sortField : "_id";
@@ -160,16 +153,16 @@ public class MongoMetadataRepository {
             return collection.find(filter).sort(new Document(sortKey, dir)).skip(offset).limit(lim + 1).into(new ArrayList<>());
         } catch (Exception e) {
             log.warn("findDocuments failed: {}", e.getMessage());
-            return List.of();
+            throw new MetadataAccessException(e.getMessage(), e);
         }
     }
 
     public List<Document> findAllDocuments(Long connectionId, String dbName, String collectionName,
                                            int offset, int limit, String sortField, int sortDirection) {
-        try (MongoClient client = createClient(connectionId).orElse(null)) {
-            if (client == null || dbName == null || dbName.isBlank() || collectionName == null || collectionName.isBlank()) {
-                return List.of();
-            }
+        if (dbName == null || dbName.isBlank() || collectionName == null || collectionName.isBlank()) {
+            return List.of();
+        }
+        try (MongoClient client = ConnectionSupport.require(createClient(connectionId))) {
             MongoCollection<Document> collection = client.getDatabase(dbName).getCollection(collectionName);
             int lim = Math.min(limit, queryRowsLimit);
             String sortKey = sortField != null && !sortField.isBlank() ? sortField : "_id";
@@ -177,16 +170,16 @@ public class MongoMetadataRepository {
             return collection.find().sort(new Document(sortKey, dir)).skip(offset).limit(lim + 1).into(new ArrayList<>());
         } catch (Exception e) {
             log.warn("findAllDocuments failed: {}", e.getMessage());
-            return List.of();
+            throw new MetadataAccessException(e.getMessage(), e);
         }
     }
 
     public List<Document> aggregateDocuments(Long connectionId, String dbName, String collectionName,
                                              List<Bson> pipeline, int offset, int limit) {
-        try (MongoClient client = createClient(connectionId).orElse(null)) {
-            if (client == null || dbName == null || dbName.isBlank() || collectionName == null || collectionName.isBlank()) {
-                return List.of();
-            }
+        if (dbName == null || dbName.isBlank() || collectionName == null || collectionName.isBlank()) {
+            return List.of();
+        }
+        try (MongoClient client = ConnectionSupport.require(createClient(connectionId))) {
             MongoCollection<Document> collection = client.getDatabase(dbName).getCollection(collectionName);
             List<Bson> withLimit = new ArrayList<>(pipeline);
             withLimit.add(new Document("$skip", offset));
@@ -194,7 +187,7 @@ public class MongoMetadataRepository {
             return collection.aggregate(withLimit).into(new ArrayList<>());
         } catch (Exception e) {
             log.warn("aggregateDocuments failed: {}", e.getMessage());
-            return List.of();
+            throw new MetadataAccessException(e.getMessage(), e);
         }
     }
 
@@ -203,10 +196,7 @@ public class MongoMetadataRepository {
                 || dbName == null || dbName.isBlank()) {
             return Optional.empty();
         }
-        try (MongoClient client = createClient(connectionId).orElse(null)) {
-            if (client == null) {
-                return Optional.empty();
-            }
+        try (MongoClient client = ConnectionSupport.require(createClient(connectionId))) {
             MongoCollection<Document> collection = client.getDatabase(dbName).getCollection(collectionName);
             Object filterId = resolveDocId(docId);
             Document doc = collection.find(new Document("_id", filterId)).first();
@@ -216,7 +206,7 @@ public class MongoMetadataRepository {
             return Optional.ofNullable(doc);
         } catch (Exception e) {
             log.warn("getDocument failed: {}", e.getMessage());
-            return Optional.empty();
+            throw new MetadataAccessException(e.getMessage(), e);
         }
     }
 
@@ -226,10 +216,7 @@ public class MongoMetadataRepository {
                 || dbName == null || dbName.isBlank() || doc == null) {
             return Optional.of("error.specifyCollection");
         }
-        try (MongoClient client = createClient(connectionId).orElse(null)) {
-            if (client == null) {
-                return Optional.of("error.connectionNotAvailable");
-            }
+        try (MongoClient client = ConnectionSupport.require(createClient(connectionId))) {
             Object filterId = resolveDocId(docId);
             MongoCollection<Document> collection = client.getDatabase(dbName).getCollection(collectionName);
             doc.put("_id", filterId);
@@ -237,7 +224,7 @@ public class MongoMetadataRepository {
             return Optional.empty();
         } catch (Exception e) {
             log.warn("replaceDocument failed: {}", e.getMessage());
-            return Optional.of(e.getMessage());
+            throw new MetadataAccessException(e.getMessage(), e);
         }
     }
 

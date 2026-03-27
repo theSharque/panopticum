@@ -1,5 +1,7 @@
 package com.panopticum.clickhouse.repository;
 
+import com.panopticum.core.error.ConnectionSupport;
+import com.panopticum.core.error.MetadataAccessException;
 import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.core.util.SizeFormatter;
@@ -84,10 +86,7 @@ public class ClickHouseMetadataRepository {
     }
 
     public List<DatabaseInfo> listDatabaseInfos(Long connectionId) {
-        try (Connection conn = getConnection(connectionId).orElse(null)) {
-            if (conn == null) {
-                throw new RuntimeException("Connection not available");
-            }
+        try (Connection conn = ConnectionSupport.require(getConnection(connectionId))) {
             List<DatabaseInfo> infos = new ArrayList<>();
             try (PreparedStatement ps = conn.prepareStatement(LIST_DATABASES_SQL);
                  ResultSet rs = ps.executeQuery()) {
@@ -100,18 +99,15 @@ public class ClickHouseMetadataRepository {
             return infos;
         } catch (SQLException e) {
             log.warn("listDatabaseInfos failed: {}", e.getMessage());
-            throw new RuntimeException(e.getMessage(), e);
+            throw new MetadataAccessException(e.getMessage(), e);
         }
     }
 
     public List<TableInfo> listTableInfos(Long connectionId, String dbName) {
-        try (Connection conn = getConnection(connectionId, dbName).orElse(null)) {
-            if (conn == null) {
-                throw new RuntimeException("Connection not available");
-            }
-            if (dbName == null || dbName.isBlank()) {
-                return List.of();
-            }
+        if (dbName == null || dbName.isBlank()) {
+            return List.of();
+        }
+        try (Connection conn = ConnectionSupport.require(getConnection(connectionId, dbName))) {
             List<TableInfo> tables = new ArrayList<>();
             try (PreparedStatement ps = conn.prepareStatement(LIST_TABLES_SQL)) {
                 ps.setString(1, dbName);
@@ -128,15 +124,12 @@ public class ClickHouseMetadataRepository {
             return tables;
         } catch (SQLException e) {
             log.warn("listTableInfos failed: {}", e.getMessage());
-            throw new RuntimeException(e.getMessage(), e);
+            throw new MetadataAccessException(e.getMessage(), e);
         }
     }
 
     public Optional<QueryResultData> executeQuery(Long connectionId, String dbName, String sql) {
-        try (Connection conn = getConnection(connectionId, dbName).orElse(null)) {
-            if (conn == null) {
-                return Optional.empty();
-            }
+        try (Connection conn = ConnectionSupport.require(getConnection(connectionId, dbName))) {
             try (Statement stmt = conn.createStatement();
                  ResultSet rs = stmt.executeQuery(sql)) {
                 var meta = rs.getMetaData();
@@ -159,7 +152,7 @@ public class ClickHouseMetadataRepository {
             }
         } catch (SQLException e) {
             log.warn("executeQuery failed: {}", e.getMessage());
-            return Optional.empty();
+            throw new MetadataAccessException(e.getMessage(), e);
         }
     }
 
@@ -167,10 +160,7 @@ public class ClickHouseMetadataRepository {
         if (params == null || params.isEmpty()) {
             return executeQuery(connectionId, dbName, sql);
         }
-        try (Connection conn = getConnection(connectionId, dbName).orElse(null)) {
-            if (conn == null) {
-                return Optional.empty();
-            }
+        try (Connection conn = ConnectionSupport.require(getConnection(connectionId, dbName))) {
             try (PreparedStatement ps = conn.prepareStatement(sql)) {
                 for (int i = 0; i < params.size(); i++) {
                     ps.setObject(i + 1, params.get(i));
@@ -197,7 +187,7 @@ public class ClickHouseMetadataRepository {
             }
         } catch (SQLException e) {
             log.warn("executeQuery with params failed: {}", e.getMessage());
-            return Optional.empty();
+            throw new MetadataAccessException(e.getMessage(), e);
         }
     }
 }

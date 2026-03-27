@@ -1,6 +1,7 @@
 package com.panopticum.elasticsearch.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.panopticum.core.error.ConnectionSupport;
 import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.model.Page;
 import com.panopticum.core.model.QueryResult;
@@ -101,12 +102,11 @@ public class ElasticsearchService {
     }
 
     public List<ElasticsearchIndexInfo> listIndices(Long connectionId) {
-        return dbConnectionService.findById(connectionId)
-                .map(conn -> elasticsearchClient.listIndices(
-                        resolveBaseUrl(conn, false),
-                        conn.getUsername() != null ? conn.getUsername() : "",
-                        conn.getPassword() != null ? conn.getPassword() : ""))
-                .orElse(List.of());
+        DbConnection conn = requireElasticsearch(connectionId);
+        return elasticsearchClient.listIndices(
+                resolveBaseUrl(conn, false),
+                conn.getUsername() != null ? conn.getUsername() : "",
+                conn.getPassword() != null ? conn.getPassword() : "");
     }
 
     public Page<ElasticsearchIndexInfo> listIndicesPaged(Long connectionId, int page, int size, String sort, String order) {
@@ -135,13 +135,16 @@ public class ElasticsearchService {
     }
 
     public Optional<Map<String, Object>> getMapping(Long connectionId, String indexName) {
-        return dbConnectionService.findById(connectionId)
-                .map(conn -> elasticsearchClient.getMapping(
-                        resolveBaseUrl(conn, false),
-                        indexName,
-                        conn.getUsername() != null ? conn.getUsername() : "",
-                        conn.getPassword() != null ? conn.getPassword() : ""))
-                .filter(m -> m != null && !m.isEmpty());
+        DbConnection conn = requireElasticsearch(connectionId);
+        Map<String, Object> m = elasticsearchClient.getMapping(
+                resolveBaseUrl(conn, false),
+                indexName,
+                conn.getUsername() != null ? conn.getUsername() : "",
+                conn.getPassword() != null ? conn.getPassword() : "");
+        if (m == null || m.isEmpty()) {
+            return Optional.empty();
+        }
+        return Optional.of(m);
     }
 
     public Optional<QueryResult> executeQuery(Long connectionId, String indexName, String queryDsl, int offset, int limit) {
@@ -152,24 +155,21 @@ public class ElasticsearchService {
         int off = Math.max(0, offset);
         String searchBody = buildSearchBody(queryDsl, off, lim);
 
-        return dbConnectionService.findById(connectionId)
-                .map(conn -> {
-                    ElasticsearchSearchResult sr = elasticsearchClient.search(
-                            resolveBaseUrl(conn, false),
-                            indexName,
-                            searchBody,
-                            conn.getUsername() != null ? conn.getUsername() : "",
-                            conn.getPassword() != null ? conn.getPassword() : "");
-                    if (sr.failureMessage() != null) {
-                        return QueryResult.error(sr.failureMessage());
-                    }
-                    if (sr.response() == null) {
-                        return QueryResult.error("error.queryExecutionFailed");
-                    }
+        DbConnection conn = requireElasticsearch(connectionId);
+        ElasticsearchSearchResult sr = elasticsearchClient.search(
+                resolveBaseUrl(conn, false),
+                indexName,
+                searchBody,
+                conn.getUsername() != null ? conn.getUsername() : "",
+                conn.getPassword() != null ? conn.getPassword() : "");
+        if (sr.failureMessage() != null) {
+            return Optional.of(QueryResult.error(sr.failureMessage()));
+        }
+        if (sr.response() == null) {
+            return Optional.of(QueryResult.error("error.queryExecutionFailed"));
+        }
 
-                    return searchResponseToQueryResult(sr.response(), off, lim);
-                })
-                .filter(r -> r != null);
+        return Optional.of(searchResponseToQueryResult(sr.response(), off, lim));
     }
 
     private QueryResult searchResponseToQueryResult(SearchResponseDto response, int offset, int limit) {
@@ -231,26 +231,24 @@ public class ElasticsearchService {
     }
 
     public Optional<String> getDocument(Long connectionId, String indexName, String docId) {
-        return dbConnectionService.findById(connectionId)
-                .flatMap(conn -> {
-                    Map<String, Object> doc = elasticsearchClient.getDocument(
-                            resolveBaseUrl(conn, false),
-                            indexName, docId,
-                            conn.getUsername() != null ? conn.getUsername() : "",
-                            conn.getPassword() != null ? conn.getPassword() : "");
-                    if (doc == null) {
-                        return Optional.<String>empty();
-                    }
-                    Object source = doc.get("_source");
-                    if (source == null) {
-                        return Optional.of("{}");
-                    }
-                    try {
-                        return Optional.of(objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(source));
-                    } catch (Exception e) {
-                        return Optional.of(source.toString());
-                    }
-                });
+        DbConnection conn = requireElasticsearch(connectionId);
+        Map<String, Object> doc = elasticsearchClient.getDocument(
+                resolveBaseUrl(conn, false),
+                indexName, docId,
+                conn.getUsername() != null ? conn.getUsername() : "",
+                conn.getPassword() != null ? conn.getPassword() : "");
+        if (doc == null) {
+            return Optional.empty();
+        }
+        Object source = doc.get("_source");
+        if (source == null) {
+            return Optional.of("{}");
+        }
+        try {
+            return Optional.of(objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(source));
+        } catch (Exception e) {
+            return Optional.of(source.toString());
+        }
     }
 
     public Optional<String> updateDocument(Long connectionId, String indexName, String docId, String sourceJson) {
@@ -265,15 +263,19 @@ public class ElasticsearchService {
         } catch (Exception e) {
             return Optional.of(e.getMessage());
         }
-        boolean updated = dbConnectionService.findById(connectionId)
-                .map(conn -> elasticsearchClient.updateDocument(
-                        resolveBaseUrl(conn, false),
-                        indexName, docId, sourceJson,
-                        conn.getUsername() != null ? conn.getUsername() : "",
-                        conn.getPassword() != null ? conn.getPassword() : ""))
-                .orElse(false);
+        DbConnection conn = requireElasticsearch(connectionId);
+        boolean updated = elasticsearchClient.updateDocument(
+                resolveBaseUrl(conn, false),
+                indexName, docId, sourceJson,
+                conn.getUsername() != null ? conn.getUsername() : "",
+                conn.getPassword() != null ? conn.getPassword() : "");
 
         return updated ? Optional.empty() : Optional.of("error.queryExecutionFailed");
+    }
+
+    private DbConnection requireElasticsearch(Long connectionId) {
+        return ConnectionSupport.require(
+                dbConnectionService.findById(connectionId).filter(c -> "elasticsearch".equalsIgnoreCase(c.getType())));
     }
 
     private String resolveBaseUrl(DbConnection conn, boolean logDetails) {
