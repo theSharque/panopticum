@@ -4,13 +4,13 @@ import com.panopticum.core.model.Page;
 import com.panopticum.core.model.QueryResult;
 import com.panopticum.core.model.SchemaInfo;
 import com.panopticum.core.model.TableInfo;
+import com.panopticum.core.controller.AbstractConnectionApiController;
 import com.panopticum.core.service.DbConnectionService;
+import com.panopticum.core.util.ApiQueryParams;
 import com.panopticum.oracle.model.OracleQueryRequest;
 import com.panopticum.oracle.model.OracleRowDetailResponse;
 import com.panopticum.oracle.model.OracleRowUpdateRequest;
 import com.panopticum.oracle.service.OracleMetadataService;
-import io.micronaut.context.annotation.Value;
-import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
@@ -18,7 +18,6 @@ import io.micronaut.http.annotation.PathVariable;
 import io.micronaut.http.annotation.Post;
 import io.micronaut.http.annotation.Put;
 import io.micronaut.http.annotation.QueryValue;
-import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.annotation.Produces;
 import io.micronaut.http.MediaType;
 import io.micronaut.scheduling.TaskExecutors;
@@ -31,7 +30,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 
 import java.util.List;
 import java.util.Map;
@@ -40,15 +38,15 @@ import java.util.Optional;
 @Controller("/api/oracle/connections")
 @Secured(SecurityRule.IS_AUTHENTICATED)
 @ExecuteOn(TaskExecutors.BLOCKING)
-@RequiredArgsConstructor
 @Tag(name = "Oracle", description = "Oracle metadata and query API")
-public class OracleApiController {
+public class OracleApiController extends AbstractConnectionApiController {
 
-    private final DbConnectionService dbConnectionService;
     private final OracleMetadataService oracleMetadataService;
 
-    @Value("${panopticum.read-only:false}")
-    private boolean readOnly;
+    public OracleApiController(DbConnectionService dbConnectionService, OracleMetadataService oracleMetadataService) {
+        super(dbConnectionService);
+        this.oracleMetadataService = oracleMetadataService;
+    }
 
     @Get("/{id}/schemas")
     @Produces(MediaType.APPLICATION_JSON)
@@ -100,10 +98,10 @@ public class OracleApiController {
         if (request.getSql() == null || request.getSql().isBlank()) {
             return QueryResult.error("Empty query");
         }
-        int off = request.getOffset() != null ? Math.max(0, request.getOffset()) : 0;
-        int lim = request.getLimit() != null && request.getLimit() > 0 ? Math.min(request.getLimit(), 1000) : 100;
-        String search = request.getSearch() != null && !request.getSearch().isBlank() ? request.getSearch().trim() : "";
-        return oracleMetadataService.executeQuery(id, request.getSchema(), request.getSql(), off, lim,
+        int offset = ApiQueryParams.normalizedOffset(request.getOffset());
+        int limit = ApiQueryParams.normalizedLimit(request.getLimit());
+        String search = ApiQueryParams.trimmedSearchOrEmpty(request.getSearch());
+        return oracleMetadataService.executeQuery(id, request.getSchema(), request.getSql(), offset, limit,
                 request.getSort() != null ? request.getSort() : "",
                 request.getOrder() != null ? request.getOrder() : "",
                 search).orElse(QueryResult.error("error.queryExecutionFailed"));
@@ -127,12 +125,7 @@ public class OracleApiController {
         String schemaClean = unquote(schema);
         Map<String, Object> result = oracleMetadataService.getDetailRowWithRowid(id, schemaClean, sql != null ? sql : "",
                 Math.max(0, rowNum), sort != null ? sort : "", order != null ? order : "");
-        String error = (String) result.get("error");
-        @SuppressWarnings("unchecked")
-        List<Map<String, String>> detailRows = (List<Map<String, String>>) result.get("detailRows");
-        String rowRowid = (String) result.get("rowRowid");
-        return new OracleRowDetailResponse(error, detailRows != null ? detailRows : List.of(),
-                rowRowid != null ? rowRowid : "");
+        return OracleRowDetailResponse.fromRowidRowMap(result);
     }
 
     @Put("/{id}/schemas/{schema}/row")
@@ -163,24 +156,7 @@ public class OracleApiController {
         Map<String, Object> result = oracleMetadataService.getDetailRowWithRowid(id, schemaClean, request.getSql(),
                 request.getRowNum(), request.getSort() != null ? request.getSort() : "",
                 request.getOrder() != null ? request.getOrder() : "");
-        String error = (String) result.get("error");
-        @SuppressWarnings("unchecked")
-        List<Map<String, String>> detailRows = (List<Map<String, String>>) result.get("detailRows");
-        String rowRowid = (String) result.get("rowRowid");
-        return new OracleRowDetailResponse(error, detailRows != null ? detailRows : List.of(),
-                rowRowid != null ? rowRowid : "");
-    }
-
-    private void ensureConnectionExists(Long id) {
-        if (dbConnectionService.findById(id).isEmpty()) {
-            throw new HttpStatusException(HttpStatus.NOT_FOUND, "connection.notFound");
-        }
-    }
-
-    private void assertNotReadOnly() {
-        if (readOnly) {
-            throw new HttpStatusException(HttpStatus.FORBIDDEN, "read.only.enabled");
-        }
+        return OracleRowDetailResponse.fromRowidRowMap(result);
     }
 
     private static String unquote(String s) {

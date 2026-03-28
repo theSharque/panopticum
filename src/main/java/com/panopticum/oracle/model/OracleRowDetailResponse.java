@@ -24,4 +24,13 @@ public class OracleRowDetailResponse {
 
     @Schema(description = "ROWID of the row")
     private String rowRowid;
+
+    public static OracleRowDetailResponse fromRowidRowMap(Map<String, Object> result) {
+        String error = (String) result.get("error");
+        @SuppressWarnings("unchecked")
+        List<Map<String, String>> detailRows = (List<Map<String, String>>) result.get("detailRows");
+        String rowRowid = (String) result.get("rowRowid");
+        return new OracleRowDetailResponse(error, detailRows != null ? detailRows : List.of(),
+                rowRowid != null ? rowRowid : "");
+    }
 }

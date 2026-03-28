@@ -6,8 +6,9 @@ import com.panopticum.core.model.Page;
 import com.panopticum.core.model.QueryResult;
 import com.panopticum.core.model.SqlQueryRequest;
 import com.panopticum.core.model.TableInfo;
+import com.panopticum.core.controller.AbstractConnectionApiController;
 import com.panopticum.core.service.DbConnectionService;
-import io.micronaut.http.HttpStatus;
+import com.panopticum.core.util.ApiQueryParams;
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
@@ -15,7 +16,6 @@ import io.micronaut.http.annotation.PathVariable;
 import io.micronaut.http.annotation.Post;
 import io.micronaut.http.annotation.Produces;
 import io.micronaut.http.annotation.QueryValue;
-import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.MediaType;
 import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.annotation.ExecuteOn;
@@ -27,17 +27,19 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 
 @Controller("/api/clickhouse/connections")
 @Secured(SecurityRule.IS_AUTHENTICATED)
 @ExecuteOn(TaskExecutors.BLOCKING)
-@RequiredArgsConstructor
 @Tag(name = "ClickHouse", description = "ClickHouse metadata and query API")
-public class ClickHouseApiController {
+public class ClickHouseApiController extends AbstractConnectionApiController {
 
-    private final DbConnectionService dbConnectionService;
     private final ClickHouseMetadataService clickHouseMetadataService;
+
+    public ClickHouseApiController(DbConnectionService dbConnectionService, ClickHouseMetadataService clickHouseMetadataService) {
+        super(dbConnectionService);
+        this.clickHouseMetadataService = clickHouseMetadataService;
+    }
 
     @Get("/{id}/databases")
     @Produces(MediaType.APPLICATION_JSON)
@@ -88,18 +90,12 @@ public class ClickHouseApiController {
         if (request.getSql() == null || request.getSql().isBlank()) {
             return QueryResult.error("Empty query");
         }
-        int off = request.getOffset() != null ? Math.max(0, request.getOffset()) : 0;
-        int lim = request.getLimit() != null && request.getLimit() > 0 ? Math.min(request.getLimit(), 1000) : 100;
-        String search = request.getSearch() != null && !request.getSearch().isBlank() ? request.getSearch().trim() : "";
-        return clickHouseMetadataService.executeQuery(id, request.getDbName(), request.getSql(), off, lim,
+        int offset = ApiQueryParams.normalizedOffset(request.getOffset());
+        int limit = ApiQueryParams.normalizedLimit(request.getLimit());
+        String search = ApiQueryParams.trimmedSearchOrEmpty(request.getSearch());
+        return clickHouseMetadataService.executeQuery(id, request.getDbName(), request.getSql(), offset, limit,
                 request.getSort() != null ? request.getSort() : "",
                 request.getOrder() != null ? request.getOrder() : "",
                 search).orElse(QueryResult.error("error.queryExecutionFailed"));
-    }
-
-    private void ensureConnectionExists(Long id) {
-        if (dbConnectionService.findById(id).isEmpty()) {
-            throw new HttpStatusException(HttpStatus.NOT_FOUND, "connection.notFound");
-        }
     }
 }

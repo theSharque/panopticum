@@ -5,13 +5,12 @@ import com.panopticum.core.model.Page;
 import com.panopticum.core.model.QueryResult;
 import com.panopticum.core.model.SqlQueryRequest;
 import com.panopticum.core.model.TableInfo;
+import com.panopticum.core.controller.AbstractConnectionApiController;
 import com.panopticum.core.service.DbConnectionService;
-import com.panopticum.mysql.model.MySqlRowDetailResponse;
-import com.panopticum.mysql.model.MySqlRowUpdateRequest;
+import com.panopticum.core.util.ApiQueryParams;
+import com.panopticum.core.model.JdbcRowDetailResponse;
+import com.panopticum.core.model.JdbcRowUpdateRequest;
 import com.panopticum.mysql.service.MySqlMetadataService;
-import io.micronaut.context.annotation.Value;
-import io.micronaut.core.annotation.Nullable;
-import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
@@ -19,7 +18,6 @@ import io.micronaut.http.annotation.PathVariable;
 import io.micronaut.http.annotation.Post;
 import io.micronaut.http.annotation.Put;
 import io.micronaut.http.annotation.QueryValue;
-import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.annotation.Produces;
 import io.micronaut.http.MediaType;
 import io.micronaut.scheduling.TaskExecutors;
@@ -32,7 +30,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -42,15 +39,15 @@ import java.util.Optional;
 @Controller("/api/mysql/connections")
 @Secured(SecurityRule.IS_AUTHENTICATED)
 @ExecuteOn(TaskExecutors.BLOCKING)
-@RequiredArgsConstructor
 @Tag(name = "MySQL", description = "MySQL metadata and query API")
-public class MySqlApiController {
+public class MySqlApiController extends AbstractConnectionApiController {
 
-    private final DbConnectionService dbConnectionService;
     private final MySqlMetadataService mySqlMetadataService;
 
-    @Value("${panopticum.read-only:false}")
-    private boolean readOnly;
+    public MySqlApiController(DbConnectionService dbConnectionService, MySqlMetadataService mySqlMetadataService) {
+        super(dbConnectionService);
+        this.mySqlMetadataService = mySqlMetadataService;
+    }
 
     @Get("/{id}/databases")
     @Produces(MediaType.APPLICATION_JSON)
@@ -101,10 +98,10 @@ public class MySqlApiController {
         if (request.getSql() == null || request.getSql().isBlank()) {
             return QueryResult.error("Empty query");
         }
-        int off = request.getOffset() != null ? Math.max(0, request.getOffset()) : 0;
-        int lim = request.getLimit() != null && request.getLimit() > 0 ? Math.min(request.getLimit(), 1000) : 100;
-        String search = request.getSearch() != null && !request.getSearch().isBlank() ? request.getSearch().trim() : "";
-        return mySqlMetadataService.executeQuery(id, request.getDbName(), request.getSql(), off, lim,
+        int offset = ApiQueryParams.normalizedOffset(request.getOffset());
+        int limit = ApiQueryParams.normalizedLimit(request.getLimit());
+        String search = ApiQueryParams.trimmedSearchOrEmpty(request.getSearch());
+        return mySqlMetadataService.executeQuery(id, request.getDbName(), request.getSql(), offset, limit,
                 request.getSort() != null ? request.getSort() : "",
                 request.getOrder() != null ? request.getOrder() : "",
                 search).orElse(QueryResult.error("error.queryExecutionFailed"));
@@ -117,27 +114,17 @@ public class MySqlApiController {
             @ApiResponse(responseCode = "200", description = "Row detail"),
             @ApiResponse(responseCode = "404", description = "connection.notFound")
     })
-    public MySqlRowDetailResponse rowDetail(
+    public JdbcRowDetailResponse rowDetail(
             @Parameter(description = "Connection ID") @PathVariable Long id,
             @PathVariable String dbName,
             @QueryValue String sql,
             @QueryValue(value = "rowNum", defaultValue = "0") int rowNum,
             @QueryValue(defaultValue = "") String sort,
-            @QueryValue(defaultValue = "") String order,
-            @QueryValue @Nullable String search) {
+            @QueryValue(defaultValue = "") String order) {
         ensureConnectionExists(id);
         Map<String, Object> result = mySqlMetadataService.getDetailRow(id, dbName, sql != null ? sql : "",
                 Math.max(0, rowNum), sort != null ? sort : "", order != null ? order : "");
-        String error = (String) result.get("error");
-        @SuppressWarnings("unchecked")
-        List<Map<String, String>> detailRows = (List<Map<String, String>>) result.get("detailRows");
-        boolean editable = Boolean.TRUE.equals(result.get("editable"));
-        @SuppressWarnings("unchecked")
-        List<String> uniqueKeyColumns = (List<String>) result.get("uniqueKeyColumns");
-        String qualifiedTable = (String) result.get("qualifiedTable");
-        return new MySqlRowDetailResponse(error, detailRows != null ? detailRows : List.of(),
-                editable, uniqueKeyColumns != null ? uniqueKeyColumns : List.of(),
-                qualifiedTable != null ? qualifiedTable : "");
+        return JdbcRowDetailResponse.fromEditableRowMap(result);
     }
 
     @Put("/{id}/databases/{dbName}/row")
@@ -148,10 +135,10 @@ public class MySqlApiController {
             @ApiResponse(responseCode = "403", description = "read.only.enabled"),
             @ApiResponse(responseCode = "404", description = "connection.notFound")
     })
-    public MySqlRowDetailResponse updateRow(
+    public JdbcRowDetailResponse updateRow(
             @Parameter(description = "Connection ID") @PathVariable Long id,
             @PathVariable String dbName,
-            @Valid @Body MySqlRowUpdateRequest request) {
+            @Valid @Body JdbcRowUpdateRequest request) {
         assertNotReadOnly();
         ensureConnectionExists(id);
         Map<String, String> columnValues = request.getColumnValues() != null ? request.getColumnValues() : Map.of();
@@ -170,28 +157,11 @@ public class MySqlApiController {
         Optional<String> err = mySqlMetadataService.executeUpdateByKey(id, dbName, request.getQualifiedTable(),
                 uniqueKeyColumns, keyValues, updateColumns);
         if (err.isPresent()) {
-            return new MySqlRowDetailResponse(err.get(), List.of(), false, uniqueKeyColumns, request.getQualifiedTable());
+            return new JdbcRowDetailResponse(err.get(), List.of(), false, uniqueKeyColumns, request.getQualifiedTable());
         }
         Map<String, Object> result = mySqlMetadataService.getDetailRow(id, dbName, request.getSql(),
                 request.getRowNum(), request.getSort() != null ? request.getSort() : "",
                 request.getOrder() != null ? request.getOrder() : "");
-        String error = (String) result.get("error");
-        @SuppressWarnings("unchecked")
-        List<Map<String, String>> detailRows = (List<Map<String, String>>) result.get("detailRows");
-        boolean editable = Boolean.TRUE.equals(result.get("editable"));
-        return new MySqlRowDetailResponse(error, detailRows != null ? detailRows : List.of(),
-                editable, uniqueKeyColumns, request.getQualifiedTable());
-    }
-
-    private void ensureConnectionExists(Long id) {
-        if (dbConnectionService.findById(id).isEmpty()) {
-            throw new HttpStatusException(HttpStatus.NOT_FOUND, "connection.notFound");
-        }
-    }
-
-    private void assertNotReadOnly() {
-        if (readOnly) {
-            throw new HttpStatusException(HttpStatus.FORBIDDEN, "read.only.enabled");
-        }
+        return JdbcRowDetailResponse.fromEditableRowMap(result);
     }
 }

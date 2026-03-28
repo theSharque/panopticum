@@ -1,18 +1,17 @@
 package com.panopticum.kafka.controller;
 
 import com.panopticum.core.model.Page;
+import com.panopticum.core.controller.AbstractConnectionApiController;
 import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.kafka.model.KafkaPartitionInfo;
 import com.panopticum.kafka.model.KafkaRecord;
 import com.panopticum.kafka.model.KafkaTopicInfo;
 import com.panopticum.kafka.service.KafkaService;
-import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
 import io.micronaut.http.annotation.PathVariable;
 import io.micronaut.http.annotation.Produces;
 import io.micronaut.http.annotation.QueryValue;
-import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.MediaType;
 import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.annotation.ExecuteOn;
@@ -32,12 +31,15 @@ import java.util.List;
 @Controller("/api/kafka/connections")
 @Secured(SecurityRule.IS_AUTHENTICATED)
 @ExecuteOn(TaskExecutors.BLOCKING)
-@RequiredArgsConstructor
 @Tag(name = "Kafka", description = "Kafka topics, partitions and records API")
-public class KafkaApiController {
+public class KafkaApiController extends AbstractConnectionApiController {
 
-    private final DbConnectionService dbConnectionService;
     private final KafkaService kafkaService;
+
+    public KafkaApiController(DbConnectionService dbConnectionService, KafkaService kafkaService) {
+        super(dbConnectionService);
+        this.kafkaService = kafkaService;
+    }
 
     @Get("/{id}/topics")
     @Produces(MediaType.APPLICATION_JSON)
@@ -106,12 +108,6 @@ public class KafkaApiController {
             @PathVariable long offset) {
         ensureConnectionExists(id);
         return kafkaService.getRecordByOffset(id, decodeTopic(topic), partition, offset).orElse(null);
-    }
-
-    private void ensureConnectionExists(Long id) {
-        if (dbConnectionService.findById(id).isEmpty()) {
-            throw new HttpStatusException(HttpStatus.NOT_FOUND, "connection.notFound");
-        }
     }
 
     private static String decodeTopic(String topic) {
