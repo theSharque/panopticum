@@ -10,7 +10,6 @@ import com.panopticum.oracle.model.OracleRowDetailResponse;
 import com.panopticum.oracle.model.OracleRowUpdateRequest;
 import com.panopticum.oracle.service.OracleMetadataService;
 import io.micronaut.context.annotation.Value;
-import io.micronaut.core.annotation.Nullable;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;

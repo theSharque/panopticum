@@ -11,7 +11,7 @@ import lombok.Data;
 public class CassandraQueryRequest {
 
     @NotBlank
-    @Schema(description = "CQL statement", required = true)
+    @Schema(description = "CQL statement", requiredMode = Schema.RequiredMode.REQUIRED)
     private String cql;
 
     @Schema(description = "Offset", defaultValue = "0")

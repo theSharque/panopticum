@@ -11,7 +11,7 @@ import lombok.Data;
 public class ConnectionTestRequest {
 
     @NotBlank
-    @Schema(description = "Connection type: postgresql, mysql, mssql, oracle, mongodb, redis, clickhouse, cassandra, kafka, rabbitmq, elasticsearch", required = true)
+    @Schema(description = "Connection type: postgresql, mysql, mssql, oracle, mongodb, redis, clickhouse, cassandra, kafka, rabbitmq, elasticsearch", requiredMode = Schema.RequiredMode.REQUIRED)
     private String type;
 
     @Schema(description = "Host")

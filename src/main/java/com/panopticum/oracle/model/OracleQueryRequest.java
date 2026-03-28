@@ -11,11 +11,11 @@ import lombok.Data;
 public class OracleQueryRequest {
 
     @NotBlank
-    @Schema(description = "SQL query", required = true)
+    @Schema(description = "SQL query", requiredMode = Schema.RequiredMode.REQUIRED)
     private String sql;
 
     @NotBlank
-    @Schema(description = "Schema name", required = true)
+    @Schema(description = "Schema name", requiredMode = Schema.RequiredMode.REQUIRED)
     private String schema;
 
     @Schema(description = "Offset", defaultValue = "0")

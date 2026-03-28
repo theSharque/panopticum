@@ -11,14 +11,14 @@ import lombok.Data;
 public class MongoDocumentReplaceRequest {
 
     @NotBlank
-    @Schema(description = "Collection name", required = true)
+    @Schema(description = "Collection name", requiredMode = Schema.RequiredMode.REQUIRED)
     private String collection;
 
     @NotBlank
-    @Schema(description = "Document ID", required = true)
+    @Schema(description = "Document ID", requiredMode = Schema.RequiredMode.REQUIRED)
     private String docId;
 
     @NotBlank
-    @Schema(description = "JSON document body", required = true)
+    @Schema(description = "JSON document body", requiredMode = Schema.RequiredMode.REQUIRED)
     private String body;
 }

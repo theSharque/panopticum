@@ -11,11 +11,11 @@ import lombok.Data;
 public class SqlQueryRequest {
 
     @NotBlank
-    @Schema(description = "SQL query", required = true)
+    @Schema(description = "SQL query", requiredMode = Schema.RequiredMode.REQUIRED)
     private String sql;
 
     @NotBlank
-    @Schema(description = "Database name", required = true)
+    @Schema(description = "Database name", requiredMode = Schema.RequiredMode.REQUIRED)
     private String dbName;
 
     @Schema(description = "Schema name")

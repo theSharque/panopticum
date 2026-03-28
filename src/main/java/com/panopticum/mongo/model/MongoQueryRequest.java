@@ -11,11 +11,11 @@ import lombok.Data;
 public class MongoQueryRequest {
 
     @NotBlank
-    @Schema(description = "Database name", required = true)
+    @Schema(description = "Database name", requiredMode = Schema.RequiredMode.REQUIRED)
     private String dbName;
 
     @NotBlank
-    @Schema(description = "Collection name", required = true)
+    @Schema(description = "Collection name", requiredMode = Schema.RequiredMode.REQUIRED)
     private String collection;
 
     @Schema(description = "MQL query (default {})")

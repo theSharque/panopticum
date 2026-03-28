@@ -14,15 +14,15 @@ import java.util.Map;
 public class OracleRowUpdateRequest {
 
     @NotBlank
-    @Schema(description = "SQL that produced the row", required = true)
+    @Schema(description = "SQL that produced the row", requiredMode = Schema.RequiredMode.REQUIRED)
     private String sql;
 
     @NotNull
-    @Schema(description = "Row index (0-based)", required = true)
+    @Schema(description = "Row index (0-based)", requiredMode = Schema.RequiredMode.REQUIRED)
     private Integer rowNum;
 
     @NotBlank
-    @Schema(description = "ROWID of the row", required = true)
+    @Schema(description = "ROWID of the row", requiredMode = Schema.RequiredMode.REQUIRED)
     private String rowid;
 
     @Schema(description = "Sort column")
@@ -31,6 +31,6 @@ public class OracleRowUpdateRequest {
     @Schema(description = "Sort order: asc, desc")
     private String order;
 
-    @Schema(description = "Column names to values for update", required = true)
+    @Schema(description = "Column names to values for update", requiredMode = Schema.RequiredMode.REQUIRED)
     private Map<String, String> columnValues;
 }
