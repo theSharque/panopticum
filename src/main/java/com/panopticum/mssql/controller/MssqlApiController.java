@@ -11,7 +11,6 @@ import com.panopticum.mssql.service.MssqlMetadataService;
 import com.panopticum.mysql.model.MySqlRowDetailResponse;
 import com.panopticum.mysql.model.MySqlRowUpdateRequest;
 import io.micronaut.context.annotation.Value;
-import io.micronaut.core.annotation.Nullable;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;

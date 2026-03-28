@@ -16,19 +16,19 @@ import java.util.Map;
 public class MySqlRowUpdateRequest {
 
     @NotBlank
-    @Schema(description = "SQL that produced the row", required = true)
+    @Schema(description = "SQL that produced the row", requiredMode = Schema.RequiredMode.REQUIRED)
     private String sql;
 
     @NotNull
-    @Schema(description = "Row index (0-based)", required = true)
+    @Schema(description = "Row index (0-based)", requiredMode = Schema.RequiredMode.REQUIRED)
     private Integer rowNum;
 
     @NotBlank
-    @Schema(description = "Qualified table name", required = true)
+    @Schema(description = "Qualified table name", requiredMode = Schema.RequiredMode.REQUIRED)
     private String qualifiedTable;
 
     @NotEmpty
-    @Schema(description = "Primary/unique key column names", required = true)
+    @Schema(description = "Primary/unique key column names", requiredMode = Schema.RequiredMode.REQUIRED)
     private List<String> uniqueKeyColumns;
 
     @Schema(description = "Sort column")
@@ -40,6 +40,6 @@ public class MySqlRowUpdateRequest {
     @Schema(description = "Search term")
     private String search;
 
-    @Schema(description = "Column names to values (includes key columns for WHERE)", required = true)
+    @Schema(description = "Column names to values (includes key columns for WHERE)", requiredMode = Schema.RequiredMode.REQUIRED)
     private Map<String, String> columnValues;
 }

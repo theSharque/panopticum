@@ -14,15 +14,15 @@ import java.util.Map;
 public class PgRowUpdateRequest {
 
     @NotBlank
-    @Schema(description = "SQL that produced the row", required = true)
+    @Schema(description = "SQL that produced the row", requiredMode = Schema.RequiredMode.REQUIRED)
     private String sql;
 
     @NotNull
-    @Schema(description = "Row index (0-based)", required = true)
+    @Schema(description = "Row index (0-based)", requiredMode = Schema.RequiredMode.REQUIRED)
     private Integer rowNum;
 
     @NotBlank
-    @Schema(description = "CTID of the row", required = true)
+    @Schema(description = "CTID of the row", requiredMode = Schema.RequiredMode.REQUIRED)
     private String ctid;
 
     @Schema(description = "Sort column")
@@ -34,6 +34,6 @@ public class PgRowUpdateRequest {
     @Schema(description = "Search term")
     private String search;
 
-    @Schema(description = "Column names to values for update", required = true)
+    @Schema(description = "Column names to values for update", requiredMode = Schema.RequiredMode.REQUIRED)
     private Map<String, String> columnValues;
 }

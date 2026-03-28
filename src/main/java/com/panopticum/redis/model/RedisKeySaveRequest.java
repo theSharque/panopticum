@@ -13,7 +13,7 @@ import java.util.Map;
 public class RedisKeySaveRequest {
 
     @NotBlank
-    @Schema(description = "Key name", required = true)
+    @Schema(description = "Key name", requiredMode = Schema.RequiredMode.REQUIRED)
     private String key;
 
     @Schema(description = "Value (for string type)")

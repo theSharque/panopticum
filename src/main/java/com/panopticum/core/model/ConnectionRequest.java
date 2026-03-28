@@ -12,15 +12,15 @@ import lombok.Data;
 public class ConnectionRequest {
 
     @NotBlank
-    @Schema(description = "Connection type: postgresql, mysql, mssql, oracle, mongodb, redis, clickhouse, cassandra, kafka, rabbitmq, elasticsearch", required = true)
+    @Schema(description = "Connection type: postgresql, mysql, mssql, oracle, mongodb, redis, clickhouse, cassandra, kafka, rabbitmq, elasticsearch", requiredMode = Schema.RequiredMode.REQUIRED)
     private String type;
 
     @NotBlank
-    @Schema(description = "Connection display name", required = true)
+    @Schema(description = "Connection display name", requiredMode = Schema.RequiredMode.REQUIRED)
     private String name;
 
     @NotBlank
-    @Schema(description = "Host", required = true)
+    @Schema(description = "Host", requiredMode = Schema.RequiredMode.REQUIRED)
     private String host;
 
     @NotNull
