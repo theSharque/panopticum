@@ -6,8 +6,9 @@ import com.panopticum.cassandra.model.CassandraTableInfo;
 import com.panopticum.cassandra.service.CassandraMetadataService;
 import com.panopticum.core.model.Page;
 import com.panopticum.core.model.QueryResult;
+import com.panopticum.core.controller.AbstractConnectionApiController;
 import com.panopticum.core.service.DbConnectionService;
-import io.micronaut.http.HttpStatus;
+import com.panopticum.core.util.ApiQueryParams;
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
@@ -15,7 +16,6 @@ import io.micronaut.http.annotation.PathVariable;
 import io.micronaut.http.annotation.Post;
 import io.micronaut.http.annotation.Produces;
 import io.micronaut.http.annotation.QueryValue;
-import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.MediaType;
 import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.annotation.ExecuteOn;
@@ -27,17 +27,19 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 
 @Controller("/api/cassandra/connections")
 @Secured(SecurityRule.IS_AUTHENTICATED)
 @ExecuteOn(TaskExecutors.BLOCKING)
-@RequiredArgsConstructor
 @Tag(name = "Cassandra", description = "Cassandra keyspaces, tables and CQL query API")
-public class CassandraApiController {
+public class CassandraApiController extends AbstractConnectionApiController {
 
-    private final DbConnectionService dbConnectionService;
     private final CassandraMetadataService cassandraMetadataService;
+
+    public CassandraApiController(DbConnectionService dbConnectionService, CassandraMetadataService cassandraMetadataService) {
+        super(dbConnectionService);
+        this.cassandraMetadataService = cassandraMetadataService;
+    }
 
     @Get("/{id}/keyspaces")
     @Produces(MediaType.APPLICATION_JSON)
@@ -90,15 +92,9 @@ public class CassandraApiController {
         if (cql == null || cql.isBlank()) {
             return QueryResult.error("Empty query");
         }
-        int offset = Math.max(0, request.getOffset());
-        int limit = request.getLimit() > 0 ? Math.min(request.getLimit(), 1000) : 100;
+        int offset = ApiQueryParams.normalizedOffset(request.getOffset());
+        int limit = ApiQueryParams.normalizedLimit(request.getLimit());
         return cassandraMetadataService.executeQuery(id, keyspaceName, cql, offset, limit)
                 .orElse(QueryResult.error("error.queryExecutionFailed"));
-    }
-
-    private void ensureConnectionExists(Long id) {
-        if (dbConnectionService.findById(id).isEmpty()) {
-            throw new HttpStatusException(HttpStatus.NOT_FOUND, "connection.notFound");
-        }
     }
 }

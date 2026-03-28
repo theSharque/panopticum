@@ -6,13 +6,12 @@ import com.panopticum.core.model.QueryResult;
 import com.panopticum.core.model.SchemaInfo;
 import com.panopticum.core.model.SqlQueryRequest;
 import com.panopticum.core.model.TableInfo;
+import com.panopticum.core.controller.AbstractConnectionApiController;
 import com.panopticum.core.service.DbConnectionService;
+import com.panopticum.core.util.ApiQueryParams;
 import com.panopticum.postgres.model.PgRowDetailResponse;
 import com.panopticum.postgres.model.PgRowUpdateRequest;
 import com.panopticum.postgres.service.PgMetadataService;
-import io.micronaut.context.annotation.Value;
-import io.micronaut.core.annotation.Nullable;
-import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
@@ -20,7 +19,6 @@ import io.micronaut.http.annotation.PathVariable;
 import io.micronaut.http.annotation.Post;
 import io.micronaut.http.annotation.Put;
 import io.micronaut.http.annotation.QueryValue;
-import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.annotation.Produces;
 import io.micronaut.http.MediaType;
 import io.micronaut.scheduling.TaskExecutors;
@@ -33,7 +31,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 
 import java.util.List;
 import java.util.Map;
@@ -42,15 +39,15 @@ import java.util.Optional;
 @Controller("/api/pg/connections")
 @Secured(SecurityRule.IS_AUTHENTICATED)
 @ExecuteOn(TaskExecutors.BLOCKING)
-@RequiredArgsConstructor
 @Tag(name = "PostgreSQL", description = "PostgreSQL metadata and query API")
-public class PgApiController {
+public class PgApiController extends AbstractConnectionApiController {
 
-    private final DbConnectionService dbConnectionService;
     private final PgMetadataService pgMetadataService;
 
-    @Value("${panopticum.read-only:false}")
-    private boolean readOnly;
+    public PgApiController(DbConnectionService dbConnectionService, PgMetadataService pgMetadataService) {
+        super(dbConnectionService);
+        this.pgMetadataService = pgMetadataService;
+    }
 
     @Get("/{id}/databases")
     @Produces(MediaType.APPLICATION_JSON)
@@ -121,10 +118,10 @@ public class PgApiController {
         if (request.getSql() == null || request.getSql().isBlank()) {
             return QueryResult.error("Empty query");
         }
-        int off = request.getOffset() != null ? Math.max(0, request.getOffset()) : 0;
-        int lim = request.getLimit() != null && request.getLimit() > 0 ? Math.min(request.getLimit(), 1000) : 100;
-        String search = request.getSearch() != null && !request.getSearch().isBlank() ? request.getSearch().trim() : "";
-        return pgMetadataService.executeQuery(id, request.getDbName(), request.getSql(), off, lim,
+        int offset = ApiQueryParams.normalizedOffset(request.getOffset());
+        int limit = ApiQueryParams.normalizedLimit(request.getLimit());
+        String search = ApiQueryParams.trimmedSearchOrEmpty(request.getSearch());
+        return pgMetadataService.executeQuery(id, request.getDbName(), request.getSql(), offset, limit,
                 request.getSort() != null ? request.getSort() : "",
                 request.getOrder() != null ? request.getOrder() : "",
                 search).orElse(QueryResult.error("error.queryExecutionFailed"));
@@ -144,19 +141,13 @@ public class PgApiController {
             @QueryValue String sql,
             @QueryValue(value = "rowNum", defaultValue = "0") int rowNum,
             @QueryValue(defaultValue = "") String sort,
-            @QueryValue(defaultValue = "") String order,
-            @QueryValue @Nullable String search) {
+            @QueryValue(defaultValue = "") String order) {
         ensureConnectionExists(id);
         String schemaClean = unquotePgIdentifier(schema);
         Map<String, Object> result = pgMetadataService.getDetailRowWithCtid(id, dbName, schemaClean,
                 sql != null ? sql : "", Math.max(0, rowNum),
                 sort != null ? sort : "", order != null ? order : "");
-        String error = (String) result.get("error");
-        @SuppressWarnings("unchecked")
-        List<Map<String, String>> detailRows = (List<Map<String, String>>) result.get("detailRows");
-        String rowCtid = (String) result.get("rowCtid");
-        return new PgRowDetailResponse(error, detailRows != null ? detailRows : List.of(),
-                rowCtid != null ? rowCtid : "");
+        return PgRowDetailResponse.fromCtidRowMap(result);
     }
 
     @Put("/{id}/databases/{dbName}/schemas/{schema}/row")
@@ -189,24 +180,7 @@ public class PgApiController {
                 request.getSql(), request.getRowNum(),
                 request.getSort() != null ? request.getSort() : "",
                 request.getOrder() != null ? request.getOrder() : "");
-        String error = (String) result.get("error");
-        @SuppressWarnings("unchecked")
-        List<Map<String, String>> detailRows = (List<Map<String, String>>) result.get("detailRows");
-        String rowCtid = (String) result.get("rowCtid");
-        return new PgRowDetailResponse(error, detailRows != null ? detailRows : List.of(),
-                rowCtid != null ? rowCtid : "");
-    }
-
-    private void ensureConnectionExists(Long id) {
-        if (dbConnectionService.findById(id).isEmpty()) {
-            throw new HttpStatusException(HttpStatus.NOT_FOUND, "connection.notFound");
-        }
-    }
-
-    private void assertNotReadOnly() {
-        if (readOnly) {
-            throw new HttpStatusException(HttpStatus.FORBIDDEN, "read.only.enabled");
-        }
+        return PgRowDetailResponse.fromCtidRowMap(result);
     }
 
     private static String unquotePgIdentifier(String s) {

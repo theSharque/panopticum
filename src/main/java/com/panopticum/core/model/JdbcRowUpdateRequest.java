@@ -1,4 +1,4 @@
-package com.panopticum.mysql.model;
+package com.panopticum.core.model;
 
 import io.micronaut.serde.annotation.Serdeable;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -12,8 +12,8 @@ import java.util.Map;
 
 @Data
 @Serdeable
-@Schema(description = "MySQL row update request")
-public class MySqlRowUpdateRequest {
+@Schema(description = "JDBC row update by unique key (MySQL, SQL Server, similar)")
+public class JdbcRowUpdateRequest {
 
     @NotBlank
     @Schema(description = "SQL that produced the row", requiredMode = Schema.RequiredMode.REQUIRED)

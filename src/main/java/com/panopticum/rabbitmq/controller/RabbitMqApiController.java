@@ -1,17 +1,16 @@
 package com.panopticum.rabbitmq.controller;
 
 import com.panopticum.core.model.Page;
+import com.panopticum.core.controller.AbstractConnectionApiController;
 import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.rabbitmq.model.RabbitMqMessage;
 import com.panopticum.rabbitmq.model.RabbitMqQueueInfo;
 import com.panopticum.rabbitmq.service.RabbitMqService;
-import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
 import io.micronaut.http.annotation.PathVariable;
 import io.micronaut.http.annotation.Produces;
 import io.micronaut.http.annotation.QueryValue;
-import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.MediaType;
 import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.annotation.ExecuteOn;
@@ -22,19 +21,21 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import lombok.RequiredArgsConstructor;
 
 import java.util.List;
 
 @Controller("/api/rabbitmq/connections")
 @Secured(SecurityRule.IS_AUTHENTICATED)
 @ExecuteOn(TaskExecutors.BLOCKING)
-@RequiredArgsConstructor
 @Tag(name = "RabbitMQ", description = "RabbitMQ queues and messages API")
-public class RabbitMqApiController {
+public class RabbitMqApiController extends AbstractConnectionApiController {
 
-    private final DbConnectionService dbConnectionService;
     private final RabbitMqService rabbitMqService;
+
+    public RabbitMqApiController(DbConnectionService dbConnectionService, RabbitMqService rabbitMqService) {
+        super(dbConnectionService);
+        this.rabbitMqService = rabbitMqService;
+    }
 
     @Get("/{id}/queues")
     @Produces(MediaType.APPLICATION_JSON)
@@ -92,12 +93,6 @@ public class RabbitMqApiController {
         String vhostDecoded = decodeVhost(vhost);
         String queueName = queue != null ? queue : "";
         return rabbitMqService.peekOneByIndex(id, vhostDecoded, queueName, index).orElse(null);
-    }
-
-    private void ensureConnectionExists(Long id) {
-        if (dbConnectionService.findById(id).isEmpty()) {
-            throw new HttpStatusException(HttpStatus.NOT_FOUND, "connection.notFound");
-        }
     }
 
     private static String decodeVhost(String vhost) {

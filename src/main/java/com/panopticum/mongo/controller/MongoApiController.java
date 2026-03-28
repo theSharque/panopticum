@@ -3,20 +3,20 @@ package com.panopticum.mongo.controller;
 import com.panopticum.core.model.DatabaseInfo;
 import com.panopticum.core.model.Page;
 import com.panopticum.core.model.QueryResult;
+import com.panopticum.core.controller.AbstractConnectionApiController;
+import com.panopticum.core.model.ApiMutationResult;
 import com.panopticum.core.service.DbConnectionService;
-import io.micronaut.context.annotation.Value;
+import com.panopticum.core.util.ApiQueryParams;
 import com.panopticum.mongo.model.MongoCollectionInfo;
 import com.panopticum.mongo.model.MongoDocumentReplaceRequest;
 import com.panopticum.mongo.model.MongoQueryRequest;
 import com.panopticum.mongo.service.MongoMetadataService;
-import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
 import io.micronaut.http.annotation.PathVariable;
 import io.micronaut.http.annotation.Post;
 import io.micronaut.http.annotation.QueryValue;
-import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.annotation.Produces;
 import io.micronaut.http.MediaType;
 import io.micronaut.scheduling.TaskExecutors;
@@ -29,23 +29,21 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 
-import java.util.Map;
 import java.util.Optional;
 
 @Controller("/api/mongo/connections")
 @Secured(SecurityRule.IS_AUTHENTICATED)
 @ExecuteOn(TaskExecutors.BLOCKING)
-@RequiredArgsConstructor
 @Tag(name = "MongoDB", description = "MongoDB metadata and query API")
-public class MongoApiController {
+public class MongoApiController extends AbstractConnectionApiController {
 
-    private final DbConnectionService dbConnectionService;
     private final MongoMetadataService mongoMetadataService;
 
-    @Value("${panopticum.read-only:false}")
-    private boolean readOnly;
+    public MongoApiController(DbConnectionService dbConnectionService, MongoMetadataService mongoMetadataService) {
+        super(dbConnectionService);
+        this.mongoMetadataService = mongoMetadataService;
+    }
 
     @Get("/{id}/databases")
     @Produces(MediaType.APPLICATION_JSON)
@@ -94,11 +92,11 @@ public class MongoApiController {
             @Valid @Body MongoQueryRequest request) {
         ensureConnectionExists(id);
         String queryText = request.getQuery() != null && !request.getQuery().isBlank() ? request.getQuery() : "{}";
-        int off = request.getOffset() != null ? Math.max(0, request.getOffset()) : 0;
-        int lim = request.getLimit() != null && request.getLimit() > 0 ? Math.min(request.getLimit(), 1000) : 100;
+        int offset = ApiQueryParams.normalizedOffset(request.getOffset());
+        int limit = ApiQueryParams.normalizedLimit(request.getLimit());
         String sortVal = request.getSort() != null && !request.getSort().isBlank() ? request.getSort() : "_id";
         String orderVal = request.getOrder() != null && !request.getOrder().isBlank() ? request.getOrder() : "asc";
-        return mongoMetadataService.executeQuery(id, request.getDbName(), request.getCollection(), queryText, off, lim, sortVal, orderVal)
+        return mongoMetadataService.executeQuery(id, request.getDbName(), request.getCollection(), queryText, offset, limit, sortVal, orderVal)
                 .orElse(QueryResult.error("error.queryExecutionFailed"));
     }
 
@@ -129,7 +127,7 @@ public class MongoApiController {
             @ApiResponse(responseCode = "403", description = "read.only.enabled"),
             @ApiResponse(responseCode = "404", description = "connection.notFound")
     })
-    public Object replaceDocument(
+    public ApiMutationResult replaceDocument(
             @Parameter(description = "Connection ID") @PathVariable Long id,
             @PathVariable String dbName,
             @Valid @Body MongoDocumentReplaceRequest request) {
@@ -138,20 +136,8 @@ public class MongoApiController {
         Optional<String> err = mongoMetadataService.replaceDocument(id, dbName, request.getCollection(),
                 request.getDocId(), request.getBody());
         if (err.isPresent()) {
-            return Map.of("error", err.get());
+            return ApiMutationResult.failure(err.get());
         }
-        return Map.of("success", true);
-    }
-
-    private void ensureConnectionExists(Long id) {
-        if (dbConnectionService.findById(id).isEmpty()) {
-            throw new HttpStatusException(HttpStatus.NOT_FOUND, "connection.notFound");
-        }
-    }
-
-    private void assertNotReadOnly() {
-        if (readOnly) {
-            throw new HttpStatusException(HttpStatus.FORBIDDEN, "read.only.enabled");
-        }
+        return ApiMutationResult.success();
     }
 }

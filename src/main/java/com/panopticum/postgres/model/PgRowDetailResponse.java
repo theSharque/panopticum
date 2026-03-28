@@ -24,4 +24,13 @@ public class PgRowDetailResponse {
 
     @Schema(description = "CTID of the row")
     private String rowCtid;
+
+    public static PgRowDetailResponse fromCtidRowMap(Map<String, Object> result) {
+        String error = (String) result.get("error");
+        @SuppressWarnings("unchecked")
+        List<Map<String, String>> detailRows = (List<Map<String, String>>) result.get("detailRows");
+        String rowCtid = (String) result.get("rowCtid");
+        return new PgRowDetailResponse(error, detailRows != null ? detailRows : List.of(),
+                rowCtid != null ? rowCtid : "");
+    }
 }
