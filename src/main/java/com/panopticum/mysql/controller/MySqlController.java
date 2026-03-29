@@ -178,7 +178,7 @@ public class MySqlController {
         List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
         breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/mysql/" + id));
         breadcrumbs.add(new BreadcrumbItem(dbName, "/mysql/" + id + "/" + dbName));
-        breadcrumbs.add(new BreadcrumbItem("sql", null));
+        breadcrumbs.add(new BreadcrumbItem("sql", null, false));
         ControllerModelHelper.addBreadcrumbs(model, breadcrumbs);
         model.put("connectionId", id);
         model.put("dbName", dbName);
@@ -322,7 +322,7 @@ public class MySqlController {
         if (tableLabel != null && !tableLabel.isBlank()) {
             breadcrumbs.add(new BreadcrumbItem(tableLabel, "/mysql/" + id + "/" + dbName + "/" + tableLabel));
         }
-        breadcrumbs.add(new BreadcrumbItem("detail", null));
+        breadcrumbs.add(new BreadcrumbItem("detail", null, false));
         ControllerModelHelper.addBreadcrumbs(model, breadcrumbs);
         model.put("connectionId", id);
         model.put("dbName", dbName != null ? dbName : "");

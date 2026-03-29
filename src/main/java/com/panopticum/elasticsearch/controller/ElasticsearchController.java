@@ -119,7 +119,7 @@ public class ElasticsearchController {
         List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
         breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/elasticsearch/" + id + "/indices"));
         breadcrumbs.add(new BreadcrumbItem(indexName != null ? indexName : "", null));
-        breadcrumbs.add(new BreadcrumbItem("search", null));
+        breadcrumbs.add(new BreadcrumbItem("search", null, false));
         ControllerModelHelper.addBreadcrumbs(model, breadcrumbs);
         model.put("connectionId", id);
         model.put("indexName", indexName != null ? indexName : "");
@@ -178,7 +178,7 @@ public class ElasticsearchController {
         breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/elasticsearch/" + id + "/indices"));
         breadcrumbs.add(new BreadcrumbItem(indexName != null ? indexName : "",
                 "/elasticsearch/" + id + "/indices/" + (indexName != null ? encodePath(indexName) : "") + "/search"));
-        breadcrumbs.add(new BreadcrumbItem("detail", null));
+        breadcrumbs.add(new BreadcrumbItem("detail", null, false));
         ControllerModelHelper.addBreadcrumbs(model, breadcrumbs);
         model.put("connectionId", id);
         model.put("indexName", indexName != null ? indexName : "");
@@ -236,7 +236,7 @@ public class ElasticsearchController {
             breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/elasticsearch/" + id + "/indices"));
             breadcrumbs.add(new BreadcrumbItem(indexName != null ? indexName : "",
                     "/elasticsearch/" + id + "/indices/" + (indexName != null ? encodePath(indexName) : "") + "/search"));
-            breadcrumbs.add(new BreadcrumbItem("detail", null));
+            breadcrumbs.add(new BreadcrumbItem("detail", null, false));
             ControllerModelHelper.addBreadcrumbs(model, breadcrumbs);
             model.put("connectionId", id);
             model.put("indexName", indexName != null ? indexName : "");

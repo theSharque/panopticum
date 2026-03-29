@@ -151,7 +151,7 @@ public class CassandraController {
         List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
         breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/cassandra/" + id));
         breadcrumbs.add(new BreadcrumbItem(keyspaceName, "/cassandra/" + id + "/" + keyspaceName));
-        breadcrumbs.add(new BreadcrumbItem("CQL", null));
+        breadcrumbs.add(new BreadcrumbItem("CQL", null, false));
         ControllerModelHelper.addBreadcrumbs(model, breadcrumbs);
         model.put("connectionId", id);
         model.put("keyspaceName", keyspaceName);
@@ -256,7 +256,7 @@ public class CassandraController {
         List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
         breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/cassandra/" + id));
         breadcrumbs.add(new BreadcrumbItem(keyspaceName != null ? keyspaceName : "", "/cassandra/" + id + "/" + (keyspaceName != null ? keyspaceName : "")));
-        breadcrumbs.add(new BreadcrumbItem("detail", null));
+        breadcrumbs.add(new BreadcrumbItem("detail", null, false));
         ControllerModelHelper.addBreadcrumbs(model, breadcrumbs);
         model.put("connectionId", id);
         model.put("keyspaceName", keyspaceName != null ? keyspaceName : "");

@@ -172,7 +172,7 @@ public class ClickHouseController {
         List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
         breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/clickhouse/" + id));
         breadcrumbs.add(new BreadcrumbItem(dbName, "/clickhouse/" + id + "/" + dbName));
-        breadcrumbs.add(new BreadcrumbItem("sql", null));
+        breadcrumbs.add(new BreadcrumbItem("sql", null, false));
         ControllerModelHelper.addBreadcrumbs(model, breadcrumbs);
         model.put("connectionId", id);
         model.put("dbName", dbName);
@@ -306,7 +306,7 @@ public class ClickHouseController {
         if (tableClean != null && !tableClean.isBlank()) {
             breadcrumbs.add(new BreadcrumbItem(tableClean, "/clickhouse/" + id + "/" + dbName + "/" + tableClean));
         }
-        breadcrumbs.add(new BreadcrumbItem("detail", null));
+        breadcrumbs.add(new BreadcrumbItem("detail", null, false));
         ControllerModelHelper.addBreadcrumbs(model, breadcrumbs);
         model.put("connectionId", id);
         model.put("dbName", dbName != null ? dbName : "");

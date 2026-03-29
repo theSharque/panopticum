@@ -183,7 +183,7 @@ public class OracleController {
         List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
         breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/oracle/" + id));
         breadcrumbs.add(new BreadcrumbItem(schemaClean != null ? schemaClean : "", "/oracle/" + id + "/" + (schemaClean != null ? schemaClean : "")));
-        breadcrumbs.add(new BreadcrumbItem("sql", null));
+        breadcrumbs.add(new BreadcrumbItem("sql", null, false));
         ControllerModelHelper.addBreadcrumbs(model, breadcrumbs);
         model.put("connectionId", id);
         model.put("schema", schemaClean != null ? schemaClean : "");
@@ -327,7 +327,7 @@ public class OracleController {
         if (tableLabel != null && !tableLabel.isBlank()) {
             breadcrumbs.add(new BreadcrumbItem(tableLabel, "/oracle/" + id + "/" + (schemaClean != null ? schemaClean : "") + "/" + tableLabel));
         }
-        breadcrumbs.add(new BreadcrumbItem("detail", null));
+        breadcrumbs.add(new BreadcrumbItem("detail", null, false));
         ControllerModelHelper.addBreadcrumbs(model, breadcrumbs);
         model.put("connectionId", id);
         model.put("schema", schemaClean != null ? schemaClean : "");

@@ -3,8 +3,7 @@
 <body>
 <div th:fragment="breadcrumbs(items)" class="breadcrumbs-bar">
     <button type="button" class="breadcrumbs-copy-btn" th:if="${breadcrumbPath != null and !breadcrumbPath.isEmpty()}"
-            th:attr="data-copy-text=${breadcrumbPath}"
-            aria-label="Copy breadcrumb path" title="Copy path">
+            th:attr="data-copy-text=${breadcrumbPath}, aria-label=${msg['common.copyPath']}, title=${msg['common.copyPath']}">
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
              class="breadcrumbs-copy-btn-icon-copy" aria-hidden="true">
