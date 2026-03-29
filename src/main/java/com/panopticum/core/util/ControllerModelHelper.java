@@ -42,6 +42,7 @@ public class ControllerModelHelper {
             return "";
         }
         return breadcrumbs.stream()
+                .filter(BreadcrumbItem::isIncludeInCopyPath)
                 .map(b -> b.getLabel() != null ? b.getLabel() : "")
                 .collect(Collectors.joining("/"));
     }

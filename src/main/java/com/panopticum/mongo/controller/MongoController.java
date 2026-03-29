@@ -153,7 +153,7 @@ public class MongoController {
                 ? "/mongo/" + id + "/" + dbName + "/" + collection + "/query"
                 : null;
         breadcrumbs.add(new BreadcrumbItem(collection != null ? collection : "", collectionUrl));
-        breadcrumbs.add(new BreadcrumbItem("query", null));
+        breadcrumbs.add(new BreadcrumbItem("query", null, false));
         ControllerModelHelper.addBreadcrumbs(model, breadcrumbs);
         model.put("connectionId", id);
         model.put("dbName", dbName);
@@ -223,7 +223,7 @@ public class MongoController {
                 ? "/mongo/" + id + "/" + dbName + "/" + collection + "/query"
                 : null;
         breadcrumbs.add(new BreadcrumbItem(collection != null ? collection : "", collectionDetailUrl));
-        breadcrumbs.add(new BreadcrumbItem("detail", null));
+        breadcrumbs.add(new BreadcrumbItem("detail", null, false));
         ControllerModelHelper.addBreadcrumbs(model, breadcrumbs);
         model.put("connectionId", id);
         model.put("dbName", dbName);
@@ -276,7 +276,7 @@ public class MongoController {
                     ? "/mongo/" + id + "/" + dbName + "/" + collection + "/query"
                     : null;
             breadcrumbs.add(new BreadcrumbItem(collection != null ? collection : "", collectionDetailUrl));
-            breadcrumbs.add(new BreadcrumbItem("detail", null));
+            breadcrumbs.add(new BreadcrumbItem("detail", null, false));
             ControllerModelHelper.addBreadcrumbs(model, breadcrumbs);
             model.put("connectionId", id);
             model.put("dbName", dbName);

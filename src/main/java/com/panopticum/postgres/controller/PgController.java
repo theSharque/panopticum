@@ -215,12 +215,13 @@ public class PgController {
         String tableLabel = qualifiedTable
                 .map(PgController::simpleTableName)
                 .orElse("sql");
+        boolean copyTableCrumb = qualifiedTable.isPresent();
 
         List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
         breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/pg/" + id));
         breadcrumbs.add(new BreadcrumbItem(dbName, "/pg/" + id + "/" + dbName));
         breadcrumbs.add(new BreadcrumbItem(schemaClean != null ? schemaClean : "", "/pg/" + id + "/" + dbName + "/" + (schemaClean != null ? schemaClean : "")));
-        breadcrumbs.add(new BreadcrumbItem(tableLabel, null));
+        breadcrumbs.add(new BreadcrumbItem(tableLabel, null, copyTableCrumb));
         ControllerModelHelper.addBreadcrumbs(model, breadcrumbs);
         model.put("connectionId", id);
         model.put("dbName", dbName);
@@ -369,7 +370,7 @@ public class PgController {
         if (tableLabel != null && !tableLabel.isBlank()) {
             breadcrumbs.add(new BreadcrumbItem(tableLabel, "/pg/" + id + "/" + dbName + "/" + schemaClean + "/" + tableLabel));
         }
-        breadcrumbs.add(new BreadcrumbItem("detail", null));
+        breadcrumbs.add(new BreadcrumbItem("detail", null, false));
         ControllerModelHelper.addBreadcrumbs(model, breadcrumbs);
         model.put("connectionId", id);
         model.put("dbName", dbName != null ? dbName : "");

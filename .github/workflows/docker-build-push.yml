@@ -13,7 +13,7 @@ jobs:
   build-and-push:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       packages: write
       attestations: write
       id-token: write
@@ -77,3 +77,28 @@ jobs:
           subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           subject-digest: ${{ steps.push.outputs.digest }}
           push-to-registry: true
+
+      - name: Write release header
+        run: |
+          tag="${{ github.ref_name }}"
+          repo="${{ github.repository }}"
+          digest="${{ steps.push.outputs.digest }}"
+          {
+            echo "## Container images"
+            echo ""
+            echo "- **GHCR:** \`ghcr.io/${repo}:${tag}\`"
+            if [ "${{ vars.ENABLE_DOCKERHUB }}" = "true" ]; then
+              echo "- **Docker Hub:** \`${{ secrets.DOCKERHUB_USERNAME }}/panopticum:${tag}\`"
+            fi
+            echo "- **Digest:** \`${digest}\`"
+            echo ""
+            echo "[GHCR package](https://github.com/${repo}/pkgs/container/panopticum)"
+            echo ""
+          } > release-header.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          generate_release_notes: true
+          body_path: release-header.md

@@ -230,7 +230,7 @@ public class MssqlController {
         breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/mssql/" + id));
         breadcrumbs.add(new BreadcrumbItem(dbNameClean != null ? dbNameClean : "", "/mssql/" + id + "/" + (dbNameClean != null ? dbNameClean : "")));
         breadcrumbs.add(new BreadcrumbItem(schemaClean != null ? schemaClean : "", "/mssql/" + id + "/" + (dbNameClean != null ? dbNameClean : "") + "/" + (schemaClean != null ? schemaClean : "")));
-        breadcrumbs.add(new BreadcrumbItem("sql", null));
+        breadcrumbs.add(new BreadcrumbItem("sql", null, false));
         ControllerModelHelper.addBreadcrumbs(model, breadcrumbs);
         model.put("connectionId", id);
         model.put("dbName", dbNameClean != null ? dbNameClean : "");
@@ -380,7 +380,7 @@ public class MssqlController {
         if (tableLabel != null && !tableLabel.isBlank()) {
             breadcrumbs.add(new BreadcrumbItem(tableLabel, "/mssql/" + id + "/" + (dbNameClean != null ? dbNameClean : "") + "/" + (schemaClean != null ? schemaClean : "") + "/" + tableLabel));
         }
-        breadcrumbs.add(new BreadcrumbItem("detail", null));
+        breadcrumbs.add(new BreadcrumbItem("detail", null, false));
         ControllerModelHelper.addBreadcrumbs(model, breadcrumbs);
         model.put("connectionId", id);
         model.put("dbName", dbNameClean != null ? dbNameClean : "");
