@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Panopticum README
+    url: https://github.com/theSharque/panopticum/blob/main/README.md
+    about: Install, configuration, and supported databases

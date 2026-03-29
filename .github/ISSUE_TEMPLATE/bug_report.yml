@@ -1,0 +1,87 @@
+name: Bug report
+description: Something does not work as expected
+title: "[Bug] "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please replace the title prefix with a short summary after you submit.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What went wrong in one or two sentences?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Exact clicks, URLs, queries, or API calls. Redact secrets.
+      placeholder: |
+        1. …
+        2. …
+        3. …
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Error message, stack trace, HTTP status, or screenshot description.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Web UI
+        - REST API / OpenAPI
+        - MCP
+        - Connection / JDBC driver
+        - Kubernetes / Helm / Docker
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: database
+    attributes:
+      label: Database type (if relevant)
+      options:
+        - Not applicable
+        - PostgreSQL / CockroachDB / YugabyteDB
+        - MySQL / MariaDB
+        - MS SQL Server
+        - Oracle
+        - MongoDB
+        - Redis / Valkey / Dragonfly / KeyDB
+        - ClickHouse
+        - Cassandra
+        - Elasticsearch
+        - Kafka
+        - Other / multiple
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Panopticum version or image tag
+      description: e.g. git SHA, `v6.3.0`, `ghcr.io/.../panopticum:latest`
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Runtime
+      description: OS, JDK if local build, Kubernetes version, browser if UI.
+    validations:
+      required: false
