@@ -1,0 +1,40 @@
+<div xmlns:th="http://www.thymeleaf.org" id="form-kubernetes" class="connection-form-block" hidden th:fragment="form-kubernetes">
+    <form id="connection-form-kubernetes" action="/settings/add-kubernetes" method="post" class="add-connection-form"
+          hx-post="/settings/add-kubernetes"
+          hx-target="#sidebar"
+          hx-swap="outerHTML">
+        <input type="hidden" name="id" th:if="${editingConnection != null}" th:value="${editingConnection != null ? editingConnection.id : null}">
+        <div class="form-group">
+            <label for="name-kubernetes" th:text="${msg['common.name']}">Name</label>
+            <input type="text" id="name-kubernetes" name="name" required th:attr="placeholder=${msg['settings.placeholderNameKubernetes']}" th:value="${editingConnection != null ? editingConnection.name : null}">
+        </div>
+        <div class="form-group">
+            <label for="host-kubernetes" th:text="${msg['settings.kubernetesApiServerUrl']}">API server URL</label>
+            <input type="text" id="host-kubernetes" name="host" required th:attr="placeholder=${msg['settings.placeholderKubernetesHost']}" th:value="${editingConnection != null ? editingConnection.host : null}">
+        </div>
+        <div class="form-group">
+            <label for="port-kubernetes" th:text="${msg['settings.port']}">Port</label>
+            <input type="number" id="port-kubernetes" name="port" th:attr="placeholder=${msg['settings.placeholderKubernetesPort']}" th:value="${editingConnection != null ? editingConnection.port : 443}">
+        </div>
+        <div class="form-group">
+            <label for="database-kubernetes" th:text="${msg['settings.kubernetesNamespaces']}">Namespaces</label>
+            <input type="text" id="database-kubernetes" name="database" required th:attr="placeholder=${msg['settings.placeholderKubernetesNamespaces']}" th:value="${editingConnection != null ? editingConnection.dbName : null}">
+        </div>
+        <div class="form-group">
+            <label for="password-kubernetes" th:text="${msg['settings.kubernetesToken']}">Token</label>
+            <input type="password" id="password-kubernetes" name="password" autocomplete="off" th:value="${editingConnection != null ? editingConnection.password : null}">
+        </div>
+        <div class="form-actions">
+            <span id="test-indicator-kubernetes" class="connection-test-indicator" aria-hidden="true" th:text="${msg['settings.testing']}">Checking...</span>
+            <button type="button" class="btn-check"
+                    hx-post="/settings/test-kubernetes"
+                    hx-include="#connection-form-kubernetes"
+                    hx-target="#connection-test-result-kubernetes"
+                    hx-swap="innerHTML show:bottom"
+                    hx-indicator="#test-indicator-kubernetes"
+                    th:text="${msg['settings.test']}">Test</button>
+            <button type="submit" th:text="${editingConnection != null ? msg['settings.save'] : msg['settings.add']}">Add</button>
+        </div>
+        <div id="connection-test-result-kubernetes" class="connection-test-result"></div>
+    </form>
+</div>

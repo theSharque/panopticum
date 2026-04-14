@@ -35,6 +35,13 @@ public class MessagesSettings {
             Map.entry("settings.placeholderNameRabbitmq", "e.g. Production RabbitMQ"),
             Map.entry("settings.placeholderNameKafka", "e.g. Local Kafka"),
             Map.entry("settings.placeholderNameElasticsearch", "e.g. Production Elasticsearch"),
+            Map.entry("settings.placeholderNameKubernetes", "e.g. Dev cluster"),
+            Map.entry("settings.kubernetesApiServerUrl", "API server URL"),
+            Map.entry("settings.placeholderKubernetesHost", "https://cluster.example/k8s/clusters/local"),
+            Map.entry("settings.placeholderKubernetesPort", "443 (optional if URL is full)"),
+            Map.entry("settings.kubernetesNamespaces", "Namespaces (comma-separated)"),
+            Map.entry("settings.placeholderKubernetesNamespaces", "ns1, ns2"),
+            Map.entry("settings.kubernetesToken", "Bearer token"),
             Map.entry("settings.vhost", "VHost"),
             Map.entry("settings.adminLockEnabled", "Editing connections is disabled by ADMIN_LOCK.")
     );
@@ -67,6 +74,13 @@ public class MessagesSettings {
             Map.entry("settings.placeholderNameRabbitmq", "Например: Production RabbitMQ"),
             Map.entry("settings.placeholderNameKafka", "Например: Local Kafka"),
             Map.entry("settings.placeholderNameElasticsearch", "Например: Production Elasticsearch"),
+            Map.entry("settings.placeholderNameKubernetes", "Например: Dev cluster"),
+            Map.entry("settings.kubernetesApiServerUrl", "URL API-сервера"),
+            Map.entry("settings.placeholderKubernetesHost", "https://cluster.example/k8s/clusters/local"),
+            Map.entry("settings.placeholderKubernetesPort", "443 (если URL полный — необязательно)"),
+            Map.entry("settings.kubernetesNamespaces", "Namespace (через запятую)"),
+            Map.entry("settings.placeholderKubernetesNamespaces", "ns1, ns2"),
+            Map.entry("settings.kubernetesToken", "Bearer-токен"),
             Map.entry("settings.vhost", "VHost"),
             Map.entry("settings.adminLockEnabled", "Изменение подключений отключено (ADMIN_LOCK).")
     );

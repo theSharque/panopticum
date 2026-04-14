@@ -12,7 +12,7 @@ import lombok.Data;
 public class ConnectionRequest {
 
     @NotBlank
-    @Schema(description = "Connection type: postgresql, mysql, mssql, oracle, mongodb, redis, clickhouse, cassandra, kafka, rabbitmq, elasticsearch", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "Connection type: postgresql, mysql, mssql, oracle, mongodb, redis, clickhouse, cassandra, kafka, rabbitmq, elasticsearch, kubernetes", requiredMode = Schema.RequiredMode.REQUIRED)
     private String type;
 
     @NotBlank

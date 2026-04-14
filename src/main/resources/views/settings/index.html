@@ -25,6 +25,7 @@
                 <option value="rabbitmq">RabbitMQ</option>
                 <option value="kafka">Kafka</option>
                 <option value="elasticsearch">Elasticsearch / OpenSearch</option>
+                <option value="kubernetes">Kubernetes</option>
             </select>
         </div>
 
@@ -39,6 +40,7 @@
         <div th:replace="~{settings/fragments/form-rabbitmq :: form-rabbitmq}"></div>
         <div th:replace="~{settings/fragments/form-kafka :: form-kafka}"></div>
         <div th:replace="~{settings/fragments/form-elasticsearch :: form-elasticsearch}"></div>
+        <div th:replace="~{settings/fragments/form-kubernetes :: form-kubernetes}"></div>
 
         <script>
             (function () {
@@ -60,6 +62,7 @@
                     document.getElementById('form-rabbitmq').hidden = type !== 'rabbitmq';
                     document.getElementById('form-kafka').hidden = type !== 'kafka';
                     document.getElementById('form-elasticsearch').hidden = type !== 'elasticsearch';
+                    document.getElementById('form-kubernetes').hidden = type !== 'kubernetes';
                 }
                 select.addEventListener('change', handleChange);
                 if (initial) {

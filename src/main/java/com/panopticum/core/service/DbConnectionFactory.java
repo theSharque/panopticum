@@ -18,6 +18,7 @@ public class DbConnectionFactory {
     private static final int PORT_RABBITMQ = 15672;
     private static final int PORT_KAFKA = 9092;
     private static final int PORT_ELASTICSEARCH = 9200;
+    private static final int PORT_KUBERNETES = 443;
 
     public DbConnection build(String type, String name, String host, Integer port,
                              String database, String username, String password) {
@@ -34,7 +35,7 @@ public class DbConnectionFactory {
                     .build();
         }
         int defaultPort = defaultPortForType(type);
-        int p = port != null ? port : defaultPort;
+        int p = (port != null && port > 0) ? port : defaultPort;
         String db = database != null ? database : defaultDatabaseForType(type);
         String user = username != null ? username : "";
         if ("redis".equalsIgnoreCase(type)) {
@@ -72,6 +73,7 @@ public class DbConnectionFactory {
             case "rabbitmq" -> PORT_RABBITMQ;
             case "kafka" -> PORT_KAFKA;
             case "elasticsearch" -> PORT_ELASTICSEARCH;
+            case "kubernetes" -> PORT_KUBERNETES;
             default -> PORT_POSTGRESQL;
         };
     }
@@ -87,6 +89,7 @@ public class DbConnectionFactory {
             case "oracle" -> "XEPDB1";
             case "rabbitmq" -> "/";
             case "kafka" -> "";
+            case "kubernetes" -> "";
             default -> "";
         };
     }

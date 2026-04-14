@@ -80,6 +80,7 @@ dependencies {
     implementation("com.datastax.oss:java-driver-core:4.17.0")
     implementation("org.apache.kafka:kafka-clients:3.7.0")
     runtimeOnly("org.yaml:snakeyaml:2.2")
+    implementation("io.fabric8:kubernetes-client:6.13.4")
 }
 
 application {

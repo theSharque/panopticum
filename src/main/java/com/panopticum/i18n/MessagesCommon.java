@@ -72,7 +72,22 @@ public class MessagesCommon {
             Map.entry("diff.compare", "Compare"),
             Map.entry("diff.title", "Data comparison"),
             Map.entry("diff.clear", "Clear"),
-            Map.entry("diff.empty", "No items to compare.")
+            Map.entry("diff.empty", "No items to compare."),
+            Map.entry("kubernetes.namespaceCsvRequired", "Specify at least one namespace (comma-separated)."),
+            Map.entry("kubernetes.serverUrlRequired", "Specify API server URL."),
+            Map.entry("kubernetes.tokenRequired", "Specify bearer token."),
+            Map.entry("kubernetes.namespaceForbidden", "Access denied to one of the namespaces (pods list)."),
+            Map.entry("kubernetes.namespaceNotFound", "Namespace not found or not accessible."),
+            Map.entry("kubernetes.connectionFailed", "Kubernetes connection failed."),
+            Map.entry("kubernetes.unauthorized", "Unauthorized (check token)."),
+            Map.entry("kubernetes.forbidden", "Forbidden."),
+            Map.entry("kubernetes.clientError", "Kubernetes API error."),
+            Map.entry("kubernetes.namespaceAndPodRequired", "Namespace and pod name are required."),
+            Map.entry("kubernetes.namespaceNotAllowed", "Namespace is not allowed for this connection."),
+            Map.entry("kubernetes.connectionInvalid", "Connection settings are invalid."),
+            Map.entry("kubernetes.podNotFound", "Pod not found."),
+            Map.entry("kubernetes.namespaceRequired", "Namespace is required."),
+            Map.entry("kubernetes.podNameRequired", "Pod name is required.")
     );
 
     public static final Map<String, String> RU = Map.ofEntries(
@@ -140,6 +155,21 @@ public class MessagesCommon {
             Map.entry("diff.compare", "Сравнение"),
             Map.entry("diff.title", "Сравнение данных"),
             Map.entry("diff.clear", "Очистить"),
-            Map.entry("diff.empty", "Нет элементов для сравнения.")
+            Map.entry("diff.empty", "Нет элементов для сравнения."),
+            Map.entry("kubernetes.namespaceCsvRequired", "Укажите хотя бы один namespace (через запятую)."),
+            Map.entry("kubernetes.serverUrlRequired", "Укажите URL API-сервера."),
+            Map.entry("kubernetes.tokenRequired", "Укажите bearer-токен."),
+            Map.entry("kubernetes.namespaceForbidden", "Нет доступа к одному из namespace (список pod)."),
+            Map.entry("kubernetes.namespaceNotFound", "Namespace не найден или недоступен."),
+            Map.entry("kubernetes.connectionFailed", "Ошибка подключения к Kubernetes."),
+            Map.entry("kubernetes.unauthorized", "Не авторизован (проверьте токен)."),
+            Map.entry("kubernetes.forbidden", "Доступ запрещён."),
+            Map.entry("kubernetes.clientError", "Ошибка API Kubernetes."),
+            Map.entry("kubernetes.namespaceAndPodRequired", "Нужны namespace и имя pod."),
+            Map.entry("kubernetes.namespaceNotAllowed", "Namespace не разрешён для этого подключения."),
+            Map.entry("kubernetes.connectionInvalid", "Некорректные настройки подключения."),
+            Map.entry("kubernetes.podNotFound", "Pod не найден."),
+            Map.entry("kubernetes.namespaceRequired", "Нужен namespace."),
+            Map.entry("kubernetes.podNameRequired", "Нужно имя pod.")
     );
 }

@@ -4,8 +4,8 @@ A tool for developers and QA — web interface for viewing and managing database
 
 ## What it does
 
-- **Connect** to PostgreSQL, MySQL, MongoDB, Redis, ClickHouse, Kafka, Elasticsearch, and [many more](#supported-databases)
-- **Browse** schemas, tables, keys, topics — with pagination and tree view
+- **Connect** to PostgreSQL, MySQL, MongoDB, Redis, ClickHouse, Kafka, Elasticsearch, Kubernetes API, and [many more](#supported-databases)
+- **Browse** schemas, tables, keys, topics — with pagination and tree view; **Kubernetes**: namespaces (configured list), pods, **tail** pod logs (read-only)
 - **Query** — run SQL, CQL, MQL; view and edit rows
 - **Compare** — Data Diff for records across Dev / Stage / Prod
 - **Integrate** — MCP endpoint for AI agents (Cursor, Claude Desktop)
@@ -82,6 +82,7 @@ For Helm: use a Secret with `valueFrom.secretKeyRef` if the JSON contains passwo
 | **RabbitMQ** | Browse queues; peek messages |
 | **Kafka** | Browse topics; peek records |
 | **Elasticsearch / OpenSearch** | Browse indices; Query DSL; edit by _id |
+| **Kubernetes** | API server URL + bearer token; namespaces (comma-separated); browse pods; tail last *N* log lines (newest-first in the UI). Read-only (no exec, no stream/follow in MVP) |
 
 ## MCP (AI agents)
 
@@ -103,6 +104,8 @@ MCP-compatible endpoint at `POST /mcp` for Cursor, Claude Desktop, etc. Same HTT
 Replace `YWRtaW46YWRtaW4=` with Base64 of `username:password` (`echo -n "admin:changeme" | base64`).
 
 Tools: `list-data-sources`, `list-catalogs`, `list-namespaces`, `list-entities`, `query-data`, `get-record-detail`.
+
+For **Kubernetes** connections: `list-catalogs` returns configured namespaces; `list-namespaces` is not applicable; `list-entities` uses `catalog` = namespace and returns pods; `query-data` uses `catalog` = namespace, `entity` = pod name, `query` = tail line count (number as text). Same Basic Auth and stored credentials as the UI.
 
 ## Stack
 

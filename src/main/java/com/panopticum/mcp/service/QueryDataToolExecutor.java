@@ -86,6 +86,7 @@ public class QueryDataToolExecutor implements McpToolExecutor {
             case "mongodb" -> "mql-json";
             case "cassandra" -> "cql";
             case "kafka" -> "json";
+            case "kubernetes" -> "tail";
             case "redis" -> "pattern";
             case "elasticsearch" -> "json";
             default -> "sql";

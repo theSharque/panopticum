@@ -4,8 +4,8 @@
 
 ## Возможности
 
-- **Подключение** к PostgreSQL, MySQL, MongoDB, Redis, ClickHouse, Kafka, Elasticsearch и [другим БД](#поддерживаемые-бд)
-- **Просмотр** схем, таблиц, ключей, топиков — с пагинацией и деревом
+- **Подключение** к PostgreSQL, MySQL, MongoDB, Redis, ClickHouse, Kafka, Elasticsearch, API Kubernetes и [другим источникам](#поддерживаемые-бд)
+- **Просмотр** схем, таблиц, ключей, топиков — с пагинацией и деревом; **Kubernetes**: namespace (из заданного списка), pod-ы, **tail** логов контейнера (только чтение)
 - **Запросы** — SQL, CQL, MQL; просмотр и редактирование строк
 - **Сравнение** — Data Diff для записей между Dev / Stage / Prod
 - **Интеграция** — MCP endpoint для AI-агентов (Cursor, Claude Desktop)
@@ -82,6 +82,7 @@ helm install my-panopticum panopticum/panopticum
 | **RabbitMQ** | Просмотр очередей; peek сообщений |
 | **Kafka** | Просмотр топиков; peek записей |
 | **Elasticsearch / OpenSearch** | Просмотр индексов; Query DSL; редактирование по _id |
+| **Kubernetes** | URL API-сервера + bearer-токен; namespace через запятую; просмотр pod-ов; tail последних *N* строк логов (в UI сверху — более новые). Только чтение (без exec, без streaming/follow в MVP) |
 
 ## MCP (AI-агенты)
 
@@ -103,6 +104,8 @@ MCP-совместимый endpoint `POST /mcp` для Cursor, Claude Desktop и
 Замените `YWRtaW46YWRtaW4=` на Base64 от `username:password` (`echo -n "admin:changeme" | base64`).
 
 Tools: `list-data-sources`, `list-catalogs`, `list-namespaces`, `list-entities`, `query-data`, `get-record-detail`.
+
+Для подключений **Kubernetes**: `list-catalogs` отдаёт настроенные namespace; `list-namespaces` не применяется; `list-entities` — в `catalog` передаётся namespace, в ответе список pod-ов; `query-data` — `catalog` = namespace, `entity` = имя pod, `query` = число строк tail (строкой). Те же Basic Auth и сохранённые учётные данные, что и в UI.
 
 ## Стек
 

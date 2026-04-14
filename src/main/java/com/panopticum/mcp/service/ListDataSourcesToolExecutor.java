@@ -76,6 +76,7 @@ public class ListDataSourcesToolExecutor implements McpToolExecutor {
             case "mongodb", "elasticsearch" -> "json";
             case "cassandra" -> "cql";
             case "kafka" -> "json";
+            case "kubernetes" -> "tail";
             case "redis" -> "pattern";
             default -> "sql";
         };
@@ -89,6 +90,7 @@ public class ListDataSourcesToolExecutor implements McpToolExecutor {
             case "postgresql", "sqlserver" -> "catalog.namespace.entity";
             case "oracle" -> "namespace.entity";
             case "kafka" -> "catalog.entity";
+            case "kubernetes" -> "catalog.entity";
             case "redis" -> "catalog";
             case "elasticsearch" -> "catalog";
             default -> "catalog.entity";

@@ -9,6 +9,7 @@ import com.panopticum.mysql.service.MySqlMetadataService;
 import com.panopticum.postgres.service.PgMetadataService;
 import com.panopticum.elasticsearch.service.ElasticsearchService;
 import com.panopticum.kafka.service.KafkaService;
+import com.panopticum.kubernetes.service.KubernetesService;
 import com.panopticum.rabbitmq.service.RabbitMqService;
 import com.panopticum.redis.service.RedisMetadataService;
 
@@ -34,6 +35,7 @@ public class ConnectionTestService {
     private final RabbitMqService rabbitMqService;
     private final KafkaService kafkaService;
     private final ElasticsearchService elasticsearchService;
+    private final KubernetesService kubernetesService;
 
     public Optional<String> test(String type, String host, Integer port, String database,
                                 String username, String password, Optional<Long> connectionId) {
@@ -78,6 +80,7 @@ public class ConnectionTestService {
                 yield err;
             }
             case "elasticsearch" -> elasticsearchService.testConnection(connectionId, h, p, user, pass);
+            case "kubernetes" -> kubernetesService.testConnection(h, p, db, pass);
             default -> Optional.of("error.specifyHostDbUser");
         };
     }
@@ -98,6 +101,7 @@ public class ConnectionTestService {
             case "rabbitmq" -> 15672;
             case "kafka" -> 9092;
             case "elasticsearch" -> 9200;
+            case "kubernetes" -> 443;
             default -> 5432;
         };
     }

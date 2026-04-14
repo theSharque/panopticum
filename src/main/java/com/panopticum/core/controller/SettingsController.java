@@ -327,6 +327,29 @@ public class SettingsController {
         return responseAfterAdd(request, model, conn.getId(), "/elasticsearch/" + conn.getId() + "/indices");
     }
 
+    @Post("/add-kubernetes")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @Produces(MediaType.TEXT_HTML)
+    public Object addKubernetes(HttpRequest<?> request,
+                                String name, String host, Integer port, String database, String password,
+                                Optional<Long> id) {
+        assertNotLocked();
+        DbConnection conn = saveOrUpdate("kubernetes", id, name, host, port, database, null, password);
+        Map<String, Object> model = new HashMap<>();
+        model.put("connections", dbConnectionService.findAll());
+
+        return responseAfterAdd(request, model, conn.getId(), "/kubernetes/" + conn.getId() + "/namespaces");
+    }
+
+    @Post("/test-kubernetes")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @Produces(MediaType.TEXT_HTML)
+    public ModelAndView<Map<String, Object>> testKubernetes(HttpRequest<?> request,
+            String host, Integer port, String database, String password,
+            Optional<Long> id) {
+        return testConnectionResult(request, "kubernetes", host, port, database, null, password, id);
+    }
+
     @Post("/test-elasticsearch")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces(MediaType.TEXT_HTML)

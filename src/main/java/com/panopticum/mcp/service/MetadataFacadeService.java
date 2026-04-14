@@ -16,6 +16,9 @@ import com.panopticum.elasticsearch.service.ElasticsearchService;
 import com.panopticum.kafka.model.KafkaPartitionInfo;
 import com.panopticum.kafka.model.KafkaTopicInfo;
 import com.panopticum.kafka.service.KafkaService;
+import com.panopticum.kubernetes.model.KubernetesPodInfo;
+import com.panopticum.kubernetes.service.KubernetesService;
+import com.panopticum.kubernetes.util.KubernetesNamespaceCsv;
 import com.panopticum.mongo.model.MongoCollectionInfo;
 import com.panopticum.mongo.service.MongoMetadataService;
 import com.panopticum.mssql.service.MssqlMetadataService;
@@ -52,6 +55,7 @@ public class MetadataFacadeService {
     private final KafkaService kafkaService;
     private final RedisMetadataService redisMetadataService;
     private final ElasticsearchService elasticsearchService;
+    private final KubernetesService kubernetesService;
 
     public Optional<DbConnection> getConnection(Long connectionId) {
         return dbConnectionService.findById(connectionId);
@@ -83,6 +87,8 @@ public class MetadataFacadeService {
                 case "kafka" -> toKafkaTopicCatalogPage(kafkaService.listTopicsPaged(connectionId, page, size, sort, order));
                 case "redis" -> toRedisDbCatalogPage(redisMetadataService.listDatabasesSorted(connectionId, sort != null ? sort : "dbIndex", order != null ? order : "asc"), page, size);
                 case "elasticsearch" -> toElasticsearchIndexCatalogPage(elasticsearchService.listIndicesPaged(connectionId, page, size, sort, order));
+                case "kubernetes" -> toKubernetesNamespaceCatalogPage(
+                        kubernetesService.listNamespacesPaged(connectionId, page, size, sort, order));
                 default -> errorResult("Unsupported dbType: " + type);
             };
         } catch (Exception e) {
@@ -104,7 +110,7 @@ public class MetadataFacadeService {
                 case "postgresql" -> toNamespacePage(pgMetadataService.listSchemasPaged(connectionId, catalog != null ? catalog : "", page, size, sort, order), false);
                 case "sqlserver" -> toNamespacePage(mssqlMetadataService.listSchemasPaged(connectionId, catalog != null ? catalog : "", page, size, sort, order), false);
                 case "oracle" -> toNamespacePage(oracleMetadataService.listSchemasPaged(connectionId, page, size, sort, order), true);
-                case "mysql", "clickhouse", "mongodb", "cassandra", "kafka", "redis", "elasticsearch" -> notApplicableResult();
+                case "mysql", "clickhouse", "mongodb", "cassandra", "kafka", "redis", "elasticsearch", "kubernetes" -> notApplicableResult();
                 default -> errorResult("Unsupported dbType: " + type);
             };
         } catch (Exception e) {
@@ -139,6 +145,9 @@ public class MetadataFacadeService {
                 case "mongodb" -> toMongoEntityPage(mongoMetadataService.listCollectionsPaged(connectionId, cat, page, size, sort, order), cat);
                 case "cassandra" -> toCassandraEntityPage(cassandraMetadataService.listTablesPaged(connectionId, cat, page, size, sort, order), cat);
                 case "kafka" -> cat.isBlank() ? emptyEntityPage("", "") : toKafkaPartitionEntityPage(kafkaService.getPartitions(connectionId, cat), cat, page, size);
+                case "kubernetes" -> cat.isBlank()
+                        ? errorResult("kubernetes.namespaceRequired")
+                        : toKubernetesPodEntityPage(kubernetesService.listPodsPaged(connectionId, cat, page, size, sort, order), cat);
                 case "redis", "elasticsearch" -> notApplicableResult();
                 default -> errorResult("Unsupported dbType: " + type);
             };
@@ -182,6 +191,15 @@ public class MetadataFacadeService {
                     }
                     String dsl = (query != null && !query.isBlank()) ? query.trim() : "{\"query\":{\"match_all\":{}}}";
                     yield elasticsearchService.executeQuery(connectionId, index, dsl, offset, limit);
+                }
+                case "kubernetes" -> {
+                    if (cat == null || cat.isBlank()) {
+                        yield Optional.of(QueryResult.error("kubernetes.namespaceRequired"));
+                    }
+                    if (entity == null || entity.isBlank()) {
+                        yield Optional.of(QueryResult.error("kubernetes.podNameRequired"));
+                    }
+                    yield Optional.of(kubernetesService.tailPodLogsForMcp(connectionId, cat, entity, query, offset, limit));
                 }
                 default -> Optional.empty();
             };
@@ -244,6 +262,10 @@ public class MetadataFacadeService {
             case "clickhouse" -> "default";
             case "sqlserver" -> "master";
             case "oracle" -> conn.getUsername() != null && !conn.getUsername().isBlank() ? conn.getUsername() : "";
+            case "kubernetes" -> {
+                List<String> nss = KubernetesNamespaceCsv.parse(conn.getDbName());
+                yield nss.isEmpty() ? "" : nss.get(0);
+            }
             default -> conn.getDbName() != null ? conn.getDbName() : "";
         };
     }
@@ -452,6 +474,36 @@ public class MetadataFacadeService {
                 "page", page,
                 "size", limit,
                 "hasMore", offset + items.size() < sorted.size()));
+        return out;
+    }
+
+    private Map<String, Object> toKubernetesNamespaceCatalogPage(Page<String> page) {
+        List<Map<String, Object>> items = new ArrayList<>();
+        for (String ns : page.getItems()) {
+            Map<String, Object> m = new HashMap<>();
+            m.put("name", ns);
+            m.put("kind", "namespace");
+            items.add(m);
+        }
+        return successCatalogPage(items, page);
+    }
+
+    private Map<String, Object> toKubernetesPodEntityPage(Page<KubernetesPodInfo> page, String namespace) {
+        List<Map<String, Object>> items = new ArrayList<>();
+        for (KubernetesPodInfo p : page.getItems()) {
+            Map<String, Object> m = new HashMap<>();
+            m.put("name", p.getName());
+            m.put("kind", "pod");
+            m.put("phase", p.getPhase());
+            items.add(m);
+        }
+        Map<String, Object> out = new HashMap<>();
+        out.put("items", items);
+        out.put("scope", Map.of("catalog", namespace != null ? namespace : "", "namespace", ""));
+        out.put("pagination", Map.of(
+                "page", page.getPage(),
+                "size", page.getSize(),
+                "hasMore", page.isHasMore()));
         return out;
     }
 

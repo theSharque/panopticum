@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(~{::main})}">
+<head></head>
+<body>
+<main th:fragment="main" class="main-content">
+    <div th:replace="~{fragments/page-heading :: pageHeading(items=${breadcrumbs})}"></div>
+    <h1 th:text="${msg['kubernetes.logsTitle']}">Logs</h1>
+    <form method="get" class="form-inline" th:action="@{/kubernetes/{id}/namespaces/{ns}/pods/{p}/logs(id=${connectionId}, ns=${namespace}, p=${podName})}">
+        <div class="form-group">
+            <label for="tail-input" th:text="${msg['kubernetes.tailLines']}">Tail lines</label>
+            <input type="number" id="tail-input" name="tail" min="1" max="2000" th:value="${tail}">
+        </div>
+        <button type="submit" class="btn-check" th:text="${msg['query.refresh']}">Refresh</button>
+    </form>
+    <div th:if="${queryResult != null and !queryResult.hasError() and queryResult.rows != null and !queryResult.rows.isEmpty()}" class="query-result-data query-table-wrapper" style="margin-top: 1rem;">
+        <table class="query-table">
+            <thead>
+                <tr>
+                    <th th:each="col : ${queryResult.columns}" class="query-th" th:text="${col}"></th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="row : ${queryResult.rows}" class="query-data-row">
+                    <td th:each="cell : ${row}" th:text="${cell}" class="query-cell-mono"></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <p th:if="${queryResult != null and !queryResult.hasError() and (queryResult.rows == null or queryResult.rows.isEmpty())}" class="text-dim" th:text="${msg['kubernetes.noLogs']}">No logs.</p>
+</main>
+</body>
+</html>

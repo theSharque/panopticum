@@ -21,6 +21,7 @@ public class Messages {
             merged.putAll(MessagesRabbitmq.RU);
             merged.putAll(MessagesKafka.RU);
             merged.putAll(MessagesElasticsearch.RU);
+            merged.putAll(MessagesKubernetes.RU);
         } else {
             merged.putAll(MessagesCommon.EN);
             merged.putAll(MessagesSettings.EN);
@@ -32,6 +33,7 @@ public class Messages {
             merged.putAll(MessagesRabbitmq.EN);
             merged.putAll(MessagesKafka.EN);
             merged.putAll(MessagesElasticsearch.EN);
+            merged.putAll(MessagesKubernetes.EN);
         }
         return merged;
     }
