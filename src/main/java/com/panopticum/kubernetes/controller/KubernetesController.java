@@ -119,7 +119,8 @@ public class KubernetesController {
     public Map<String, Object> logs(@PathVariable Long id,
             @PathVariable String namespace,
             @PathVariable String pod,
-            @QueryValue(value = "tail", defaultValue = "500") int tail) {
+            @QueryValue(value = "tail", defaultValue = "500") int tail,
+            @QueryValue(value = "substring", defaultValue = "") String substring) {
         Map<String, Object> model = ControllerModelHelper.baseModel(id, dbConnectionService);
         Optional<DbConnection> conn = dbConnectionService.findById(id);
         if (conn.isEmpty()) {
@@ -134,12 +135,13 @@ public class KubernetesController {
             model.put("namespace", ns);
             model.put("podName", podName);
             model.put("tail", tail);
+            model.put("substring", substring);
             model.put("queryResult", QueryResult.error("kubernetes.namespaceNotAllowed"));
             return model;
         }
 
         int tailClamped = Math.min(Math.max(1, tail), KubernetesService.MAX_TAIL_LINES);
-        QueryResult qr = kubernetesService.tailPodLogs(id, ns, podName, tailClamped);
+        QueryResult qr = kubernetesService.tailPodLogsWithSubstring(id, ns, podName, tailClamped, substring);
 
         List<BreadcrumbItem> breadcrumbs = new ArrayList<>();
         breadcrumbs.add(new BreadcrumbItem(conn.get().getName(), "/kubernetes/" + id + "/namespaces"));
@@ -150,6 +152,7 @@ public class KubernetesController {
         model.put("namespace", ns);
         model.put("podName", podName);
         model.put("tail", tailClamped);
+        model.put("substring", substring);
         model.put("queryResult", qr);
         if (qr.hasError()) {
             AppAlerts.i18n(model, qr.getError());

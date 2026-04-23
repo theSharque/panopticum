@@ -8,7 +8,11 @@
     <form method="get" class="form-inline" th:action="@{/kubernetes/{id}/namespaces/{ns}/pods/{p}/logs(id=${connectionId}, ns=${namespace}, p=${podName})}">
         <div class="form-group">
             <label for="tail-input" th:text="${msg['kubernetes.tailLines']}">Tail lines</label>
-            <input type="number" id="tail-input" name="tail" min="1" max="2000" th:value="${tail}">
+            <input type="number" id="tail-input" name="tail" min="1" max="10000" th:value="${tail}">
+        </div>
+        <div class="form-group">
+            <label for="substring-input" th:text="${msg['kubernetes.substring']}">Substring</label>
+            <input type="text" id="substring-input" name="substring" th:value="${substring}">
         </div>
         <button type="submit" class="btn-check" th:text="${msg['query.refresh']}">Refresh</button>
     </form>

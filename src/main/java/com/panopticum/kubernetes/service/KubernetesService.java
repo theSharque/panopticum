@@ -22,14 +22,14 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Singleton
 @RequiredArgsConstructor
 public class KubernetesService {
 
-    public static final int MAX_TAIL_LINES = 2000;
-    public static final int DEFAULT_TAIL_LINES = 100;
+    public static final int MAX_TAIL_LINES = 10000;
 
     private final DbConnectionService dbConnectionService;
 
@@ -165,12 +165,29 @@ public class KubernetesService {
                                          int offset, int limit) {
         String ns = catalog != null ? catalog.trim() : "";
         String pod = entity != null ? entity.trim() : "";
-        int tail = parseTailFromQuery(query, limit);
-        QueryResult qr = tailPodLogs(connectionId, ns, pod, tail);
+        int safeOffset = Math.max(0, offset);
+        int safeLimit = Math.max(1, limit);
+        int tail = query != null && !query.isBlank()
+                ? MAX_TAIL_LINES
+                : Math.min(MAX_TAIL_LINES, safeOffset + safeLimit);
+        QueryResult filtered = tailPodLogsWithSubstring(connectionId, ns, pod, tail, query);
+        if (filtered.hasError()) {
+            return filtered;
+        }
+        return applyOffsetLimit(filtered, safeOffset, safeLimit);
+    }
+
+    public QueryResult tailPodLogsWithSubstring(Long connectionId, String namespace, String podName,
+                                                int tailLines, String substring) {
+        int effectiveTail = substring != null && !substring.isBlank()
+                ? MAX_TAIL_LINES
+                : tailLines;
+        QueryResult qr = tailPodLogs(connectionId, namespace, podName, effectiveTail);
         if (qr.hasError()) {
             return qr;
         }
-        return applyOffsetLimit(qr, offset, limit);
+        QueryResult filtered = applyQueryFilter(qr, substring);
+        return applyOffsetLimit(filtered, 0, Math.max(1, tailLines));
     }
 
     private static QueryResult applyOffsetLimit(QueryResult qr, int offset, int limit) {
@@ -186,17 +203,28 @@ public class KubernetesService {
                 offset, slice.size(), hasMore);
     }
 
-    private static int parseTailFromQuery(String query, int limitCap) {
+    private static QueryResult applyQueryFilter(QueryResult qr, String query) {
         if (query == null || query.isBlank()) {
-            return Math.min(DEFAULT_TAIL_LINES, limitCap);
+            return qr;
         }
-        String q = query.trim();
-        try {
-            int n = Integer.parseInt(q);
-            return Math.min(Math.max(1, n), Math.min(MAX_TAIL_LINES, limitCap));
-        } catch (NumberFormatException ignored) {
-            return Math.min(DEFAULT_TAIL_LINES, limitCap);
-        }
+
+        String needle = query.toLowerCase(Locale.ROOT);
+        List<List<Object>> filteredRows = qr.getRows().stream()
+                .filter(row -> row.size() > 1
+                        && row.get(1) != null
+                        && row.get(1).toString().toLowerCase(Locale.ROOT).contains(needle))
+                .collect(Collectors.toList());
+
+        return new QueryResult(
+                qr.getColumns(),
+                qr.getColumnTypes(),
+                filteredRows,
+                qr.getDocIds(),
+                null,
+                0,
+                filteredRows.size(),
+                false
+        );
     }
 
     private static String defaultContainerName(Pod pod) {
