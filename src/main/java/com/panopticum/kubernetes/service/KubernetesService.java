@@ -287,10 +287,10 @@ public class KubernetesService {
             return Optional.empty();
         } catch (KubernetesClientException e) {
             if (e.getCode() == 403) {
-                return Optional.of("kubernetes.namespaceForbidden");
+                return Optional.of("kubernetes.namespaceForbiddenWithName|" + namespace);
             }
             if (e.getCode() == 404) {
-                return Optional.of("kubernetes.namespaceNotFound");
+                return Optional.of("kubernetes.namespaceNotFoundWithName|" + namespace);
             }
             return Optional.of(kubernetesErrorKey(e));
         }

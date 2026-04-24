@@ -31,6 +31,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.net.URI;
+import java.text.MessageFormat;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -454,7 +456,12 @@ public class SettingsController {
 
     private void putDisplayText(Map<String, Object> model, HttpRequest<?> request, String messageKey) {
         String locale = (String) request.getAttribute(LocaleFilter.LOCALE_ATTR).orElse("en");
-        String text = Messages.forLocale(locale).getOrDefault(messageKey, messageKey);
+        String[] parts = messageKey.split("\\|", -1);
+        String key = parts[0];
+        String template = Messages.forLocale(locale).getOrDefault(key, key);
+        String text = parts.length > 1
+                ? MessageFormat.format(template, (Object[]) Arrays.copyOfRange(parts, 1, parts.length))
+                : template;
         model.put("displayText", text);
     }
 }
