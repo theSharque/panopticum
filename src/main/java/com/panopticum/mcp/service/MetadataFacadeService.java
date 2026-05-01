@@ -1,5 +1,6 @@
 package com.panopticum.mcp.service;
 
+import com.panopticum.core.error.AccessResult;
 import com.panopticum.core.model.DatabaseInfo;
 import com.panopticum.core.model.Page;
 import com.panopticum.core.model.QueryResult;
@@ -16,17 +17,25 @@ import com.panopticum.elasticsearch.service.ElasticsearchService;
 import com.panopticum.kafka.model.KafkaPartitionInfo;
 import com.panopticum.kafka.model.KafkaTopicInfo;
 import com.panopticum.kafka.service.KafkaService;
+import com.panopticum.kubernetes.model.KubernetesPodDescription;
 import com.panopticum.kubernetes.model.KubernetesPodInfo;
 import com.panopticum.kubernetes.service.KubernetesService;
 import com.panopticum.kubernetes.util.KubernetesNamespaceCsv;
+import com.panopticum.mcp.model.ColumnInfo;
+import com.panopticum.mcp.model.EntityDescription;
 import com.panopticum.mongo.model.MongoCollectionInfo;
 import com.panopticum.mongo.service.MongoMetadataService;
 import com.panopticum.mssql.service.MssqlMetadataService;
 import com.panopticum.mysql.service.MySqlMetadataService;
 import com.panopticum.oracle.service.OracleMetadataService;
 import com.panopticum.postgres.service.PgMetadataService;
+import com.panopticum.prometheus.service.PrometheusService;
+import com.panopticum.rabbitmq.service.RabbitMqService;
 import com.panopticum.redis.model.RedisDbInfo;
 import com.panopticum.redis.service.RedisMetadataService;
+import com.panopticum.s3.model.S3BucketInfo;
+import com.panopticum.s3.model.S3ObjectInfo;
+import com.panopticum.s3.service.S3Service;
 import jakarta.inject.Singleton;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -56,6 +65,9 @@ public class MetadataFacadeService {
     private final RedisMetadataService redisMetadataService;
     private final ElasticsearchService elasticsearchService;
     private final KubernetesService kubernetesService;
+    private final RabbitMqService rabbitMqService;
+    private final S3Service s3Service;
+    private final PrometheusService prometheusService;
 
     public Optional<DbConnection> getConnection(Long connectionId) {
         return dbConnectionService.findById(connectionId);
@@ -89,6 +101,8 @@ public class MetadataFacadeService {
                 case "elasticsearch" -> toElasticsearchIndexCatalogPage(elasticsearchService.listIndicesPaged(connectionId, page, size, sort, order));
                 case "kubernetes" -> toKubernetesNamespaceCatalogPage(
                         kubernetesService.listNamespacesPaged(connectionId, page, size, sort, order));
+                case "s3" -> toS3BucketCatalogPage(s3Service.listBuckets(connectionId));
+                case "prometheus" -> toPromJobCatalogPage(prometheusService.listJobs(connectionId));
                 default -> errorResult("Unsupported dbType: " + type);
             };
         } catch (Exception e) {
@@ -110,7 +124,7 @@ public class MetadataFacadeService {
                 case "postgresql" -> toNamespacePage(pgMetadataService.listSchemasPaged(connectionId, catalog != null ? catalog : "", page, size, sort, order), false);
                 case "sqlserver" -> toNamespacePage(mssqlMetadataService.listSchemasPaged(connectionId, catalog != null ? catalog : "", page, size, sort, order), false);
                 case "oracle" -> toNamespacePage(oracleMetadataService.listSchemasPaged(connectionId, page, size, sort, order), true);
-                case "mysql", "clickhouse", "mongodb", "cassandra", "kafka", "redis", "elasticsearch", "kubernetes" -> notApplicableResult();
+                case "mysql", "clickhouse", "mongodb", "cassandra", "kafka", "redis", "elasticsearch", "kubernetes", "s3", "prometheus" -> notApplicableResult();
                 default -> errorResult("Unsupported dbType: " + type);
             };
         } catch (Exception e) {
@@ -149,6 +163,17 @@ public class MetadataFacadeService {
                         ? errorResult("kubernetes.namespaceRequired")
                         : toKubernetesPodEntityPage(kubernetesService.listPodsPaged(connectionId, cat, page, size, sort, order), cat);
                 case "redis", "elasticsearch" -> notApplicableResult();
+                case "s3" -> {
+                    String bucket = cat;
+                    String prefix = ns.isBlank() ? "" : ns;
+                    AccessResult<Page<S3ObjectInfo>> r = s3Service.listObjects(connectionId, bucket, prefix, page, size);
+                    yield r.isOk() ? toS3ObjectEntityPage(r.getPayload(), bucket) : errorResult(r.getMessageKey());
+                }
+                case "prometheus" -> {
+                    String job = cat.isBlank() ? null : cat;
+                    AccessResult<com.panopticum.core.model.Page<com.panopticum.prometheus.model.PromMetricInfo>> r = prometheusService.listMetrics(connectionId, job, page, size);
+                    yield r.isOk() ? toPromMetricEntityPage(r.getPayload(), cat) : errorResult(r.getMessageKey());
+                }
                 default -> errorResult("Unsupported dbType: " + type);
             };
         } catch (Exception e) {
@@ -199,7 +224,70 @@ public class MetadataFacadeService {
                     if (entity == null || entity.isBlank()) {
                         yield Optional.of(QueryResult.error("kubernetes.podNameRequired"));
                     }
-                    yield Optional.of(kubernetesService.tailPodLogsForMcp(connectionId, cat, entity, query, offset, limit));
+                    String filter = query != null ? query.toLowerCase() : "";
+                    yield switch (entity.toLowerCase()) {
+                        case "deployments" -> {
+                            AccessResult<Page<com.panopticum.kubernetes.model.KubernetesDeploymentInfo>> r = kubernetesService.listDeploymentsPaged(connectionId, cat, 1, limit);
+                            yield r.isOk() ? Optional.of(kubernetesDeploymentsToQueryResult(r.getPayload(), filter)) : Optional.of(QueryResult.error(r.getMessageKey()));
+                        }
+                        case "events" -> {
+                            AccessResult<Page<com.panopticum.kubernetes.model.KubernetesEventInfo>> r = kubernetesService.listEventsPaged(connectionId, cat, 1, limit);
+                            yield r.isOk() ? Optional.of(kubernetesEventsToQueryResult(r.getPayload(), filter)) : Optional.of(QueryResult.error(r.getMessageKey()));
+                        }
+                        case "configmaps" -> {
+                            AccessResult<Page<com.panopticum.kubernetes.model.KubernetesConfigMapInfo>> r = kubernetesService.listConfigMapsPaged(connectionId, cat, 1, limit);
+                            yield r.isOk() ? Optional.of(kubernetesConfigMapsToQueryResult(r.getPayload(), filter)) : Optional.of(QueryResult.error(r.getMessageKey()));
+                        }
+                        case "secrets" -> {
+                            AccessResult<Page<com.panopticum.kubernetes.model.KubernetesSecretInfo>> r = kubernetesService.listSecretsPaged(connectionId, cat, 1, limit);
+                            yield r.isOk() ? Optional.of(kubernetesSecretsToQueryResult(r.getPayload(), filter)) : Optional.of(QueryResult.error(r.getMessageKey()));
+                        }
+                        default -> Optional.of(kubernetesService.tailPodLogsForMcp(connectionId, cat, entity, query, offset, limit));
+                    };
+                }
+                case "s3" -> {
+                    if (cat == null || cat.isBlank()) {
+                        yield Optional.of(QueryResult.error("s3.bucketRequired"));
+                    }
+                    if (entity == null || entity.isBlank()) {
+                        yield Optional.of(QueryResult.error("s3.keyRequired"));
+                    }
+                    int headBytes = 65536;
+                    String format = "auto";
+                    if (query != null && !query.isBlank()) {
+                        try {
+                            com.fasterxml.jackson.databind.JsonNode q = new com.fasterxml.jackson.databind.ObjectMapper().readTree(query);
+                            if (q.has("headBytes")) headBytes = q.get("headBytes").asInt(65536);
+                            if (q.has("format")) format = q.get("format").asText("auto");
+                        } catch (Exception ignored) {}
+                    }
+                    AccessResult<String> peekResult = s3Service.peekObject(connectionId, cat, entity, headBytes, format);
+                    if (peekResult.isOk()) {
+                        yield Optional.of(new QueryResult(List.of("content"), List.of(List.of(peekResult.getPayload())), null, offset, 1, false));
+                    }
+                    yield Optional.of(QueryResult.error(peekResult.getMessageKey()));
+                }
+                case "prometheus" -> {
+                    String rawQuery = query != null && !query.isBlank() ? query : entity;
+                    if (rawQuery == null || rawQuery.isBlank()) {
+                        yield Optional.of(QueryResult.error("prometheus.queryRequired"));
+                    }
+                    AccessResult<QueryResult> r;
+                    if (rawQuery.trim().startsWith("{")) {
+                        try {
+                            com.fasterxml.jackson.databind.JsonNode q = new com.fasterxml.jackson.databind.ObjectMapper().readTree(rawQuery);
+                            String promql = q.path("promql").asText("");
+                            String start = q.path("start").asText("");
+                            String end = q.path("end").asText("");
+                            String step = q.path("step").asText("60");
+                            r = prometheusService.executeRange(connectionId, promql, start, end, step);
+                        } catch (Exception e) {
+                            r = prometheusService.executeInstant(connectionId, rawQuery);
+                        }
+                    } else {
+                        r = prometheusService.executeInstant(connectionId, rawQuery);
+                    }
+                    yield r.isOk() ? Optional.of(r.getPayload()) : Optional.of(QueryResult.error(r.getMessageKey()));
                 }
                 default -> Optional.empty();
             };
@@ -266,6 +354,7 @@ public class MetadataFacadeService {
                 List<String> nss = KubernetesNamespaceCsv.parse(conn.getDbName());
                 yield nss.isEmpty() ? "" : nss.get(0);
             }
+            case "s3", "prometheus" -> conn.getDbName() != null ? conn.getDbName() : "";
             default -> conn.getDbName() != null ? conn.getDbName() : "";
         };
     }
@@ -488,6 +577,74 @@ public class MetadataFacadeService {
         return successCatalogPage(items, page);
     }
 
+    private Map<String, Object> toS3BucketCatalogPage(AccessResult<List<S3BucketInfo>> result) {
+        if (!result.isOk()) {
+            return errorResult(result.getMessageKey());
+        }
+        List<Map<String, Object>> items = new ArrayList<>();
+        for (S3BucketInfo b : result.getPayload()) {
+            Map<String, Object> m = new HashMap<>();
+            m.put("name", b.getName());
+            m.put("kind", "bucket");
+            m.put("createdAt", b.getCreatedAt());
+            items.add(m);
+        }
+        Map<String, Object> out = new HashMap<>();
+        out.put("items", items);
+        out.put("pagination", Map.of("page", 1, "size", items.size(), "hasMore", false, "fromRow", items.isEmpty() ? 0 : 1, "toRow", items.size()));
+        return out;
+    }
+
+    private Map<String, Object> toPromJobCatalogPage(AccessResult<List<String>> result) {
+        if (!result.isOk()) {
+            return errorResult(result.getMessageKey());
+        }
+        List<Map<String, Object>> items = new ArrayList<>();
+        for (String job : result.getPayload()) {
+            Map<String, Object> m = new HashMap<>();
+            m.put("name", job);
+            m.put("kind", "job");
+            items.add(m);
+        }
+        Map<String, Object> out = new HashMap<>();
+        out.put("items", items);
+        out.put("pagination", Map.of("page", 1, "size", items.size(), "hasMore", false, "fromRow", items.isEmpty() ? 0 : 1, "toRow", items.size()));
+        return out;
+    }
+
+    private Map<String, Object> toS3ObjectEntityPage(Page<S3ObjectInfo> page, String bucket) {
+        List<Map<String, Object>> items = new ArrayList<>();
+        for (S3ObjectInfo obj : page.getItems()) {
+            Map<String, Object> m = new HashMap<>();
+            m.put("name", obj.getKey());
+            m.put("kind", obj.isPrefix() ? "prefix" : "object");
+            m.put("size", obj.getSize());
+            m.put("lastModified", obj.getLastModified());
+            items.add(m);
+        }
+        Map<String, Object> out = new HashMap<>();
+        out.put("items", items);
+        out.put("scope", Map.of("catalog", bucket != null ? bucket : "", "namespace", ""));
+        out.put("pagination", Map.of("page", page.getPage(), "size", page.getSize(), "hasMore", page.isHasMore()));
+        return out;
+    }
+
+    private Map<String, Object> toPromMetricEntityPage(Page<com.panopticum.prometheus.model.PromMetricInfo> page, String job) {
+        List<Map<String, Object>> items = new ArrayList<>();
+        for (com.panopticum.prometheus.model.PromMetricInfo m : page.getItems()) {
+            Map<String, Object> row = new HashMap<>();
+            row.put("name", m.getName());
+            row.put("kind", "metric");
+            row.put("job", m.getJob());
+            items.add(row);
+        }
+        Map<String, Object> out = new HashMap<>();
+        out.put("items", items);
+        out.put("scope", Map.of("catalog", job != null ? job : "", "namespace", ""));
+        out.put("pagination", Map.of("page", page.getPage(), "size", page.getSize(), "hasMore", page.isHasMore()));
+        return out;
+    }
+
     private Map<String, Object> toKubernetesPodEntityPage(Page<KubernetesPodInfo> page, String namespace) {
         List<Map<String, Object>> items = new ArrayList<>();
         for (KubernetesPodInfo p : page.getItems()) {
@@ -507,6 +664,76 @@ public class MetadataFacadeService {
         return out;
     }
 
+    private static EntityDescription podToEntityDescription(KubernetesPodDescription pod) {
+        List<ColumnInfo> columns = new ArrayList<>();
+        columns.add(ColumnInfo.builder().name("name").type("string").nullable(false).primaryKey(true).position(1).build());
+        columns.add(ColumnInfo.builder().name("namespace").type("string").nullable(false).primaryKey(false).position(2).build());
+        columns.add(ColumnInfo.builder().name("phase").type("string").nullable(true).primaryKey(false).position(3).build());
+        columns.add(ColumnInfo.builder().name("nodeName").type("string").nullable(true).primaryKey(false).position(4).build());
+        columns.add(ColumnInfo.builder().name("podIP").type("string").nullable(true).primaryKey(false).position(5).build());
+        List<String> notes = new ArrayList<>();
+        if (pod.getContainers() != null) {
+            for (KubernetesPodDescription.ContainerInfo c : pod.getContainers()) {
+                notes.add("container=" + c.getName() + " image=" + c.getImage() + " ready=" + c.isReady() + " restarts=" + c.getRestartCount());
+            }
+        }
+        return EntityDescription.builder()
+                .entityKind("pod")
+                .catalog(pod.getNamespace())
+                .namespace(null)
+                .entity(pod.getName())
+                .columns(columns)
+                .primaryKey(List.of("name"))
+                .foreignKeys(List.of())
+                .indexes(List.of())
+                .approximateRowCount(null)
+                .inferredFromSample(false)
+                .notes(notes)
+                .build();
+    }
+
+    private static QueryResult kubernetesDeploymentsToQueryResult(Page<com.panopticum.kubernetes.model.KubernetesDeploymentInfo> page, String filter) {
+        List<String> cols = List.of("name", "namespace", "desired", "ready", "available", "image");
+        List<List<Object>> rows = new ArrayList<>();
+        for (com.panopticum.kubernetes.model.KubernetesDeploymentInfo d : page.getItems()) {
+            if (!filter.isBlank() && !d.getName().toLowerCase().contains(filter)) continue;
+            rows.add(List.of(d.getName(), d.getNamespace(), d.getDesiredReplicas(), d.getReadyReplicas(), d.getAvailableReplicas(), d.getImage() != null ? d.getImage() : ""));
+        }
+        return new QueryResult(cols, rows, null, 0, rows.size(), page.isHasMore());
+    }
+
+    private static QueryResult kubernetesEventsToQueryResult(Page<com.panopticum.kubernetes.model.KubernetesEventInfo> page, String filter) {
+        List<String> cols = List.of("reason", "message", "object", "type", "count", "lastTime");
+        List<List<Object>> rows = new ArrayList<>();
+        for (com.panopticum.kubernetes.model.KubernetesEventInfo e : page.getItems()) {
+            if (!filter.isBlank() && !e.getMessage().toLowerCase().contains(filter) && !e.getReason().toLowerCase().contains(filter)) continue;
+            rows.add(List.of(e.getReason(), e.getMessage(), e.getObjectName(), e.getType(), e.getCount(), e.getLastTime() != null ? e.getLastTime() : ""));
+        }
+        return new QueryResult(cols, rows, null, 0, rows.size(), page.isHasMore());
+    }
+
+    private static QueryResult kubernetesConfigMapsToQueryResult(Page<com.panopticum.kubernetes.model.KubernetesConfigMapInfo> page, String filter) {
+        List<String> cols = List.of("name", "namespace", "keys");
+        List<List<Object>> rows = new ArrayList<>();
+        for (com.panopticum.kubernetes.model.KubernetesConfigMapInfo cm : page.getItems()) {
+            if (!filter.isBlank() && !cm.getName().toLowerCase().contains(filter)) continue;
+            String keys = cm.getKeys() != null ? String.join(", ", cm.getKeys()) : "";
+            rows.add(List.of(cm.getName(), cm.getNamespace(), keys));
+        }
+        return new QueryResult(cols, rows, null, 0, rows.size(), page.isHasMore());
+    }
+
+    private static QueryResult kubernetesSecretsToQueryResult(Page<com.panopticum.kubernetes.model.KubernetesSecretInfo> page, String filter) {
+        List<String> cols = List.of("name", "namespace", "type", "keys");
+        List<List<Object>> rows = new ArrayList<>();
+        for (com.panopticum.kubernetes.model.KubernetesSecretInfo s : page.getItems()) {
+            if (!filter.isBlank() && !s.getName().toLowerCase().contains(filter)) continue;
+            String keys = s.getKeys() != null ? String.join(", ", s.getKeys()) : "";
+            rows.add(List.of(s.getName(), s.getNamespace(), s.getType() != null ? s.getType() : "", keys));
+        }
+        return new QueryResult(cols, rows, null, 0, rows.size(), page.isHasMore());
+    }
+
     private Map<String, Object> errorResult(String message) {
         Map<String, Object> out = new HashMap<>();
         out.put("error", message);
@@ -515,5 +742,87 @@ public class MetadataFacadeService {
 
     public int getQueryHardLimit() {
         return MCP_QUERY_HARD_LIMIT;
+    }
+
+    public Optional<EntityDescription> describeEntity(Long connectionId, String catalog, String namespace, String entity, int sampleSize) {
+        Optional<DbConnection> connOpt = dbConnectionService.findById(connectionId);
+        if (connOpt.isEmpty()) {
+            return Optional.empty();
+        }
+
+        String type = normalizeDbType(connOpt.get().getType());
+        String cat = catalog != null && !catalog.isBlank() ? catalog : resolveDefaultCatalog(connOpt.get());
+        String ns = namespace != null && !namespace.isBlank() ? namespace : "";
+
+        try {
+            return switch (type) {
+                case "postgresql" -> pgMetadataService.describeEntity(connectionId, cat, ns, entity)
+                        .map(d -> withConnectionId(d, connectionId, type));
+                case "mysql" -> mySqlMetadataService.describeEntity(connectionId, cat, entity)
+                        .map(d -> withConnectionId(d, connectionId, type));
+                case "sqlserver" -> mssqlMetadataService.describeEntity(connectionId, cat, ns, entity)
+                        .map(d -> withConnectionId(d, connectionId, type));
+                case "oracle" -> {
+                    String schema = ns.isEmpty() ? ("default".equals(cat) ? resolveDefaultCatalog(connOpt.get()) : cat) : ns;
+                    yield oracleMetadataService.describeEntity(connectionId, cat, schema, entity)
+                            .map(d -> withConnectionId(d, connectionId, type));
+                }
+                case "clickhouse" -> clickHouseMetadataService.describeEntity(connectionId, cat, entity)
+                        .map(d -> withConnectionId(d, connectionId, type));
+                case "mongodb" -> mongoMetadataService.describeEntity(connectionId, cat, entity, sampleSize)
+                        .map(d -> withConnectionId(d, connectionId, type));
+                case "cassandra" -> cassandraMetadataService.describeEntity(connectionId, cat, entity)
+                        .map(d -> withConnectionId(d, connectionId, type));
+                case "elasticsearch" -> elasticsearchService.describeIndex(connectionId, entity)
+                        .map(d -> withConnectionId(d, connectionId, type));
+                case "redis" -> {
+                    int dbIndex = 0;
+                    try { dbIndex = Integer.parseInt(cat); } catch (Exception ignored) {}
+                    yield redisMetadataService.describeKey(connectionId, dbIndex, entity)
+                            .map(d -> withConnectionId(d, connectionId, type));
+                }
+                case "kafka" -> kafkaService.describeEntity(connectionId, entity)
+                        .map(d -> withConnectionId(d, connectionId, type));
+                case "rabbitmq" -> rabbitMqService.describeQueue(connectionId, cat, entity)
+                        .map(d -> withConnectionId(d, connectionId, type));
+                case "kubernetes" -> {
+                    if (cat == null || cat.isBlank() || entity == null || entity.isBlank()) {
+                        yield Optional.empty();
+                    }
+                    AccessResult<KubernetesPodDescription> r = kubernetesService.describePod(connectionId, cat, entity);
+                    yield r.isOk() ? Optional.of(withConnectionId(podToEntityDescription(r.getPayload()), connectionId, type)) : Optional.empty();
+                }
+                case "s3" -> {
+                    AccessResult<EntityDescription> r = s3Service.describeObject(connectionId, cat, entity);
+                    yield r.isOk() ? Optional.of(withConnectionId(r.getPayload(), connectionId, type)) : Optional.empty();
+                }
+                case "prometheus" -> {
+                    AccessResult<EntityDescription> r = prometheusService.describeMetric(connectionId, entity);
+                    yield r.isOk() ? Optional.of(withConnectionId(r.getPayload(), connectionId, type)) : Optional.empty();
+                }
+                default -> Optional.empty();
+            };
+        } catch (Exception e) {
+            log.warn("describeEntity failed for connection {} entity {}: {}", connectionId, entity, e.getMessage());
+            return Optional.empty();
+        }
+    }
+
+    private static EntityDescription withConnectionId(EntityDescription desc, Long connectionId, String dbType) {
+        return EntityDescription.builder()
+                .connectionId(connectionId)
+                .dbType(dbType)
+                .entityKind(desc.getEntityKind())
+                .catalog(desc.getCatalog())
+                .namespace(desc.getNamespace())
+                .entity(desc.getEntity())
+                .columns(desc.getColumns())
+                .primaryKey(desc.getPrimaryKey())
+                .foreignKeys(desc.getForeignKeys())
+                .indexes(desc.getIndexes())
+                .approximateRowCount(desc.getApproximateRowCount())
+                .inferredFromSample(desc.isInferredFromSample())
+                .notes(desc.getNotes())
+                .build();
     }
 }

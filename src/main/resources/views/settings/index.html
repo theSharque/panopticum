@@ -26,6 +26,8 @@
                 <option value="kafka">Kafka</option>
                 <option value="elasticsearch">Elasticsearch / OpenSearch</option>
                 <option value="kubernetes">Kubernetes</option>
+                <option value="s3">S3 / MinIO</option>
+                <option value="prometheus">Prometheus / VictoriaMetrics</option>
             </select>
         </div>
 
@@ -41,6 +43,8 @@
         <div th:replace="~{settings/fragments/form-kafka :: form-kafka}"></div>
         <div th:replace="~{settings/fragments/form-elasticsearch :: form-elasticsearch}"></div>
         <div th:replace="~{settings/fragments/form-kubernetes :: form-kubernetes}"></div>
+        <div th:replace="~{settings/fragments/form-s3 :: form-s3}"></div>
+        <div th:replace="~{settings/fragments/form-prometheus :: form-prometheus}"></div>
 
         <script>
             (function () {
@@ -63,6 +67,8 @@
                     document.getElementById('form-kafka').hidden = type !== 'kafka';
                     document.getElementById('form-elasticsearch').hidden = type !== 'elasticsearch';
                     document.getElementById('form-kubernetes').hidden = type !== 'kubernetes';
+                    document.getElementById('form-s3').hidden = type !== 's3';
+                    document.getElementById('form-prometheus').hidden = type !== 'prometheus';
                 }
                 select.addEventListener('change', handleChange);
                 if (initial) {

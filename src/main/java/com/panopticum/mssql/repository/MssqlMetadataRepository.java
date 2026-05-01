@@ -1,6 +1,10 @@
 package com.panopticum.mssql.repository;
 
 import com.panopticum.core.model.DatabaseInfo;
+import com.panopticum.mcp.model.ColumnInfo;
+import com.panopticum.mcp.model.EntityDescription;
+import com.panopticum.mcp.model.ForeignKeyInfo;
+import com.panopticum.mcp.model.IndexInfo;
 import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.model.QueryResultData;
 import com.panopticum.core.model.SchemaInfo;
@@ -315,6 +319,129 @@ public class MssqlMetadataRepository {
         } catch (SQLException e) {
             log.warn("executeUpdate failed: {}", e.getMessage());
             throw new MetadataAccessException(e.getMessage(), e);
+        }
+    }
+
+    public Optional<EntityDescription> describeTable(Long connectionId, String dbName, String schema, String tableName) {
+        try (Connection conn = ConnectionSupport.require(getConnection(connectionId, dbName))) {
+            List<ColumnInfo> columns = fetchMssqlColumns(conn, schema, tableName);
+            List<String> pk = columns.stream().filter(ColumnInfo::isPrimaryKey).map(ColumnInfo::getName).toList();
+            List<ForeignKeyInfo> fks = fetchMssqlForeignKeys(conn, schema, tableName);
+            List<IndexInfo> indexes = fetchMssqlIndexes(conn, schema, tableName);
+            long rowCount = fetchMssqlRowCount(conn, schema, tableName);
+
+            return Optional.of(EntityDescription.builder()
+                    .entityKind("table")
+                    .catalog(dbName)
+                    .namespace(schema)
+                    .entity(tableName)
+                    .columns(columns)
+                    .primaryKey(pk)
+                    .foreignKeys(fks)
+                    .indexes(indexes)
+                    .approximateRowCount(rowCount)
+                    .inferredFromSample(false)
+                    .notes(List.of())
+                    .build());
+        } catch (Exception e) {
+            log.warn("describeTable failed for {}.{}: {}", schema, tableName, e.getMessage());
+            return Optional.empty();
+        }
+    }
+
+    private static List<ColumnInfo> fetchMssqlColumns(Connection conn, String schema, String tableName) throws SQLException {
+        String sql = "SELECT c.column_name, c.data_type, c.is_nullable, c.ordinal_position, "
+                + "CASE WHEN pk.column_name IS NOT NULL THEN 1 ELSE 0 END AS is_pk "
+                + "FROM information_schema.columns c "
+                + "LEFT JOIN ("
+                + "  SELECT ku.column_name FROM information_schema.table_constraints tc "
+                + "  JOIN information_schema.key_column_usage ku ON tc.constraint_name = ku.constraint_name "
+                + "  WHERE tc.table_schema = ? AND tc.table_name = ? AND tc.constraint_type = 'PRIMARY KEY'"
+                + ") pk ON c.column_name = pk.column_name "
+                + "WHERE c.table_schema = ? AND c.table_name = ? ORDER BY c.ordinal_position";
+        List<ColumnInfo> result = new ArrayList<>();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, schema);
+            ps.setString(2, tableName);
+            ps.setString(3, schema);
+            ps.setString(4, tableName);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    result.add(ColumnInfo.builder()
+                            .name(rs.getString("column_name"))
+                            .type(rs.getString("data_type"))
+                            .nullable("YES".equals(rs.getString("is_nullable")))
+                            .primaryKey(rs.getInt("is_pk") == 1)
+                            .position(rs.getInt("ordinal_position"))
+                            .build());
+                }
+            }
+        }
+        return result;
+    }
+
+    private static List<ForeignKeyInfo> fetchMssqlForeignKeys(Connection conn, String schema, String tableName) throws SQLException {
+        String sql = "SELECT kcu.column_name, ccu.table_name AS ref_table, ccu.column_name AS ref_col "
+                + "FROM information_schema.table_constraints tc "
+                + "JOIN information_schema.key_column_usage kcu ON tc.constraint_name = kcu.constraint_name "
+                + "JOIN information_schema.constraint_column_usage ccu ON tc.constraint_name = ccu.constraint_name "
+                + "WHERE tc.table_schema = ? AND tc.table_name = ? AND tc.constraint_type = 'FOREIGN KEY'";
+        List<ForeignKeyInfo> result = new ArrayList<>();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, schema);
+            ps.setString(2, tableName);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    result.add(ForeignKeyInfo.builder()
+                            .columns(List.of(rs.getString("column_name")))
+                            .references(Map.of("table", rs.getString("ref_table"), "columns", List.of(rs.getString("ref_col"))))
+                            .build());
+                }
+            }
+        }
+        return result;
+    }
+
+    private static List<IndexInfo> fetchMssqlIndexes(Connection conn, String schema, String tableName) throws SQLException {
+        String sql = "SELECT i.name AS index_name, i.is_unique, STRING_AGG(c.name, ',') WITHIN GROUP (ORDER BY ic.key_ordinal) AS cols "
+                + "FROM sys.indexes i "
+                + "JOIN sys.index_columns ic ON i.object_id = ic.object_id AND i.index_id = ic.index_id "
+                + "JOIN sys.columns c ON ic.object_id = c.object_id AND ic.column_id = c.column_id "
+                + "JOIN sys.objects o ON i.object_id = o.object_id "
+                + "JOIN sys.schemas s ON o.schema_id = s.schema_id "
+                + "WHERE s.name = ? AND o.name = ? GROUP BY i.name, i.is_unique";
+        List<IndexInfo> result = new ArrayList<>();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, schema);
+            ps.setString(2, tableName);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String cols = rs.getString("cols");
+                    result.add(IndexInfo.builder()
+                            .name(rs.getString("index_name"))
+                            .unique(rs.getBoolean("is_unique"))
+                            .columns(cols != null ? List.of(cols.split(",")) : List.of())
+                            .build());
+                }
+            }
+        } catch (Exception e) {
+            log.debug("fetchMssqlIndexes failed: {}", e.getMessage());
+        }
+        return result;
+    }
+
+    private static long fetchMssqlRowCount(Connection conn, String schema, String tableName) {
+        try (PreparedStatement ps = conn.prepareStatement(
+                "SELECT SUM(p.rows) FROM sys.partitions p JOIN sys.objects o ON p.object_id = o.object_id "
+                        + "JOIN sys.schemas s ON o.schema_id = s.schema_id "
+                        + "WHERE s.name = ? AND o.name = ? AND p.index_id IN (0, 1)")) {
+            ps.setString(1, schema);
+            ps.setString(2, tableName);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getLong(1) : 0L;
+            }
+        } catch (SQLException e) {
+            return 0L;
         }
     }
 }

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(~{::main})}">
+<head></head>
+<body>
+<main th:fragment="main" class="main-content">
+    <div th:replace="~{fragments/page-heading :: pageHeading(items=${breadcrumbs})}"></div>
+    <div th:replace="~{fragments/app-alert :: slot}"></div>
+    <h1 th:text="${msg['kubernetes.configmapsTitle']}">ConfigMaps</h1>
+    <div th:if="${items != null and !items.isEmpty()}" class="query-result-data">
+        <div class="query-table-wrapper">
+            <table class="query-table">
+                <thead>
+                    <tr>
+                        <th class="query-th" th:text="${msg['kubernetes.name']}">Name</th>
+                        <th class="query-th" th:text="${msg['kubernetes.keys']}">Keys</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="cm : ${items}" class="query-data-row">
+                        <td th:text="${cm.name}" class="query-cell-mono"></td>
+                        <td th:text="${#strings.listJoin(cm.keys, ', ')}" class="query-cell-mono"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <p th:if="${items == null or items.isEmpty()}" class="text-dim" th:text="${msg['kubernetes.noItems']}"></p>
+</main>
+</body>
+</html>

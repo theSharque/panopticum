@@ -9,6 +9,10 @@ import com.panopticum.core.error.ConnectionSupport;
 import com.panopticum.core.error.MetadataAccessException;
 import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.core.util.SizeFormatter;
+import com.panopticum.mcp.model.ColumnInfo;
+import com.panopticum.mcp.model.EntityDescription;
+import com.panopticum.mcp.model.ForeignKeyInfo;
+import com.panopticum.mcp.model.IndexInfo;
 import jakarta.inject.Singleton;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -324,6 +328,120 @@ public class PgMetadataRepository {
         } catch (SQLException e) {
             log.warn("executeUpdate failed: {}", e.getMessage());
             throw new MetadataAccessException(e.getMessage(), e);
+        }
+    }
+
+    public Optional<EntityDescription> describeTable(Long connectionId, String dbName, String schema, String tableName) {
+        try (Connection conn = ConnectionSupport.require(getConnection(connectionId, dbName))) {
+            List<ColumnInfo> columns = fetchPgColumns(conn, schema, tableName);
+            List<String> pk = columns.stream().filter(ColumnInfo::isPrimaryKey).map(ColumnInfo::getName).toList();
+            List<ForeignKeyInfo> fks = fetchPgForeignKeys(conn, schema, tableName);
+            List<IndexInfo> indexes = fetchPgIndexes(conn, schema, tableName);
+            long rowCount = fetchPgRowCount(conn, schema, tableName);
+
+            return Optional.of(EntityDescription.builder()
+                    .entityKind("table")
+                    .catalog(dbName)
+                    .namespace(schema)
+                    .entity(tableName)
+                    .columns(columns)
+                    .primaryKey(pk)
+                    .foreignKeys(fks)
+                    .indexes(indexes)
+                    .approximateRowCount(rowCount)
+                    .inferredFromSample(false)
+                    .notes(List.of())
+                    .build());
+        } catch (Exception e) {
+            log.warn("describeTable failed for {}.{}: {}", schema, tableName, e.getMessage());
+            return Optional.empty();
+        }
+    }
+
+    private static List<ColumnInfo> fetchPgColumns(Connection conn, String schema, String tableName) throws SQLException {
+        String sql = "WITH pk AS (SELECT kcu.column_name FROM information_schema.table_constraints tc "
+                + "JOIN information_schema.key_column_usage kcu "
+                + "ON tc.constraint_name = kcu.constraint_name AND tc.table_schema = kcu.table_schema "
+                + "WHERE tc.table_schema = ? AND tc.table_name = ? AND tc.constraint_type = 'PRIMARY KEY') "
+                + "SELECT c.column_name, c.data_type, c.is_nullable, c.ordinal_position, "
+                + "CASE WHEN pk.column_name IS NOT NULL THEN true ELSE false END AS is_pk "
+                + "FROM information_schema.columns c LEFT JOIN pk ON c.column_name = pk.column_name "
+                + "WHERE c.table_schema = ? AND c.table_name = ? ORDER BY c.ordinal_position";
+        List<ColumnInfo> result = new ArrayList<>();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, schema);
+            ps.setString(2, tableName);
+            ps.setString(3, schema);
+            ps.setString(4, tableName);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    result.add(ColumnInfo.builder()
+                            .name(rs.getString("column_name"))
+                            .type(rs.getString("data_type"))
+                            .nullable("YES".equals(rs.getString("is_nullable")))
+                            .primaryKey(rs.getBoolean("is_pk"))
+                            .position(rs.getInt("ordinal_position"))
+                            .build());
+                }
+            }
+        }
+        return result;
+    }
+
+    private static List<ForeignKeyInfo> fetchPgForeignKeys(Connection conn, String schema, String tableName) throws SQLException {
+        String sql = "SELECT kcu.column_name, ccu.table_name AS ref_table, ccu.column_name AS ref_col "
+                + "FROM information_schema.table_constraints tc "
+                + "JOIN information_schema.key_column_usage kcu ON tc.constraint_name = kcu.constraint_name AND tc.table_schema = kcu.table_schema "
+                + "JOIN information_schema.constraint_column_usage ccu ON tc.constraint_name = ccu.constraint_name AND tc.table_schema = ccu.table_schema "
+                + "WHERE tc.table_schema = ? AND tc.table_name = ? AND tc.constraint_type = 'FOREIGN KEY'";
+        List<ForeignKeyInfo> result = new ArrayList<>();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, schema);
+            ps.setString(2, tableName);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    result.add(ForeignKeyInfo.builder()
+                            .columns(List.of(rs.getString("column_name")))
+                            .references(Map.of("table", rs.getString("ref_table"), "columns", List.of(rs.getString("ref_col"))))
+                            .build());
+                }
+            }
+        }
+        return result;
+    }
+
+    private static List<IndexInfo> fetchPgIndexes(Connection conn, String schema, String tableName) throws SQLException {
+        String sql = "SELECT indexname, indexdef FROM pg_indexes WHERE schemaname = ? AND tablename = ?";
+        List<IndexInfo> result = new ArrayList<>();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, schema);
+            ps.setString(2, tableName);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String def = rs.getString("indexdef");
+                    boolean unique = def != null && def.toUpperCase().contains("UNIQUE");
+                    result.add(IndexInfo.builder()
+                            .name(rs.getString("indexname"))
+                            .unique(unique)
+                            .columns(List.of())
+                            .build());
+                }
+            }
+        }
+        return result;
+    }
+
+    private static long fetchPgRowCount(Connection conn, String schema, String tableName) {
+        try (PreparedStatement ps = conn.prepareStatement(
+                "SELECT reltuples::bigint FROM pg_class c JOIN pg_namespace n ON c.relnamespace = n.oid "
+                        + "WHERE n.nspname = ? AND c.relname = ?")) {
+            ps.setString(1, schema);
+            ps.setString(2, tableName);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getLong(1) : 0L;
+            }
+        } catch (SQLException e) {
+            return 0L;
         }
     }
 }

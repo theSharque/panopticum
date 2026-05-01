@@ -9,6 +9,8 @@ import com.panopticum.core.error.MetadataAccessException;
 import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.core.util.SizeFormatter;
+import com.panopticum.mcp.model.ColumnInfo;
+import com.panopticum.mcp.model.EntityDescription;
 import com.panopticum.mongo.model.MongoCollectionInfo;
 import com.panopticum.core.model.DatabaseInfo;
 import io.micronaut.context.annotation.Value;
@@ -23,6 +25,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -243,5 +246,67 @@ public class MongoMetadataRepository {
             log.warn("docId '{}' is not a Double, falling back to String", docId);
         }
         return docId;
+    }
+
+    public Optional<EntityDescription> describeCollection(Long connectionId, String dbName, String collectionName, int sampleSize) {
+        try (MongoClient client = ConnectionSupport.require(createClient(connectionId))) {
+            MongoDatabase db = client.getDatabase(dbName);
+            MongoCollection<Document> collection = db.getCollection(collectionName);
+            int n = Math.min(Math.max(1, sampleSize), 500);
+            List<Document> samples = new ArrayList<>();
+            collection.find().limit(n).forEach(samples::add);
+
+            Map<String, String> inferredTypes = new java.util.LinkedHashMap<>();
+            for (Document doc : samples) {
+                for (Map.Entry<String, Object> entry : doc.entrySet()) {
+                    inferredTypes.putIfAbsent(entry.getKey(), inferMongoType(entry.getValue()));
+                }
+            }
+
+            List<ColumnInfo> columns = new ArrayList<>();
+            int pos = 1;
+            for (Map.Entry<String, String> entry : inferredTypes.entrySet()) {
+                columns.add(ColumnInfo.builder()
+                        .name(entry.getKey())
+                        .type(entry.getValue())
+                        .nullable(!"_id".equals(entry.getKey()))
+                        .primaryKey("_id".equals(entry.getKey()))
+                        .position(pos++)
+                        .build());
+            }
+
+            long count = collection.estimatedDocumentCount();
+
+            return Optional.of(EntityDescription.builder()
+                    .entityKind("collection")
+                    .catalog(dbName)
+                    .namespace(null)
+                    .entity(collectionName)
+                    .columns(columns)
+                    .primaryKey(List.of("_id"))
+                    .foreignKeys(List.of())
+                    .indexes(List.of())
+                    .approximateRowCount(count)
+                    .inferredFromSample(true)
+                    .notes(List.of("Schema inferred from " + samples.size() + " sample documents."))
+                    .build());
+        } catch (Exception e) {
+            log.warn("describeCollection failed for {}.{}: {}", dbName, collectionName, e.getMessage());
+            return Optional.empty();
+        }
+    }
+
+    private static String inferMongoType(Object value) {
+        if (value == null) return "null";
+        if (value instanceof org.bson.types.ObjectId) return "ObjectId";
+        if (value instanceof Boolean) return "boolean";
+        if (value instanceof Integer) return "int32";
+        if (value instanceof Long) return "int64";
+        if (value instanceof Double) return "double";
+        if (value instanceof String) return "string";
+        if (value instanceof java.util.Date) return "date";
+        if (value instanceof Document) return "object";
+        if (value instanceof java.util.List) return "array";
+        return value.getClass().getSimpleName().toLowerCase();
     }
 }

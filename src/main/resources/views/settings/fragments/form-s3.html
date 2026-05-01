@@ -1,0 +1,59 @@
+<div xmlns:th="http://www.thymeleaf.org" id="form-s3" class="connection-form-block" hidden th:fragment="form-s3">
+    <form id="connection-form-s3" action="/settings/add-s3" method="post" class="add-connection-form"
+          hx-post="/settings/add-s3"
+          hx-target="#sidebar"
+          hx-swap="outerHTML">
+        <input type="hidden" name="id" th:if="${editingConnection != null}" th:value="${editingConnection != null ? editingConnection.id : null}">
+        <div class="form-group">
+            <label for="name-s3" th:text="${msg['common.name']}">Name</label>
+            <input type="text" id="name-s3" name="name" required
+                   th:attr="placeholder=${msg['settings.placeholderNameS3']}"
+                   th:value="${editingConnection != null ? editingConnection.name : null}">
+        </div>
+        <div class="form-group">
+            <label for="host-s3" th:text="${msg['settings.s3Endpoint']}">Endpoint</label>
+            <input type="text" id="host-s3" name="host" required
+                   th:attr="placeholder=${msg['settings.placeholderS3Host']}"
+                   th:value="${editingConnection != null ? editingConnection.host : null}">
+        </div>
+        <div class="form-group">
+            <label for="port-s3" th:text="${msg['settings.port']}">Port</label>
+            <input type="number" id="port-s3" name="port"
+                   th:value="${editingConnection != null ? editingConnection.port : 443}">
+        </div>
+        <div class="form-group">
+            <label for="database-s3" th:text="${msg['settings.s3Region']}">Region</label>
+            <input type="text" id="database-s3" name="database"
+                   th:attr="placeholder=${msg['settings.placeholderS3Region']}"
+                   th:value="${editingConnection != null ? editingConnection.dbName : null}">
+        </div>
+        <div class="form-group">
+            <label for="username-s3" th:text="${msg['settings.s3AccessKey']}">Access Key</label>
+            <input type="text" id="username-s3" name="username" autocomplete="off"
+                   th:value="${editingConnection != null ? editingConnection.username : null}">
+        </div>
+        <div class="form-group">
+            <label for="password-s3" th:text="${msg['settings.s3SecretKey']}">Secret Key</label>
+            <input type="password" id="password-s3" name="password" autocomplete="off"
+                   th:value="${editingConnection != null ? editingConnection.password : null}">
+        </div>
+        <div class="form-group form-group--checkbox">
+            <label>
+                <input type="checkbox" name="useHttps" th:checked="${editingConnection != null ? editingConnection.useHttps : true}">
+                HTTPS
+            </label>
+        </div>
+        <div class="form-actions">
+            <span id="test-indicator-s3" class="connection-test-indicator" aria-hidden="true" th:text="${msg['settings.testing']}">Checking...</span>
+            <button type="button" class="btn-check"
+                    hx-post="/settings/test-s3"
+                    hx-include="#connection-form-s3"
+                    hx-target="#connection-test-result-s3"
+                    hx-swap="innerHTML show:bottom"
+                    hx-indicator="#test-indicator-s3"
+                    th:text="${msg['settings.test']}">Test</button>
+            <button type="submit" th:text="${editingConnection != null ? msg['settings.save'] : msg['settings.add']}">Add</button>
+        </div>
+        <div id="connection-test-result-s3" class="connection-test-result"></div>
+    </form>
+</div>

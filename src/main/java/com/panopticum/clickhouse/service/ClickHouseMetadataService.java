@@ -6,6 +6,7 @@ import com.panopticum.core.util.StringUtils;
 import com.panopticum.core.model.DatabaseInfo;
 import com.panopticum.core.model.QueryResultData;
 import com.panopticum.core.model.TableInfo;
+import com.panopticum.mcp.model.EntityDescription;
 import com.panopticum.clickhouse.repository.ClickHouseMetadataRepository;
 import io.micronaut.core.annotation.NonNull;
 import io.micronaut.context.annotation.Value;
@@ -196,5 +197,9 @@ public class ClickHouseMetadataService {
         }
         int maxLimit = Math.min(limit, queryRowsLimit);
         return buildWrappedQueryWithOrder(trimmed, sortBy, sortOrder) + " LIMIT " + maxLimit + " OFFSET " + Math.max(0, offset);
+    }
+
+    public Optional<EntityDescription> describeEntity(Long connectionId, String catalog, String entity) {
+        return clickHouseMetadataRepository.describeTable(connectionId, catalog, entity);
     }
 }

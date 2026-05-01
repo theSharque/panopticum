@@ -7,6 +7,7 @@ import com.panopticum.core.model.QueryResultData;
 import com.panopticum.core.model.SchemaInfo;
 import com.panopticum.core.model.TableInfo;
 import com.panopticum.core.util.StringUtils;
+import com.panopticum.mcp.model.EntityDescription;
 import com.panopticum.mssql.repository.MssqlMetadataRepository;
 import io.micronaut.context.annotation.Value;
 import jakarta.inject.Singleton;
@@ -420,5 +421,10 @@ public class MssqlMetadataService {
         }
         String lower = dataType.toLowerCase();
         return lower.matches("(bigint|int|integer|smallint|tinyint|decimal|numeric|float|real|date|datetime|datetime2|smalldatetime|time|bit)");
+    }
+
+    public Optional<EntityDescription> describeEntity(Long connectionId, String catalog, String namespace, String entity) {
+        String schema = namespace != null && !namespace.isBlank() ? namespace : "dbo";
+        return mssqlMetadataRepository.describeTable(connectionId, catalog, schema, entity);
     }
 }

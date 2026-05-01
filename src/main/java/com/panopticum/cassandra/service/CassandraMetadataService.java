@@ -7,6 +7,7 @@ import com.panopticum.core.util.StringUtils;
 import com.panopticum.cassandra.model.CassandraKeyspaceInfo;
 import com.panopticum.core.model.QueryResultData;
 import com.panopticum.cassandra.model.CassandraTableInfo;
+import com.panopticum.mcp.model.EntityDescription;
 import com.panopticum.cassandra.repository.CassandraMetadataRepository;
 import io.micronaut.context.annotation.Value;
 import jakarta.inject.Singleton;
@@ -223,5 +224,9 @@ public class CassandraMetadataService {
 
     public Optional<QueryResult> executeQuery(Long connectionId, String keyspaceName, String cql, int offset, int limit) {
         return executeQuery(connectionId, keyspaceName, cql, offset, limit, true);
+    }
+
+    public Optional<EntityDescription> describeEntity(Long connectionId, String catalog, String entity) {
+        return cassandraMetadataRepository.describeTable(connectionId, catalog, entity);
     }
 }

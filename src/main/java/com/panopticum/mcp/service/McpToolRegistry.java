@@ -95,6 +95,11 @@ public class McpToolRegistry {
                 "Get full detail of a single record/document for point comparison between sources. " +
                         "Required: connectionId (number), entity (string), and one of: documentId (Mongo), primaryKey (object), locator (engine-specific). " +
                         "Optional: catalog, namespace, queryContext. Use after query-data when comparing specific fields.";
+            case "describe-entity" ->
+                "Return schema/structure of an entity (table, collection, index, topic, queue, pod). " +
+                        "Required: connectionId (number), entity (string — table name, collection name, index name, topic, queue, pod name, etc.). " +
+                        "Optional: catalog (database), namespace (schema), sampleSize (Mongo only, default 100). " +
+                        "Returns columns, types, PK, FK, indexes, approximate row count. Use before query-data to avoid guessing column names.";
             default -> "MCP tool: " + toolName;
         };
     }
@@ -155,6 +160,15 @@ public class McpToolRegistry {
                         "catalog", Map.of("type", "string", "description", "Database/keyspace"),
                         "namespace", Map.of("type", "string", "description", "Schema if applicable"),
                         "queryContext", Map.of("type", "string", "description", "Original SQL/CQL/MQL if detail from query result")));
+                schema.put("required", List.of("connectionId", "entity"));
+            }
+            case "describe-entity" -> {
+                schema.put("properties", Map.of(
+                        "connectionId", Map.of("type", "number", "description", "Connection ID"),
+                        "entity", Map.of("type", "string", "description", "Table/collection/index/topic/queue/pod name"),
+                        "catalog", Map.of("type", "string", "description", "Database/keyspace/bucket"),
+                        "namespace", Map.of("type", "string", "description", "Schema if applicable"),
+                        "sampleSize", Map.of("type", "number", "description", "Sample size for schema inference (Mongo, default 100, max 500)")));
                 schema.put("required", List.of("connectionId", "entity"));
             }
             default -> {

@@ -6,6 +6,7 @@ import com.panopticum.core.model.QueryResult;
 import com.panopticum.core.model.QueryResultData;
 import com.panopticum.core.model.TableInfo;
 import com.panopticum.core.util.StringUtils;
+import com.panopticum.mcp.model.EntityDescription;
 import com.panopticum.mysql.repository.MySqlMetadataRepository;
 import io.micronaut.core.annotation.NonNull;
 import io.micronaut.context.annotation.Value;
@@ -378,5 +379,9 @@ public class MySqlMetadataService {
         }
         String lower = dataType.toLowerCase();
         return lower.matches("(bigint|int|integer|smallint|tinyint|mediumint|decimal|numeric|float|double|date|datetime|timestamp|time|year|bit)");
+    }
+
+    public Optional<EntityDescription> describeEntity(Long connectionId, String catalog, String entity) {
+        return mySqlMetadataRepository.describeTable(connectionId, catalog, entity);
     }
 }

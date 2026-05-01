@@ -8,6 +8,10 @@ import com.panopticum.core.error.MetadataAccessException;
 import com.panopticum.core.model.DatabaseInfo;
 import com.panopticum.core.model.QueryResultData;
 import com.panopticum.core.model.TableInfo;
+import com.panopticum.mcp.model.ColumnInfo;
+import com.panopticum.mcp.model.EntityDescription;
+import com.panopticum.mcp.model.ForeignKeyInfo;
+import com.panopticum.mcp.model.IndexInfo;
 import jakarta.inject.Singleton;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -294,6 +298,116 @@ public class MySqlMetadataRepository {
         } catch (SQLException e) {
             log.warn("executeUpdate failed: {}", e.getMessage());
             throw new MetadataAccessException(e.getMessage(), e);
+        }
+    }
+
+    public Optional<EntityDescription> describeTable(Long connectionId, String dbName, String tableName) {
+        try (Connection conn = ConnectionSupport.require(getConnection(connectionId, dbName))) {
+            List<ColumnInfo> columns = fetchMysqlColumns(conn, dbName, tableName);
+            List<String> pk = columns.stream().filter(ColumnInfo::isPrimaryKey).map(ColumnInfo::getName).toList();
+            List<ForeignKeyInfo> fks = fetchMysqlForeignKeys(conn, dbName, tableName);
+            List<IndexInfo> indexes = fetchMysqlIndexes(conn, dbName, tableName);
+            long rowCount = fetchMysqlRowCount(conn, dbName, tableName);
+
+            return Optional.of(EntityDescription.builder()
+                    .entityKind("table")
+                    .catalog(dbName)
+                    .namespace(null)
+                    .entity(tableName)
+                    .columns(columns)
+                    .primaryKey(pk)
+                    .foreignKeys(fks)
+                    .indexes(indexes)
+                    .approximateRowCount(rowCount)
+                    .inferredFromSample(false)
+                    .notes(List.of())
+                    .build());
+        } catch (Exception e) {
+            log.warn("describeTable failed for {}.{}: {}", dbName, tableName, e.getMessage());
+            return Optional.empty();
+        }
+    }
+
+    private static List<ColumnInfo> fetchMysqlColumns(Connection conn, String dbName, String tableName) throws SQLException {
+        String sql = "SELECT c.column_name, c.data_type, c.is_nullable, c.ordinal_position, "
+                + "CASE WHEN c.column_key = 'PRI' THEN true ELSE false END AS is_pk "
+                + "FROM information_schema.columns c "
+                + "WHERE c.table_schema = ? AND c.table_name = ? ORDER BY c.ordinal_position";
+        List<ColumnInfo> result = new ArrayList<>();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, dbName);
+            ps.setString(2, tableName);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    result.add(ColumnInfo.builder()
+                            .name(rs.getString("column_name"))
+                            .type(rs.getString("data_type"))
+                            .nullable("YES".equals(rs.getString("is_nullable")))
+                            .primaryKey(rs.getBoolean("is_pk"))
+                            .position(rs.getInt("ordinal_position"))
+                            .build());
+                }
+            }
+        }
+        return result;
+    }
+
+    private static List<ForeignKeyInfo> fetchMysqlForeignKeys(Connection conn, String dbName, String tableName) throws SQLException {
+        String sql = "SELECT kcu.column_name, kcu.referenced_table_name, kcu.referenced_column_name "
+                + "FROM information_schema.key_column_usage kcu "
+                + "JOIN information_schema.table_constraints tc ON kcu.constraint_name = tc.constraint_name AND kcu.table_schema = tc.table_schema "
+                + "WHERE kcu.table_schema = ? AND kcu.table_name = ? AND tc.constraint_type = 'FOREIGN KEY'";
+        List<ForeignKeyInfo> result = new ArrayList<>();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, dbName);
+            ps.setString(2, tableName);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String refTable = rs.getString("referenced_table_name");
+                    String refCol = rs.getString("referenced_column_name");
+                    if (refTable != null) {
+                        result.add(ForeignKeyInfo.builder()
+                                .columns(List.of(rs.getString("column_name")))
+                                .references(Map.of("table", refTable, "columns", List.of(refCol != null ? refCol : "")))
+                                .build());
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
+    private static List<IndexInfo> fetchMysqlIndexes(Connection conn, String dbName, String tableName) throws SQLException {
+        String sql = "SELECT index_name, non_unique, GROUP_CONCAT(column_name ORDER BY seq_in_index) AS cols "
+                + "FROM information_schema.statistics WHERE table_schema = ? AND table_name = ? GROUP BY index_name, non_unique";
+        List<IndexInfo> result = new ArrayList<>();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, dbName);
+            ps.setString(2, tableName);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String cols = rs.getString("cols");
+                    result.add(IndexInfo.builder()
+                            .name(rs.getString("index_name"))
+                            .unique(rs.getInt("non_unique") == 0)
+                            .columns(cols != null ? List.of(cols.split(",")) : List.of())
+                            .build());
+                }
+            }
+        }
+        return result;
+    }
+
+    private static long fetchMysqlRowCount(Connection conn, String dbName, String tableName) {
+        try (PreparedStatement ps = conn.prepareStatement(
+                "SELECT table_rows FROM information_schema.tables WHERE table_schema = ? AND table_name = ?")) {
+            ps.setString(1, dbName);
+            ps.setString(2, tableName);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getLong(1) : 0L;
+            }
+        } catch (SQLException e) {
+            return 0L;
         }
     }
 }

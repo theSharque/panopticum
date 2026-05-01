@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(~{::main})}">
+<head></head>
+<body>
+<main th:fragment="main" class="main-content">
+    <div th:replace="~{fragments/page-heading :: pageHeading(items=${breadcrumbs})}"></div>
+    <div th:replace="~{fragments/app-alert :: slot}"></div>
+
+    <div class="toolbar">
+        <h1 th:text="${msg['prometheus.queryTitle']}">Query</h1>
+        <a th:href="@{/prometheus/{id}/metrics(id=${connectionId})}" class="btn-secondary" th:text="${msg['prometheus.metricsTitle']}">Metrics</a>
+    </div>
+
+    <form method="get" class="query-form">
+        <input type="hidden" name="page" value="1">
+
+        <div class="form-row">
+            <div class="form-group">
+                <label th:text="${msg['prometheus.query']}">PromQL Query</label>
+                <textarea name="promql" id="promql-editor" rows="3" class="query-textarea"
+                          data-lang="sql"
+                          th:text="${promql}"></textarea>
+            </div>
+        </div>
+
+        <div class="form-row form-row--inline">
+            <div class="form-group form-group--inline">
+                <label th:text="${msg['prometheus.instant']}">Instant</label>
+                <input type="radio" name="mode" value="instant" th:checked="${mode == 'instant' or mode == null or mode.isEmpty()}">
+            </div>
+            <div class="form-group form-group--inline">
+                <label th:text="${msg['prometheus.range']}">Range</label>
+                <input type="radio" name="mode" value="range" th:checked="${mode == 'range'}">
+            </div>
+        </div>
+
+        <div class="form-row form-row--inline range-fields" id="range-fields">
+            <div class="form-group form-group--inline">
+                <label for="start-input" th:text="${msg['prometheus.start']}">Start</label>
+                <input type="text" id="start-input" name="start" placeholder="-1h" th:value="${start}" class="form-control-sm">
+            </div>
+            <div class="form-group form-group--inline">
+                <label for="end-input" th:text="${msg['prometheus.end']}">End</label>
+                <input type="text" id="end-input" name="end" placeholder="now" th:value="${end}" class="form-control-sm">
+            </div>
+            <div class="form-group form-group--inline">
+                <label for="step-input" th:text="${msg['prometheus.step']}">Step</label>
+                <input type="text" id="step-input" name="step" placeholder="60" th:value="${step}" class="form-control-sm">
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn-primary" th:text="${msg['prometheus.execute']}">Execute</button>
+        </div>
+    </form>
+
+    <div th:if="${queryResult != null}" class="query-result-data">
+        <div th:if="${queryResult.hasError()}" class="app-alert app-alert--error">
+            <span th:text="${queryResult.error}"></span>
+        </div>
+        <div th:if="${!queryResult.hasError() and queryResult.columns != null and !queryResult.columns.isEmpty()}" class="query-table-wrapper">
+            <table class="query-table">
+                <thead>
+                    <tr>
+                        <th th:each="col : ${queryResult.columns}" class="query-th" th:text="${col}"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="row : ${queryResult.rows}" class="query-data-row">
+                        <td th:each="cell : ${row}" th:text="${cell}" class="query-cell-mono"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <p th:if="${!queryResult.hasError() and (queryResult.rows == null or queryResult.rows.isEmpty())}"
+           class="text-dim" th:text="${msg['prometheus.noResults']}"></p>
+    </div>
+
+    <script>
+        (function() {
+            var radios = document.querySelectorAll('input[name="mode"]');
+            var rangeFields = document.getElementById('range-fields');
+            function updateRangeVisibility() {
+                var isRange = document.querySelector('input[name="mode"][value="range"]').checked;
+                rangeFields.style.display = isRange ? '' : 'none';
+            }
+            radios.forEach(function(r) { r.addEventListener('change', updateRangeVisibility); });
+            updateRangeVisibility();
+        })();
+    </script>
+</main>
+</body>
+</html>

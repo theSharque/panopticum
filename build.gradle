@@ -3,7 +3,7 @@ plugins {
     id("io.micronaut.application") version "4.6.2"
 }
 
-version = "6.3.0"
+version = "8.0.0"
 group = "com.panopticum"
 
 repositories {
@@ -81,6 +81,18 @@ dependencies {
     implementation("org.apache.kafka:kafka-clients:3.7.0")
     runtimeOnly("org.yaml:snakeyaml:2.2")
     implementation("io.fabric8:kubernetes-client:6.13.4")
+    implementation("io.minio:minio:8.5.17")
+    implementation("org.apache.parquet:parquet-avro:1.13.1")
+    implementation("org.apache.hadoop:hadoop-common:3.3.6") {
+        exclude group: "log4j", module: "log4j"
+        exclude group: "org.slf4j", module: "slf4j-log4j12"
+        exclude group: "org.slf4j", module: "slf4j-reload4j"
+        exclude group: "com.sun.jersey"
+        exclude group: "com.sun.jersey.contribs"
+        exclude group: "javax.servlet", module: "servlet-api"
+        exclude group: "org.mortbay.jetty"
+        exclude group: "tomcat"
+    }
 }
 
 application {

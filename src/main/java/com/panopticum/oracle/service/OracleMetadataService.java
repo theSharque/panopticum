@@ -6,6 +6,7 @@ import com.panopticum.core.model.QueryResultData;
 import com.panopticum.core.model.SchemaInfo;
 import com.panopticum.core.model.TableInfo;
 import com.panopticum.core.util.StringUtils;
+import com.panopticum.mcp.model.EntityDescription;
 import com.panopticum.oracle.repository.OracleMetadataRepository;
 import io.micronaut.context.annotation.Value;
 import jakarta.inject.Singleton;
@@ -399,5 +400,11 @@ public class OracleMetadataService {
             case "NUMBER", "FLOAT", "BINARY_FLOAT", "BINARY_DOUBLE", "DATE", "TIMESTAMP" -> true;
             default -> false;
         };
+    }
+
+    public Optional<EntityDescription> describeEntity(Long connectionId, String catalog, String namespace, String entity) {
+        String schema = namespace != null && !namespace.isBlank() ? namespace
+                : (catalog != null && !catalog.isBlank() && !"default".equals(catalog) ? catalog : "");
+        return oracleMetadataRepository.describeTable(connectionId, schema, entity);
     }
 }

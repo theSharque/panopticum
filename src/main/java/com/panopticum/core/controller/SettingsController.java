@@ -5,6 +5,8 @@ import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.service.ConnectionTestService;
 import com.panopticum.core.service.DbConnectionFactory;
 import com.panopticum.core.service.DbConnectionService;
+import com.panopticum.prometheus.service.PrometheusService;
+import com.panopticum.s3.service.S3Service;
 import com.panopticum.i18n.LocaleFilter;
 import com.panopticum.i18n.Messages;
 import io.micronaut.context.annotation.Value;
@@ -49,6 +51,8 @@ public class SettingsController {
     private final DbConnectionService dbConnectionService;
     private final DbConnectionFactory dbConnectionFactory;
     private final ConnectionTestService connectionTestService;
+    private final S3Service s3Service;
+    private final PrometheusService prometheusService;
     @Value("${panopticum.admin-lock:false}")
     private boolean adminLock;
 
@@ -352,6 +356,84 @@ public class SettingsController {
         return testConnectionResult(request, "kubernetes", host, port, database, null, password, id);
     }
 
+    @Post("/add-s3")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @Produces(MediaType.TEXT_HTML)
+    public Object addS3(HttpRequest<?> request,
+                        String name, String host, Integer port, String database,
+                        String username, String password, Optional<Boolean> useHttps,
+                        Optional<Long> id) {
+        assertNotLocked();
+        DbConnection conn = saveOrUpdateWithHttps("s3", id, name, host, port, database, username, password, useHttps.orElse(false));
+        Map<String, Object> model = new HashMap<>();
+        model.put("connections", dbConnectionService.findAll());
+
+        return responseAfterAdd(request, model, conn.getId(), "/s3/" + conn.getId() + "/buckets");
+    }
+
+    @Post("/test-s3")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @Produces(MediaType.TEXT_HTML)
+    public ModelAndView<Map<String, Object>> testS3(HttpRequest<?> request,
+            String host, Integer port, String database, String username, String password,
+            Optional<Boolean> useHttps, Optional<Long> id) {
+        String pwd = resolvePasswordForTest(id, password);
+        boolean https = useHttps.orElse(false);
+        Map<String, Object> model = new HashMap<>();
+        try {
+            Optional<String> error = s3Service.testConnection(host, port != null ? port : 443, database, username, pwd, https);
+            model.put("success", error.isEmpty());
+            String messageKey = error.orElse("connectionTest.success");
+            model.put("message", messageKey);
+            putDisplayText(model, request, messageKey);
+        } catch (Exception e) {
+            model.put("success", false);
+            String messageKey = e.getMessage() != null ? e.getMessage() : "error.queryExecutionFailed";
+            model.put("message", messageKey);
+            putDisplayText(model, request, messageKey);
+        }
+        return new ModelAndView<>("partials/connection-test-result", model);
+    }
+
+    @Post("/add-prometheus")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @Produces(MediaType.TEXT_HTML)
+    public Object addPrometheus(HttpRequest<?> request,
+                                String name, String host, Integer port,
+                                String username, String password, Optional<Boolean> useHttps,
+                                Optional<Long> id) {
+        assertNotLocked();
+        DbConnection conn = saveOrUpdateWithHttps("prometheus", id, name, host, port, null, username, password, useHttps.orElse(false));
+        Map<String, Object> model = new HashMap<>();
+        model.put("connections", dbConnectionService.findAll());
+
+        return responseAfterAdd(request, model, conn.getId(), "/prometheus/" + conn.getId() + "/metrics");
+    }
+
+    @Post("/test-prometheus")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @Produces(MediaType.TEXT_HTML)
+    public ModelAndView<Map<String, Object>> testPrometheus(HttpRequest<?> request,
+            String host, Integer port, String username, String password,
+            Optional<Boolean> useHttps, Optional<Long> id) {
+        String pwd = resolvePasswordForTest(id, password);
+        boolean https = useHttps.orElse(false);
+        Map<String, Object> model = new HashMap<>();
+        try {
+            Optional<String> error = prometheusService.testConnection(host, port != null ? port : 9090, username, pwd, https);
+            model.put("success", error.isEmpty());
+            String messageKey = error.orElse("connectionTest.success");
+            model.put("message", messageKey);
+            putDisplayText(model, request, messageKey);
+        } catch (Exception e) {
+            model.put("success", false);
+            String messageKey = e.getMessage() != null ? e.getMessage() : "error.queryExecutionFailed";
+            model.put("message", messageKey);
+            putDisplayText(model, request, messageKey);
+        }
+        return new ModelAndView<>("partials/connection-test-result", model);
+    }
+
     @Post("/test-elasticsearch")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces(MediaType.TEXT_HTML)
@@ -387,6 +469,26 @@ public class SettingsController {
         }
 
         return HttpResponse.redirect(URI.create("/settings"));
+    }
+
+    private DbConnection saveOrUpdateWithHttps(String expectedType, Optional<Long> id,
+                                              String name, String host, Integer port, String database,
+                                              String username, String password, boolean useHttps) {
+        if (id != null && id.isPresent()) {
+            DbConnection existing = dbConnectionService.findById(id.get())
+                    .orElseThrow(() -> new HttpStatusException(HttpStatus.NOT_FOUND, "connection.notFound"));
+            if (!expectedType.equalsIgnoreCase(existing.getType())) {
+                throw new HttpStatusException(HttpStatus.BAD_REQUEST, "connection.typeMismatch");
+            }
+            String pwd = (password != null && !password.isBlank()) ? password : existing.getPassword();
+            DbConnection conn = dbConnectionFactory.build(expectedType, name, host, port, database, username, pwd);
+            conn.setId(id.get());
+            conn.setUseHttps(useHttps);
+            return dbConnectionService.save(conn);
+        }
+        DbConnection conn = dbConnectionFactory.build(expectedType, name, host, port, database, username, password);
+        conn.setUseHttps(useHttps);
+        return dbConnectionService.save(conn);
     }
 
     private DbConnection saveOrUpdate(String expectedType, Optional<Long> id,

@@ -2,6 +2,8 @@ package com.panopticum.redis.service;
 
 import com.panopticum.core.model.QueryResult;
 import com.panopticum.core.util.StringUtils;
+import com.panopticum.mcp.model.ColumnInfo;
+import com.panopticum.mcp.model.EntityDescription;
 import com.panopticum.redis.model.RedisDbInfo;
 import com.panopticum.redis.model.RedisKeyDetail;
 import com.panopticum.redis.model.RedisKeyInfo;
@@ -189,5 +191,45 @@ public class RedisMetadataService {
             return null;
         });
         return Optional.empty();
+    }
+
+    public Optional<EntityDescription> describeKey(Long connectionId, int dbIndex, String keyOrPattern) {
+        try {
+            return redisMetadataRepository.withConnection(connectionId, dbIndex, (cmd, dbCmd) -> {
+                String type = cmd.type(keyOrPattern);
+                long ttl = cmd.ttl(keyOrPattern);
+                String encoding = null;
+                try {
+                    encoding = cmd.objectEncoding(keyOrPattern);
+                } catch (Exception ignored) {
+                }
+                List<ColumnInfo> columns = List.of(
+                        ColumnInfo.builder().name("key").type("string").nullable(false).primaryKey(true).position(1).build(),
+                        ColumnInfo.builder().name("type").type(type).nullable(false).primaryKey(false).position(2).build(),
+                        ColumnInfo.builder().name("ttl").type("integer (seconds, -1=permanent)").nullable(false).primaryKey(false).position(3).build()
+                );
+                List<String> notes = new ArrayList<>();
+                notes.add("type=" + type);
+                notes.add("ttl=" + (ttl >= 0 ? ttl + "s" : "permanent"));
+                if (encoding != null) notes.add("encoding=" + encoding);
+
+                return Optional.of(EntityDescription.builder()
+                        .entityKind("key")
+                        .catalog(String.valueOf(dbIndex))
+                        .namespace(null)
+                        .entity(keyOrPattern)
+                        .columns(columns)
+                        .primaryKey(List.of("key"))
+                        .foreignKeys(List.of())
+                        .indexes(List.of())
+                        .approximateRowCount(null)
+                        .inferredFromSample(false)
+                        .notes(notes)
+                        .build());
+            });
+        } catch (Exception e) {
+            log.warn("describeKey failed for {}: {}", keyOrPattern, e.getMessage());
+            return Optional.empty();
+        }
     }
 }

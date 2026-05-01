@@ -5,6 +5,8 @@ import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.model.Page;
 import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.core.util.StringUtils;
+import com.panopticum.mcp.model.ColumnInfo;
+import com.panopticum.mcp.model.EntityDescription;
 import com.panopticum.rabbitmq.client.RabbitMqManagementClient;
 import com.panopticum.rabbitmq.model.RabbitMqMessage;
 import com.panopticum.rabbitmq.model.RabbitMqQueueInfo;
@@ -155,5 +157,50 @@ public class RabbitMqService {
         String h = host != null && !host.isBlank() ? host : "localhost";
         int p = port > 0 ? port : 15672;
         return "http://" + h + ":" + p;
+    }
+
+    public Optional<EntityDescription> describeQueue(Long connectionId, String catalog, String queueName) {
+        try {
+            DbConnection conn = requireRabbitConnection(connectionId);
+            String baseUrl = managementBaseUrl(conn.getHost(), conn.getPort());
+            String vhost = catalog != null && !catalog.isBlank() ? catalog : conn.getDbName();
+            if (vhost == null || vhost.isBlank()) vhost = "/";
+            String user = conn.getUsername() != null ? conn.getUsername() : "";
+            String pass = conn.getPassword() != null ? conn.getPassword() : "";
+            String finalVhost = vhost;
+            List<RabbitMqQueueInfo> queues = managementClient.listQueues(baseUrl, user, pass).stream()
+                    .filter(q -> finalVhost.equals(q.getVhost()))
+                    .toList();
+            RabbitMqQueueInfo info = queues.stream().filter(q -> queueName.equals(q.getName())).findFirst().orElse(null);
+            if (info == null) return Optional.empty();
+
+            List<ColumnInfo> columns = List.of(
+                    ColumnInfo.builder().name("routing_key").type("string").nullable(false).primaryKey(true).position(1).build(),
+                    ColumnInfo.builder().name("payload").type("bytes/string").nullable(true).primaryKey(false).position(2).build(),
+                    ColumnInfo.builder().name("content_type").type("string").nullable(true).primaryKey(false).position(3).build(),
+                    ColumnInfo.builder().name("delivery_mode").type("int").nullable(true).primaryKey(false).position(4).build()
+            );
+            List<String> notes = new ArrayList<>();
+            notes.add("messages=" + (info.getMessages() != null ? info.getMessages() : 0));
+            notes.add("consumers=" + (info.getConsumers() != null ? info.getConsumers() : 0));
+            notes.add("vhost=" + vhost);
+
+            return Optional.of(EntityDescription.builder()
+                    .entityKind("queue")
+                    .catalog(vhost)
+                    .namespace(null)
+                    .entity(queueName)
+                    .columns(columns)
+                    .primaryKey(List.of())
+                    .foreignKeys(List.of())
+                    .indexes(List.of())
+                    .approximateRowCount(info.getMessages())
+                    .inferredFromSample(false)
+                    .notes(notes)
+                    .build());
+        } catch (Exception e) {
+            log.warn("describeQueue failed for {}: {}", queueName, e.getMessage());
+            return Optional.empty();
+        }
     }
 }

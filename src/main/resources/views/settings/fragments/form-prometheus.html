@@ -1,0 +1,54 @@
+<div xmlns:th="http://www.thymeleaf.org" id="form-prometheus" class="connection-form-block" hidden th:fragment="form-prometheus">
+    <form id="connection-form-prometheus" action="/settings/add-prometheus" method="post" class="add-connection-form"
+          hx-post="/settings/add-prometheus"
+          hx-target="#sidebar"
+          hx-swap="outerHTML">
+        <input type="hidden" name="id" th:if="${editingConnection != null}" th:value="${editingConnection != null ? editingConnection.id : null}">
+        <div class="form-group">
+            <label for="name-prometheus" th:text="${msg['common.name']}">Name</label>
+            <input type="text" id="name-prometheus" name="name" required
+                   th:attr="placeholder=${msg['settings.placeholderNamePrometheus']}"
+                   th:value="${editingConnection != null ? editingConnection.name : null}">
+        </div>
+        <div class="form-group">
+            <label for="host-prometheus" th:text="${msg['settings.prometheusHost']}">Host</label>
+            <input type="text" id="host-prometheus" name="host" required
+                   th:attr="placeholder=${msg['settings.placeholderPrometheusHost']}"
+                   th:value="${editingConnection != null ? editingConnection.host : null}">
+        </div>
+        <div class="form-group">
+            <label for="port-prometheus" th:text="${msg['settings.port']}">Port</label>
+            <input type="number" id="port-prometheus" name="port"
+                   th:value="${editingConnection != null ? editingConnection.port : 9090}">
+        </div>
+        <div class="form-group form-group--checkbox">
+            <label>
+                <input type="checkbox" name="useHttps" th:checked="${editingConnection != null ? editingConnection.useHttps : false}">
+                HTTPS
+            </label>
+        </div>
+        <div class="form-group">
+            <label for="username-prometheus" th:text="${msg['settings.username']}">Username</label>
+            <input type="text" id="username-prometheus" name="username" autocomplete="off"
+                   th:attr="placeholder=${msg['settings.prometheusAuthHint']}"
+                   th:value="${editingConnection != null ? editingConnection.username : null}">
+        </div>
+        <div class="form-group">
+            <label for="password-prometheus" th:text="${msg['settings.password']}">Password / Bearer Token</label>
+            <input type="password" id="password-prometheus" name="password" autocomplete="off"
+                   th:value="${editingConnection != null ? editingConnection.password : null}">
+        </div>
+        <div class="form-actions">
+            <span id="test-indicator-prometheus" class="connection-test-indicator" aria-hidden="true" th:text="${msg['settings.testing']}">Checking...</span>
+            <button type="button" class="btn-check"
+                    hx-post="/settings/test-prometheus"
+                    hx-include="#connection-form-prometheus"
+                    hx-target="#connection-test-result-prometheus"
+                    hx-swap="innerHTML show:bottom"
+                    hx-indicator="#test-indicator-prometheus"
+                    th:text="${msg['settings.test']}">Test</button>
+            <button type="submit" th:text="${editingConnection != null ? msg['settings.save'] : msg['settings.add']}">Add</button>
+        </div>
+        <div id="connection-test-result-prometheus" class="connection-test-result"></div>
+    </form>
+</div>

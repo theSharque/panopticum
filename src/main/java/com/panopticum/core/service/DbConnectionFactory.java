@@ -19,6 +19,8 @@ public class DbConnectionFactory {
     private static final int PORT_KAFKA = 9092;
     private static final int PORT_ELASTICSEARCH = 9200;
     private static final int PORT_KUBERNETES = 443;
+    private static final int PORT_S3 = 443;
+    private static final int PORT_PROMETHEUS = 9090;
 
     public DbConnection build(String type, String name, String host, Integer port,
                              String database, String username, String password) {
@@ -74,6 +76,8 @@ public class DbConnectionFactory {
             case "kafka" -> PORT_KAFKA;
             case "elasticsearch" -> PORT_ELASTICSEARCH;
             case "kubernetes" -> PORT_KUBERNETES;
+            case "s3" -> PORT_S3;
+            case "prometheus" -> PORT_PROMETHEUS;
             default -> PORT_POSTGRESQL;
         };
     }
@@ -90,6 +94,8 @@ public class DbConnectionFactory {
             case "rabbitmq" -> "/";
             case "kafka" -> "";
             case "kubernetes" -> "";
+            case "s3" -> "";
+            case "prometheus" -> "";
             default -> "";
         };
     }

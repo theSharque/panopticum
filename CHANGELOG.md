@@ -5,6 +5,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [8.0.0] - 2026-05-01
+
+### Added
+
+- **`describe-entity` MCP tool** — returns full schema context for any data source (columns, types, PK/FK/indexes, approximate row count). AI agents can now skip `SELECT *` and get precise schema context, reducing token usage.
+  - PostgreSQL, MySQL, MSSQL, Oracle — via `information_schema` + system tables
+  - ClickHouse — `system.columns` / `system.tables`
+  - Cassandra — `system_schema.columns`
+  - MongoDB — schema inferred from sampled documents (`sampleSize` parameter, default 100)
+  - Elasticsearch — index mappings
+  - Redis — key type, TTL, encoding
+  - Kafka — partition info
+  - RabbitMQ — queue stats (messages, consumers, vhost)
+- **Kubernetes read-only expansion**
+  - `describe pod` — detailed view: containers, images, resources, probes, conditions, events
+  - Namespace events listing
+  - Read-only listings: Deployments, StatefulSets, Services, Ingresses, ConfigMaps, Secrets
+  - Secret value reveal (unmask on demand) with audit log (value never logged, only metadata)
+  - Graceful "no access" handling via `AccessResult` — 401/403/404 shown as soft UI alert, no 5xx
+- **S3 / MinIO integration** — new connection type `s3`
+  - Browse buckets and object prefixes (folder-style navigation)
+  - Peek object contents: JSON, CSV, text, Parquet head (schema + first rows), binary as hex dump
+  - MCP: `list-catalogs` → buckets, `list-entities` → objects/prefixes, `query-data` → peek, `describe-entity` → object metadata
+- **Prometheus / VictoriaMetrics integration** — new connection type `prometheus`
+  - Instant PromQL query and range queries (start/end/step)
+  - Browse jobs and metrics list
+  - MCP: `list-catalogs` → jobs, `list-entities` → metric names, `query-data` → instant PromQL, `describe-entity` → metric labels
+  - Auth: Basic Auth (username + password) or Bearer token (empty username, token in password)
+- `AccessResult<T>` envelope for unified soft-error handling across Kubernetes, S3, Prometheus
+- i18n keys for new features: `MessagesS3`, `MessagesPrometheus`, extended `MessagesKubernetes`
+
 ## [7.3.0] - 2026-03-12
 
 ### Added

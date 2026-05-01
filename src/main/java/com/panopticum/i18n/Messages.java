@@ -22,6 +22,8 @@ public class Messages {
             merged.putAll(MessagesKafka.RU);
             merged.putAll(MessagesElasticsearch.RU);
             merged.putAll(MessagesKubernetes.RU);
+            merged.putAll(MessagesS3.RU);
+            merged.putAll(MessagesPrometheus.RU);
         } else {
             merged.putAll(MessagesCommon.EN);
             merged.putAll(MessagesSettings.EN);
@@ -34,6 +36,8 @@ public class Messages {
             merged.putAll(MessagesKafka.EN);
             merged.putAll(MessagesElasticsearch.EN);
             merged.putAll(MessagesKubernetes.EN);
+            merged.putAll(MessagesS3.EN);
+            merged.putAll(MessagesPrometheus.EN);
         }
         return merged;
     }

@@ -7,6 +7,7 @@ import com.panopticum.core.model.QueryResultData;
 import com.panopticum.core.model.SchemaInfo;
 import com.panopticum.core.model.TableInfo;
 import com.panopticum.core.util.StringUtils;
+import com.panopticum.mcp.model.EntityDescription;
 import com.panopticum.postgres.repository.PgMetadataRepository;
 import io.micronaut.context.annotation.Value;
 import jakarta.inject.Singleton;
@@ -420,5 +421,11 @@ public class PgMetadataService {
                     "time without time zone", "time with time zone", "boolean" -> true;
             default -> false;
         };
+    }
+
+    public Optional<EntityDescription> describeEntity(Long connectionId, String catalog, String namespace, String entity) {
+        String db = catalog != null && !catalog.isBlank() ? catalog : "";
+        String schema = namespace != null && !namespace.isBlank() ? namespace : "public";
+        return pgMetadataRepository.describeTable(connectionId, db, schema, entity);
     }
 }

@@ -12,6 +12,8 @@ import com.panopticum.elasticsearch.model.ElasticsearchIndexInfo;
 import com.panopticum.elasticsearch.model.ElasticsearchSearchResult;
 import com.panopticum.elasticsearch.model.SearchHitDto;
 import com.panopticum.elasticsearch.model.SearchResponseDto;
+import com.panopticum.mcp.model.ColumnInfo;
+import com.panopticum.mcp.model.EntityDescription;
 import io.micronaut.context.annotation.Value;
 import jakarta.inject.Singleton;
 import lombok.RequiredArgsConstructor;
@@ -320,13 +322,16 @@ public class ElasticsearchService {
         if (logDetails) {
             log.info("Elasticsearch resolve: stored useHttps=false probe http {} -> {}", httpUrl, httpFirst);
         }
+
         if (httpFirst) {
             return httpUrl;
         }
+
         boolean httpsSecond = elasticsearchClient.probeTransport(httpsUrl, user, pass, logDetails);
         if (logDetails) {
             log.info("Elasticsearch resolve: probe https {} -> {}", httpsUrl, httpsSecond);
         }
+
         if (httpsSecond) {
             persistUseHttps(conn, true);
 
@@ -344,11 +349,77 @@ public class ElasticsearchService {
         if (conn.getId() == null) {
             return;
         }
+
         if (conn.isUseHttps() == useHttps) {
             return;
         }
+
         conn.setUseHttps(useHttps);
         dbConnectionService.save(conn);
         log.info("Elasticsearch: saved use_https={} for connection id={}", useHttps, conn.getId());
+    }
+
+    public Optional<EntityDescription> describeIndex(Long connectionId, String indexName) {
+        try {
+            DbConnection conn = requireElasticsearch(connectionId);
+            String baseUrl = resolveBaseUrl(conn, false);
+            String user = conn.getUsername() != null ? conn.getUsername() : "";
+            String pass = conn.getPassword() != null ? conn.getPassword() : "";
+            Map<String, Object> mapping = elasticsearchClient.getMapping(baseUrl, indexName, user, pass);
+            List<ColumnInfo> columns = flattenEsMapping(mapping, indexName);
+
+            return Optional.of(EntityDescription.builder()
+                    .entityKind("index")
+                    .catalog(indexName)
+                    .namespace(null)
+                    .entity(indexName)
+                    .columns(columns)
+                    .primaryKey(List.of("_id"))
+                    .foreignKeys(List.of())
+                    .indexes(List.of())
+                    .approximateRowCount(null)
+                    .inferredFromSample(false)
+                    .notes(List.of())
+                    .build());
+        } catch (Exception e) {
+            log.warn("describeIndex failed for {}: {}", indexName, e.getMessage());
+            return Optional.empty();
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<ColumnInfo> flattenEsMapping(Map<String, Object> rawMapping, String indexName) {
+        List<ColumnInfo> result = new ArrayList<>();
+        try {
+            Object indexEntry = rawMapping.get(indexName);
+            if (!(indexEntry instanceof Map)) return result;
+
+            Object mappings = ((Map<String, Object>) indexEntry).get("mappings");
+            if (!(mappings instanceof Map)) return result;
+
+            Object props = ((Map<String, Object>) mappings).get("properties");
+            if (!(props instanceof Map)) return result;
+
+            int pos = 1;
+            for (Map.Entry<String, Object> entry : ((Map<String, Object>) props).entrySet()) {
+                String type = "object";
+                if (entry.getValue() instanceof Map) {
+                    Object t = ((Map<String, Object>) entry.getValue()).get("type");
+                    if (t != null) type = t.toString();
+                }
+
+                result.add(ColumnInfo.builder()
+                        .name(entry.getKey())
+                        .type(type)
+                        .nullable(true)
+                        .primaryKey(false)
+                        .position(pos++)
+                        .build());
+            }
+        } catch (Exception e) {
+            log.debug("flattenEsMapping failed: {}", e.getMessage());
+        }
+
+        return result;
     }
 }

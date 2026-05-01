@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(~{::main})}">
+<head></head>
+<body>
+<main th:fragment="main" class="main-content">
+    <div th:replace="~{fragments/page-heading :: pageHeading(items=${breadcrumbs})}"></div>
+    <div th:replace="~{fragments/app-alert :: slot}"></div>
+    <h1 th:text="${msg['s3.peekTitle']}">Peek</h1>
+    <form method="get" th:action="@{/s3/{id}/buckets/{bucket}/peek(id=${connectionId},bucket=${bucket})}" class="query-form">
+        <input type="hidden" name="key" th:value="${key}">
+        <div class="form-row">
+            <div class="form-group">
+                <label th:text="${msg['s3.headBytes']}">Head bytes</label>
+                <input type="number" name="headBytes" th:value="${headBytes}" min="1" max="1048576" style="width:140px">
+            </div>
+            <div class="form-group">
+                <label th:text="${msg['s3.format']}">Format</label>
+                <select name="format">
+                    <option value="auto" th:selected="${format == 'auto'}">auto</option>
+                    <option value="text" th:selected="${format == 'text'}">text</option>
+                    <option value="json" th:selected="${format == 'json'}">json</option>
+                    <option value="csv" th:selected="${format == 'csv'}">csv</option>
+                    <option value="hex" th:selected="${format == 'hex'}">hex</option>
+                </select>
+            </div>
+            <button type="submit" class="btn-primary" th:text="${msg['s3.peek']}">Peek</button>
+        </div>
+    </form>
+    <pre th:if="${content != null}" class="query-result-pre" th:text="${content}"></pre>
+</main>
+</body>
+</html>

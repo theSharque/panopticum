@@ -1,12 +1,27 @@
 package com.panopticum.kubernetes.service;
 
+import com.panopticum.core.error.AccessResult;
 import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.model.Page;
 import com.panopticum.core.model.QueryResult;
 import com.panopticum.core.service.DbConnectionService;
+import com.panopticum.kubernetes.model.KubernetesConfigMapInfo;
+import com.panopticum.kubernetes.model.KubernetesDeploymentInfo;
+import com.panopticum.kubernetes.model.KubernetesEventInfo;
+import com.panopticum.kubernetes.model.KubernetesIngressInfo;
+import com.panopticum.kubernetes.model.KubernetesPodDescription;
 import com.panopticum.kubernetes.model.KubernetesPodInfo;
+import com.panopticum.kubernetes.model.KubernetesSecretInfo;
+import com.panopticum.kubernetes.model.KubernetesServiceInfo;
+import com.panopticum.kubernetes.model.KubernetesStatefulSetInfo;
 import com.panopticum.kubernetes.util.KubernetesNamespaceCsv;
+import io.fabric8.kubernetes.api.model.ConfigMap;
+import io.fabric8.kubernetes.api.model.Event;
 import io.fabric8.kubernetes.api.model.Pod;
+import io.fabric8.kubernetes.api.model.Secret;
+import io.fabric8.kubernetes.api.model.apps.Deployment;
+import io.fabric8.kubernetes.api.model.apps.StatefulSet;
+import io.fabric8.kubernetes.api.model.networking.v1.Ingress;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.ConfigBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
@@ -21,6 +36,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -325,5 +341,272 @@ public class KubernetesService {
                 .withTrustCerts(true)
                 .build();
         return new KubernetesClientBuilder().withConfig(config).build();
+    }
+
+    public AccessResult<KubernetesPodDescription> describePod(Long connectionId, String ns, String podName) {
+        return withClient(connectionId, client -> {
+            Pod pod = client.pods().inNamespace(ns).withName(podName).get();
+            if (pod == null) {
+                return AccessResult.notFound("kubernetes.access.notFound");
+            }
+            List<KubernetesPodDescription.ContainerInfo> containers = new ArrayList<>();
+            if (pod.getStatus() != null && pod.getStatus().getContainerStatuses() != null) {
+                for (var cs : pod.getStatus().getContainerStatuses()) {
+                    String image = cs.getImage();
+                    if (image == null && pod.getSpec() != null) {
+                        image = pod.getSpec().getContainers().stream()
+                                .filter(c -> cs.getName().equals(c.getName()))
+                                .map(c -> c.getImage())
+                                .findFirst().orElse("");
+                    }
+                    containers.add(KubernetesPodDescription.ContainerInfo.builder()
+                            .name(cs.getName())
+                            .image(image != null ? image : "")
+                            .ready(Boolean.TRUE.equals(cs.getReady()))
+                            .restartCount(cs.getRestartCount() != null ? cs.getRestartCount() : 0)
+                            .build());
+                }
+            }
+            List<Map<String, Object>> conditions = new ArrayList<>();
+            if (pod.getStatus() != null && pod.getStatus().getConditions() != null) {
+                for (var cond : pod.getStatus().getConditions()) {
+                    conditions.add(Map.of(
+                            "type", cond.getType() != null ? cond.getType() : "",
+                            "status", cond.getStatus() != null ? cond.getStatus() : "",
+                            "message", cond.getMessage() != null ? cond.getMessage() : ""));
+                }
+            }
+            List<KubernetesEventInfo> recentEvents = fetchPodEvents(client, ns, podName);
+            KubernetesPodDescription desc = KubernetesPodDescription.builder()
+                    .name(pod.getMetadata().getName())
+                    .namespace(ns)
+                    .phase(pod.getStatus() != null ? pod.getStatus().getPhase() : "Unknown")
+                    .nodeName(pod.getSpec() != null ? pod.getSpec().getNodeName() : null)
+                    .podIP(pod.getStatus() != null ? pod.getStatus().getPodIP() : null)
+                    .containers(containers)
+                    .conditions(conditions)
+                    .recentEvents(recentEvents)
+                    .build();
+            return AccessResult.ok(desc);
+        });
+    }
+
+    private List<KubernetesEventInfo> fetchPodEvents(KubernetesClient client, String ns, String podName) {
+        try {
+            return client.v1().events().inNamespace(ns).list().getItems().stream()
+                    .filter(e -> e.getInvolvedObject() != null && podName.equals(e.getInvolvedObject().getName()))
+                    .map(KubernetesService::toEventInfo)
+                    .toList();
+        } catch (Exception e) {
+            return List.of();
+        }
+    }
+
+    public AccessResult<Page<KubernetesEventInfo>> listEventsPaged(Long connectionId, String ns, int page, int size) {
+        return withClient(connectionId, client -> {
+            List<KubernetesEventInfo> events = client.v1().events().inNamespace(ns).list().getItems().stream()
+                    .map(KubernetesService::toEventInfo)
+                    .toList();
+            return AccessResult.ok(Page.of(events, page, size, "name", "asc"));
+        });
+    }
+
+    public AccessResult<Page<KubernetesDeploymentInfo>> listDeploymentsPaged(Long connectionId, String ns, int page, int size) {
+        return withClient(connectionId, client -> {
+            List<KubernetesDeploymentInfo> items = client.apps().deployments().inNamespace(ns).list().getItems().stream()
+                    .map(KubernetesService::toDeploymentInfo)
+                    .toList();
+            return AccessResult.ok(Page.of(items, page, size, "name", "asc"));
+        });
+    }
+
+    public AccessResult<Page<KubernetesStatefulSetInfo>> listStatefulSetsPaged(Long connectionId, String ns, int page, int size) {
+        return withClient(connectionId, client -> {
+            List<KubernetesStatefulSetInfo> items = client.apps().statefulSets().inNamespace(ns).list().getItems().stream()
+                    .map(KubernetesService::toStatefulSetInfo)
+                    .toList();
+            return AccessResult.ok(Page.of(items, page, size, "name", "asc"));
+        });
+    }
+
+    public AccessResult<Page<KubernetesServiceInfo>> listServicesPaged(Long connectionId, String ns, int page, int size) {
+        return withClient(connectionId, client -> {
+            List<KubernetesServiceInfo> items = client.services().inNamespace(ns).list().getItems().stream()
+                    .map(KubernetesService::toServiceInfo)
+                    .toList();
+            return AccessResult.ok(Page.of(items, page, size, "name", "asc"));
+        });
+    }
+
+    public AccessResult<Page<KubernetesIngressInfo>> listIngressesPaged(Long connectionId, String ns, int page, int size) {
+        return withClient(connectionId, client -> {
+            List<KubernetesIngressInfo> items = client.network().v1().ingresses().inNamespace(ns).list().getItems().stream()
+                    .map(KubernetesService::toIngressInfo)
+                    .toList();
+            return AccessResult.ok(Page.of(items, page, size, "name", "asc"));
+        });
+    }
+
+    public AccessResult<Page<KubernetesConfigMapInfo>> listConfigMapsPaged(Long connectionId, String ns, int page, int size) {
+        return withClient(connectionId, client -> {
+            List<KubernetesConfigMapInfo> items = client.configMaps().inNamespace(ns).list().getItems().stream()
+                    .map(KubernetesService::toConfigMapInfo)
+                    .toList();
+            return AccessResult.ok(Page.of(items, page, size, "name", "asc"));
+        });
+    }
+
+    public AccessResult<Page<KubernetesSecretInfo>> listSecretsPaged(Long connectionId, String ns, int page, int size) {
+        return withClient(connectionId, client -> {
+            List<KubernetesSecretInfo> items = client.secrets().inNamespace(ns).list().getItems().stream()
+                    .map(KubernetesService::toSecretInfo)
+                    .toList();
+            return AccessResult.ok(Page.of(items, page, size, "name", "asc"));
+        });
+    }
+
+    public AccessResult<String> getSecretValue(Long connectionId, String ns, String secretName, String key) {
+        return withClient(connectionId, client -> {
+            Secret secret = client.secrets().inNamespace(ns).withName(secretName).get();
+            if (secret == null) {
+                return AccessResult.notFound("kubernetes.access.notFound");
+            }
+            if (secret.getData() == null || !secret.getData().containsKey(key)) {
+                return AccessResult.notFound("kubernetes.access.notFound");
+            }
+            String base64Value = secret.getData().get(key);
+            String decoded = new String(java.util.Base64.getDecoder().decode(base64Value));
+            log.info("Secret value revealed: connection={} namespace={} secret={} key={}", connectionId, ns, secretName, key);
+            return AccessResult.ok(decoded);
+        });
+    }
+
+    private <T> AccessResult<T> withClient(Long connectionId, java.util.function.Function<KubernetesClient, AccessResult<T>> action) {
+        Optional<DbConnection> connOpt = dbConnectionService.findById(connectionId);
+        if (connOpt.isEmpty()) {
+            return AccessResult.notFound("connection.notFound");
+        }
+        DbConnection conn = connOpt.get();
+        String masterUrl = resolveMasterUrl(conn.getHost(), conn.getPort());
+        if (masterUrl == null) {
+            return AccessResult.error("kubernetes.access.error");
+        }
+        try (KubernetesClient client = newClient(masterUrl, conn.getPassword())) {
+            return action.apply(client);
+        } catch (KubernetesClientException e) {
+            log.warn("Kubernetes access error code={}: {}", e.getCode(), e.getMessage());
+            return switch (e.getCode()) {
+                case 401 -> AccessResult.unauthorized("kubernetes.access.unauthorized");
+                case 403 -> AccessResult.forbidden("kubernetes.access.forbidden");
+                case 404 -> AccessResult.notFound("kubernetes.access.notFound");
+                default -> AccessResult.error("kubernetes.access.error");
+            };
+        } catch (Exception e) {
+            log.warn("Kubernetes access error: {}", e.getMessage());
+            return AccessResult.error("kubernetes.access.error");
+        }
+    }
+
+    private static KubernetesEventInfo toEventInfo(Event e) {
+        return KubernetesEventInfo.builder()
+                .name(e.getMetadata() != null ? e.getMetadata().getName() : "")
+                .namespace(e.getMetadata() != null ? e.getMetadata().getNamespace() : "")
+                .reason(e.getReason() != null ? e.getReason() : "")
+                .message(e.getMessage() != null ? e.getMessage() : "")
+                .objectName(e.getInvolvedObject() != null ? e.getInvolvedObject().getName() : "")
+                .objectKind(e.getInvolvedObject() != null ? e.getInvolvedObject().getKind() : "")
+                .count(e.getCount() != null ? e.getCount() : 0)
+                .firstTime(e.getFirstTimestamp() != null ? e.getFirstTimestamp() : "")
+                .lastTime(e.getLastTimestamp() != null ? e.getLastTimestamp() : "")
+                .type(e.getType() != null ? e.getType() : "Normal")
+                .build();
+    }
+
+    private static KubernetesDeploymentInfo toDeploymentInfo(Deployment d) {
+        String image = "";
+        if (d.getSpec() != null && d.getSpec().getTemplate() != null
+                && d.getSpec().getTemplate().getSpec() != null
+                && !d.getSpec().getTemplate().getSpec().getContainers().isEmpty()) {
+            image = d.getSpec().getTemplate().getSpec().getContainers().get(0).getImage();
+        }
+        return KubernetesDeploymentInfo.builder()
+                .name(d.getMetadata().getName())
+                .namespace(d.getMetadata().getNamespace())
+                .desiredReplicas(d.getSpec() != null && d.getSpec().getReplicas() != null ? d.getSpec().getReplicas() : 0)
+                .readyReplicas(d.getStatus() != null && d.getStatus().getReadyReplicas() != null ? d.getStatus().getReadyReplicas() : 0)
+                .availableReplicas(d.getStatus() != null && d.getStatus().getAvailableReplicas() != null ? d.getStatus().getAvailableReplicas() : 0)
+                .image(image != null ? image : "")
+                .build();
+    }
+
+    private static KubernetesStatefulSetInfo toStatefulSetInfo(StatefulSet ss) {
+        String image = "";
+        if (ss.getSpec() != null && ss.getSpec().getTemplate() != null
+                && ss.getSpec().getTemplate().getSpec() != null
+                && !ss.getSpec().getTemplate().getSpec().getContainers().isEmpty()) {
+            image = ss.getSpec().getTemplate().getSpec().getContainers().get(0).getImage();
+        }
+        return KubernetesStatefulSetInfo.builder()
+                .name(ss.getMetadata().getName())
+                .namespace(ss.getMetadata().getNamespace())
+                .desiredReplicas(ss.getSpec() != null && ss.getSpec().getReplicas() != null ? ss.getSpec().getReplicas() : 0)
+                .readyReplicas(ss.getStatus() != null && ss.getStatus().getReadyReplicas() != null ? ss.getStatus().getReadyReplicas() : 0)
+                .image(image != null ? image : "")
+                .build();
+    }
+
+    private static KubernetesServiceInfo toServiceInfo(io.fabric8.kubernetes.api.model.Service svc) { //NOSONAR - fabric8 Service, not spring Service
+        String ports = "";
+        if (svc.getSpec() != null && svc.getSpec().getPorts() != null) {
+            ports = svc.getSpec().getPorts().stream()
+                    .map(p -> (p.getName() != null ? p.getName() + ":" : "") + p.getPort()
+                            + (p.getProtocol() != null ? "/" + p.getProtocol() : ""))
+                    .collect(Collectors.joining(", "));
+        }
+        return KubernetesServiceInfo.builder()
+                .name(svc.getMetadata().getName())
+                .namespace(svc.getMetadata().getNamespace())
+                .type(svc.getSpec() != null ? svc.getSpec().getType() : "")
+                .clusterIP(svc.getSpec() != null ? svc.getSpec().getClusterIP() : "")
+                .ports(ports)
+                .build();
+    }
+
+    private static KubernetesIngressInfo toIngressInfo(Ingress ing) {
+        List<String> hosts = new ArrayList<>();
+        if (ing.getSpec() != null && ing.getSpec().getRules() != null) {
+            for (var rule : ing.getSpec().getRules()) {
+                if (rule.getHost() != null) hosts.add(rule.getHost());
+            }
+        }
+        String className = ing.getSpec() != null ? ing.getSpec().getIngressClassName() : null;
+        return KubernetesIngressInfo.builder()
+                .name(ing.getMetadata().getName())
+                .namespace(ing.getMetadata().getNamespace())
+                .hosts(hosts)
+                .className(className != null ? className : "")
+                .build();
+    }
+
+    private static KubernetesConfigMapInfo toConfigMapInfo(ConfigMap cm) {
+        List<String> keys = new ArrayList<>();
+        if (cm.getData() != null) keys.addAll(cm.getData().keySet());
+        if (cm.getBinaryData() != null) keys.addAll(cm.getBinaryData().keySet());
+        return KubernetesConfigMapInfo.builder()
+                .name(cm.getMetadata().getName())
+                .namespace(cm.getMetadata().getNamespace())
+                .keys(keys)
+                .build();
+    }
+
+    private static KubernetesSecretInfo toSecretInfo(Secret sec) {
+        List<String> keys = new ArrayList<>();
+        if (sec.getData() != null) keys.addAll(sec.getData().keySet());
+        return KubernetesSecretInfo.builder()
+                .name(sec.getMetadata().getName())
+                .namespace(sec.getMetadata().getNamespace())
+                .type(sec.getType() != null ? sec.getType() : "")
+                .keys(keys)
+                .build();
     }
 }

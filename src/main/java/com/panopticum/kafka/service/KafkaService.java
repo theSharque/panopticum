@@ -11,12 +11,15 @@ import com.panopticum.kafka.client.KafkaClient;
 import com.panopticum.kafka.model.KafkaPartitionInfo;
 import com.panopticum.kafka.model.KafkaRecord;
 import com.panopticum.kafka.model.KafkaTopicInfo;
+import com.panopticum.mcp.model.ColumnInfo;
+import com.panopticum.mcp.model.EntityDescription;
 import io.micronaut.context.annotation.Value;
 import jakarta.inject.Singleton;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Comparator;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -175,5 +178,41 @@ public class KafkaService {
         String h = host != null && !host.isBlank() ? host : "localhost";
         int p = port > 0 ? port : 9092;
         return h + ":" + p;
+    }
+
+    public Optional<EntityDescription> describeEntity(Long connectionId, String topicName) {
+        try {
+            DbConnection conn = requireKafkaConnection(connectionId);
+            String bootstrap = bootstrapServers(conn.getHost(), conn.getPort());
+            List<KafkaPartitionInfo> partitions = kafkaClient.getPartitions(bootstrap, topicName);
+            List<ColumnInfo> columns = List.of(
+                    ColumnInfo.builder().name("offset").type("int64").nullable(false).primaryKey(true).position(1).build(),
+                    ColumnInfo.builder().name("partition").type("int32").nullable(false).primaryKey(true).position(2).build(),
+                    ColumnInfo.builder().name("key").type("bytes/string").nullable(true).primaryKey(false).position(3).build(),
+                    ColumnInfo.builder().name("value").type("bytes/string").nullable(true).primaryKey(false).position(4).build(),
+                    ColumnInfo.builder().name("timestamp").type("int64").nullable(false).primaryKey(false).position(5).build()
+            );
+            List<String> notes = new ArrayList<>();
+            notes.add("partitions=" + partitions.size());
+            notes.add("schemaRegistry=disabled");
+            partitions.stream().map(p -> "partition=" + p.getPartition()).forEach(notes::add);
+
+            return Optional.of(EntityDescription.builder()
+                    .entityKind("topic")
+                    .catalog(topicName)
+                    .namespace(null)
+                    .entity(topicName)
+                    .columns(columns)
+                    .primaryKey(List.of("partition", "offset"))
+                    .foreignKeys(List.of())
+                    .indexes(List.of())
+                    .approximateRowCount(null)
+                    .inferredFromSample(false)
+                    .notes(notes)
+                    .build());
+        } catch (Exception e) {
+            log.warn("describeEntity failed for topic {}: {}", topicName, e.getMessage());
+            return Optional.empty();
+        }
     }
 }

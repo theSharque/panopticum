@@ -8,6 +8,8 @@ import com.panopticum.core.util.SizeFormatter;
 import com.panopticum.core.model.DatabaseInfo;
 import com.panopticum.core.model.QueryResultData;
 import com.panopticum.core.model.TableInfo;
+import com.panopticum.mcp.model.ColumnInfo;
+import com.panopticum.mcp.model.EntityDescription;
 import jakarta.inject.Singleton;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -188,6 +190,56 @@ public class ClickHouseMetadataRepository {
         } catch (SQLException e) {
             log.warn("executeQuery with params failed: {}", e.getMessage());
             throw new MetadataAccessException(e.getMessage(), e);
+        }
+    }
+
+    public Optional<EntityDescription> describeTable(Long connectionId, String dbName, String tableName) {
+        try (Connection conn = ConnectionSupport.require(getConnection(connectionId, dbName))) {
+            List<ColumnInfo> columns = new ArrayList<>();
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "SELECT name, type, is_in_primary_key, position FROM system.columns WHERE database = ? AND table = ? ORDER BY position")) {
+                ps.setString(1, dbName);
+                ps.setString(2, tableName);
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        columns.add(ColumnInfo.builder()
+                                .name(rs.getString("name"))
+                                .type(rs.getString("type"))
+                                .nullable(rs.getString("type") != null && rs.getString("type").startsWith("Nullable"))
+                                .primaryKey(rs.getInt("is_in_primary_key") == 1)
+                                .position(rs.getInt("position"))
+                                .build());
+                    }
+                }
+            }
+
+            List<String> pk = columns.stream().filter(ColumnInfo::isPrimaryKey).map(ColumnInfo::getName).toList();
+            long rowCount = 0;
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "SELECT total_rows FROM system.tables WHERE database = ? AND name = ?")) {
+                ps.setString(1, dbName);
+                ps.setString(2, tableName);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) rowCount = rs.getLong(1);
+                }
+            }
+
+            return Optional.of(EntityDescription.builder()
+                    .entityKind("table")
+                    .catalog(dbName)
+                    .namespace(null)
+                    .entity(tableName)
+                    .columns(columns)
+                    .primaryKey(pk)
+                    .foreignKeys(List.of())
+                    .indexes(List.of())
+                    .approximateRowCount(rowCount)
+                    .inferredFromSample(false)
+                    .notes(List.of())
+                    .build());
+        } catch (Exception e) {
+            log.warn("describeTable failed for {}.{}: {}", dbName, tableName, e.getMessage());
+            return Optional.empty();
         }
     }
 }

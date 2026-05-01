@@ -11,6 +11,8 @@ import com.panopticum.core.error.MetadataAccessException;
 import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.cassandra.model.CassandraKeyspaceInfo;
+import com.panopticum.mcp.model.ColumnInfo;
+import com.panopticum.mcp.model.EntityDescription;
 import com.panopticum.core.model.QueryResultData;
 import com.panopticum.cassandra.model.CassandraTableInfo;
 import jakarta.inject.Singleton;
@@ -362,6 +364,44 @@ public class CassandraMetadataRepository {
             return Optional.of(builder.build());
         } catch (Exception e) {
             log.debug("Test connection failed: {}", e.getMessage());
+            return Optional.empty();
+        }
+    }
+
+    public Optional<EntityDescription> describeTable(Long connectionId, String keyspace, String tableName) {
+        try (CqlSession session = ConnectionSupport.require(createSession(connectionId, keyspace))) {
+            ResultSet rs = session.execute(SimpleStatement.newInstance(LIST_COLUMNS, keyspace, tableName));
+            List<ColumnInfo> columns = new ArrayList<>();
+            List<String> pk = new ArrayList<>();
+            for (Row row : rs) {
+                String kind = row.getString("kind");
+                boolean isPk = "partition_key".equals(kind) || "clustering".equals(kind);
+                String colName = row.getString("column_name");
+                columns.add(ColumnInfo.builder()
+                        .name(colName)
+                        .type(row.getString("type"))
+                        .nullable(!isPk)
+                        .primaryKey(isPk)
+                        .position(row.isNull("position") ? 0 : row.getInt("position"))
+                        .build());
+                if (isPk) pk.add(colName);
+            }
+
+            return Optional.of(EntityDescription.builder()
+                    .entityKind("table")
+                    .catalog(keyspace)
+                    .namespace(null)
+                    .entity(tableName)
+                    .columns(columns)
+                    .primaryKey(pk)
+                    .foreignKeys(List.of())
+                    .indexes(List.of())
+                    .approximateRowCount(null)
+                    .inferredFromSample(false)
+                    .notes(List.of())
+                    .build());
+        } catch (Exception e) {
+            log.warn("describeTable failed for {}.{}: {}", keyspace, tableName, e.getMessage());
             return Optional.empty();
         }
     }

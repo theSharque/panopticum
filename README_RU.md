@@ -4,11 +4,11 @@
 
 ## Возможности
 
-- **Подключение** к PostgreSQL, MySQL, MongoDB, Redis, ClickHouse, Kafka, Elasticsearch, API Kubernetes и [другим источникам](#поддерживаемые-бд)
-- **Просмотр** схем, таблиц, ключей, топиков — с пагинацией и деревом; **Kubernetes**: namespace (из заданного списка), pod-ы, **tail** логов контейнера (только чтение)
-- **Запросы** — SQL, CQL, MQL; просмотр и редактирование строк
+- **Подключение** к PostgreSQL, MySQL, MongoDB, Redis, ClickHouse, Kafka, Elasticsearch, API Kubernetes, S3/MinIO, Prometheus/VictoriaMetrics и [другим источникам](#поддерживаемые-бд)
+- **Просмотр** схем, таблиц, ключей, топиков; **Kubernetes**: namespace, pod-ы, деплойменты, сервисы, секреты (с раскрытием), события; **S3**: бакеты и префиксы; **Prometheus**: jobs и метрики
+- **Запросы** — SQL, CQL, MQL, PromQL; просмотр содержимого S3-объектов (JSON/CSV/Parquet/hex)
 - **Сравнение** — Data Diff для записей между Dev / Stage / Prod
-- **Интеграция** — MCP endpoint для AI-агентов (Cursor, Claude Desktop)
+- **Интеграция** — MCP endpoint для AI-агентов (Cursor, Claude Desktop) — включая новый инструмент `describe-entity` для схемного контекста
 - **Офлайн** — все ресурсы встроены, CDN не требуется
 
 Подключения хранятся в H2. Добавляйте, проверяйте и удаляйте их в Настройках. Используйте `/` в именах для папок (например `Prod/PG`, `Dev/Mongo`).
@@ -82,7 +82,9 @@ helm install my-panopticum panopticum/panopticum
 | **RabbitMQ** | Просмотр очередей; peek сообщений |
 | **Kafka** | Просмотр топиков; peek записей |
 | **Elasticsearch / OpenSearch** | Просмотр индексов; Query DSL; редактирование по _id |
-| **Kubernetes** | URL API-сервера + bearer-токен; namespace через запятую; просмотр pod-ов; tail последних *N* строк логов (в UI сверху — более новые). Только чтение (без exec, без streaming/follow в MVP) |
+| **Kubernetes** | URL API-сервера + bearer-токен; namespace через запятую; просмотр pod-ов, деплойментов, сервисов, ingress, configmap, secrets; tail логов; describe pod; события namespace. Мягкая обработка "нет доступа" — 401/403 отображается как алерт, без краша |
+| **S3 / MinIO** | Endpoint + access/secret key; просмотр бакетов и префиксов; peek объектов (JSON, CSV, Parquet head, hex). Регион опционален |
+| **Prometheus / VictoriaMetrics** | Instant и range PromQL; просмотр jobs и метрик. Auth: Basic или Bearer-токен |
 
 ## MCP (AI-агенты)
 
@@ -103,9 +105,21 @@ MCP-совместимый endpoint `POST /mcp` для Cursor, Claude Desktop и
 
 Замените `YWRtaW46YWRtaW4=` на Base64 от `username:password` (`echo -n "admin:changeme" | base64`).
 
-Tools: `list-data-sources`, `list-catalogs`, `list-namespaces`, `list-entities`, `query-data`, `get-record-detail`.
+### Инструменты MCP
 
-Для подключений **Kubernetes**: `list-catalogs` отдаёт настроенные namespace; `list-namespaces` не применяется; `list-entities` — в `catalog` передаётся namespace, в ответе список pod-ов; `query-data` — `catalog` = namespace, `entity` = имя pod, `query` = число строк tail (строкой). Те же Basic Auth и сохранённые учётные данные, что и в UI.
+| Инструмент | Описание |
+|------------|----------|
+| `list-data-sources` | Список всех настроенных подключений |
+| `list-catalogs` | Базы данных / бакеты / jobs / namespace |
+| `list-namespaces` | Схемы (где применимо) |
+| `list-entities` | Таблицы / коллекции / объекты / метрики / pod-ы |
+| `query-data` | SQL, CQL, MQL, PromQL или peek S3-объекта |
+| `get-record-detail` | Получить запись по PK или document ID |
+| `describe-entity` | Полная схема: колонки, типы, PK/FK/индексы, кол-во строк — устраняет потребность в `SELECT *`. Поддерживает все источники данных |
+
+Для **Kubernetes**: `list-catalogs` → namespaces; `list-entities` → pod-ы; `query-data` → tail логов.
+Для **S3**: `list-catalogs` → бакеты; `list-entities` → объекты; `query-data` → peek содержимого.
+Для **Prometheus**: `list-catalogs` → jobs; `list-entities` → имена метрик; `query-data` → instant PromQL.
 
 ## Стек
 

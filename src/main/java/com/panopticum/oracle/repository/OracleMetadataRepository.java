@@ -8,6 +8,9 @@ import com.panopticum.core.error.ConnectionSupport;
 import com.panopticum.core.error.MetadataAccessException;
 import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.core.util.SizeFormatter;
+import com.panopticum.mcp.model.ColumnInfo;
+import com.panopticum.mcp.model.EntityDescription;
+import com.panopticum.mcp.model.IndexInfo;
 import jakarta.inject.Singleton;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -310,6 +313,97 @@ public class OracleMetadataRepository {
             log.warn("executeUpdate failed: {}", firstLineOf(e.getMessage()));
             String err = firstLineOf(e.getMessage());
             throw new MetadataAccessException(err != null ? err : "Error", e);
+        }
+    }
+
+    public Optional<EntityDescription> describeTable(Long connectionId, String schema, String tableName) {
+        try (Connection conn = ConnectionSupport.require(getConnection(connectionId, schema))) {
+            List<ColumnInfo> columns = fetchOracleColumns(conn, schema, tableName);
+            List<String> pk = columns.stream().filter(ColumnInfo::isPrimaryKey).map(ColumnInfo::getName).toList();
+            List<IndexInfo> indexes = fetchOracleIndexes(conn, schema, tableName);
+            long rowCount = fetchOracleRowCount(conn, schema, tableName);
+
+            return Optional.of(EntityDescription.builder()
+                    .entityKind("table")
+                    .catalog(null)
+                    .namespace(schema)
+                    .entity(tableName)
+                    .columns(columns)
+                    .primaryKey(pk)
+                    .foreignKeys(List.of())
+                    .indexes(indexes)
+                    .approximateRowCount(rowCount)
+                    .inferredFromSample(false)
+                    .notes(List.of())
+                    .build());
+        } catch (Exception e) {
+            log.warn("describeTable failed for {}.{}: {}", schema, tableName, e.getMessage());
+            return Optional.empty();
+        }
+    }
+
+    private static List<ColumnInfo> fetchOracleColumns(Connection conn, String schema, String tableName) throws SQLException {
+        String sql = "SELECT c.column_name, c.data_type, c.nullable, c.column_id, "
+                + "CASE WHEN pk.column_name IS NOT NULL THEN 1 ELSE 0 END AS is_pk "
+                + "FROM all_tab_columns c "
+                + "LEFT JOIN (SELECT ucc.column_name FROM all_constraints uc "
+                + "  JOIN all_cons_columns ucc ON uc.constraint_name = ucc.constraint_name AND uc.owner = ucc.owner "
+                + "  WHERE uc.owner = ? AND uc.table_name = ? AND uc.constraint_type = 'P') pk ON c.column_name = pk.column_name "
+                + "WHERE c.owner = ? AND c.table_name = ? ORDER BY c.column_id";
+        List<ColumnInfo> result = new ArrayList<>();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            String schUp = schema != null ? schema.toUpperCase() : "";
+            String tblUp = tableName != null ? tableName.toUpperCase() : "";
+            ps.setString(1, schUp);
+            ps.setString(2, tblUp);
+            ps.setString(3, schUp);
+            ps.setString(4, tblUp);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    result.add(ColumnInfo.builder()
+                            .name(rs.getString("column_name"))
+                            .type(rs.getString("data_type"))
+                            .nullable("Y".equals(rs.getString("nullable")))
+                            .primaryKey(rs.getInt("is_pk") == 1)
+                            .position(rs.getInt("column_id"))
+                            .build());
+                }
+            }
+        }
+        return result;
+    }
+
+    private static List<IndexInfo> fetchOracleIndexes(Connection conn, String schema, String tableName) {
+        List<IndexInfo> result = new ArrayList<>();
+        try (PreparedStatement ps = conn.prepareStatement(
+                "SELECT index_name, uniqueness FROM all_indexes WHERE owner = ? AND table_name = ?")) {
+            ps.setString(1, schema != null ? schema.toUpperCase() : "");
+            ps.setString(2, tableName != null ? tableName.toUpperCase() : "");
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    result.add(IndexInfo.builder()
+                            .name(rs.getString("index_name"))
+                            .unique("UNIQUE".equals(rs.getString("uniqueness")))
+                            .columns(List.of())
+                            .build());
+                }
+            }
+        } catch (SQLException e) {
+            log.debug("fetchOracleIndexes failed: {}", e.getMessage());
+        }
+        return result;
+    }
+
+    private static long fetchOracleRowCount(Connection conn, String schema, String tableName) {
+        try (PreparedStatement ps = conn.prepareStatement(
+                "SELECT num_rows FROM all_tables WHERE owner = ? AND table_name = ?")) {
+            ps.setString(1, schema != null ? schema.toUpperCase() : "");
+            ps.setString(2, tableName != null ? tableName.toUpperCase() : "");
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getLong(1) : 0L;
+            }
+        } catch (SQLException e) {
+            return 0L;
         }
     }
 }

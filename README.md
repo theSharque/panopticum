@@ -4,11 +4,11 @@ A tool for developers and QA — web interface for viewing and managing database
 
 ## What it does
 
-- **Connect** to PostgreSQL, MySQL, MongoDB, Redis, ClickHouse, Kafka, Elasticsearch, Kubernetes API, and [many more](#supported-databases)
-- **Browse** schemas, tables, keys, topics — with pagination and tree view; **Kubernetes**: namespaces (configured list), pods, **tail** pod logs (read-only)
-- **Query** — run SQL, CQL, MQL; view and edit rows
+- **Connect** to PostgreSQL, MySQL, MongoDB, Redis, ClickHouse, Kafka, Elasticsearch, Kubernetes API, S3/MinIO, Prometheus/VictoriaMetrics, and [many more](#supported-databases)
+- **Browse** schemas, tables, keys, topics — with pagination and tree view; **Kubernetes**: namespaces, pods, deployments, services, secrets (with reveal), events; **S3**: buckets and object prefixes; **Prometheus**: jobs and metrics
+- **Query** — run SQL, CQL, MQL, PromQL; peek S3 object contents (JSON/CSV/Parquet/hex)
 - **Compare** — Data Diff for records across Dev / Stage / Prod
-- **Integrate** — MCP endpoint for AI agents (Cursor, Claude Desktop)
+- **Integrate** — MCP endpoint for AI agents (Cursor, Claude Desktop) — including new `describe-entity` tool for schema context
 - **Offline** — all assets bundled, no CDN
 
 Connections are stored in H2. Add, test, and remove them in Settings. Use `/` in connection names for folders (e.g. `Prod/PG`, `Dev/Mongo`).
@@ -82,7 +82,9 @@ For Helm: use a Secret with `valueFrom.secretKeyRef` if the JSON contains passwo
 | **RabbitMQ** | Browse queues; peek messages |
 | **Kafka** | Browse topics; peek records |
 | **Elasticsearch / OpenSearch** | Browse indices; Query DSL; edit by _id |
-| **Kubernetes** | API server URL + bearer token; namespaces (comma-separated); browse pods; tail last *N* log lines (newest-first in the UI). Read-only (no exec, no stream/follow in MVP) |
+| **Kubernetes** | API server URL + bearer token; namespaces (comma-separated); browse pods, deployments, services, ingresses, configmaps, secrets; tail logs; describe pod; namespace events. Graceful "no access" — 401/403 shown as soft alert |
+| **S3 / MinIO** | Endpoint + access/secret key; browse buckets and prefixes; peek objects (JSON, CSV, Parquet head, hex). Region optional |
+| **Prometheus / VictoriaMetrics** | Instant and range PromQL; browse jobs and metrics. Auth: Basic or Bearer token |
 
 ## MCP (AI agents)
 
@@ -103,9 +105,21 @@ MCP-compatible endpoint at `POST /mcp` for Cursor, Claude Desktop, etc. Same HTT
 
 Replace `YWRtaW46YWRtaW4=` with Base64 of `username:password` (`echo -n "admin:changeme" | base64`).
 
-Tools: `list-data-sources`, `list-catalogs`, `list-namespaces`, `list-entities`, `query-data`, `get-record-detail`.
+### MCP Tools
 
-For **Kubernetes** connections: `list-catalogs` returns configured namespaces; `list-namespaces` is not applicable; `list-entities` uses `catalog` = namespace and returns pods; `query-data` uses `catalog` = namespace, `entity` = pod name, `query` = tail line count (number as text). Same Basic Auth and stored credentials as the UI.
+| Tool | Description |
+|------|-------------|
+| `list-data-sources` | List all configured connections |
+| `list-catalogs` | List databases / buckets / jobs / namespaces |
+| `list-namespaces` | List schemas (where applicable) |
+| `list-entities` | List tables / collections / objects / metrics / pods |
+| `query-data` | Execute SQL, CQL, MQL, PromQL or peek S3 objects |
+| `get-record-detail` | Fetch a single record by PK or document ID |
+| `describe-entity` | Full schema: columns, types, PK/FK/indexes, row count — eliminates `SELECT *`. Supports all data sources |
+
+For **Kubernetes**: `list-catalogs` → namespaces; `list-entities` → pods; `query-data` → tail logs.
+For **S3**: `list-catalogs` → buckets; `list-entities` → objects; `query-data` → peek content.
+For **Prometheus**: `list-catalogs` → jobs; `list-entities` → metric names; `query-data` → instant PromQL.
 
 ## Stack
 

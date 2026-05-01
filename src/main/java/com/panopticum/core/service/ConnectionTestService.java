@@ -10,8 +10,10 @@ import com.panopticum.postgres.service.PgMetadataService;
 import com.panopticum.elasticsearch.service.ElasticsearchService;
 import com.panopticum.kafka.service.KafkaService;
 import com.panopticum.kubernetes.service.KubernetesService;
+import com.panopticum.prometheus.service.PrometheusService;
 import com.panopticum.rabbitmq.service.RabbitMqService;
 import com.panopticum.redis.service.RedisMetadataService;
+import com.panopticum.s3.service.S3Service;
 
 import jakarta.inject.Singleton;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +38,8 @@ public class ConnectionTestService {
     private final KafkaService kafkaService;
     private final ElasticsearchService elasticsearchService;
     private final KubernetesService kubernetesService;
+    private final S3Service s3Service;
+    private final PrometheusService prometheusService;
 
     public Optional<String> test(String type, String host, Integer port, String database,
                                 String username, String password, Optional<Long> connectionId) {
@@ -81,6 +85,8 @@ public class ConnectionTestService {
             }
             case "elasticsearch" -> elasticsearchService.testConnection(connectionId, h, p, user, pass);
             case "kubernetes" -> kubernetesService.testConnection(h, p, db, pass);
+            case "s3" -> s3Service.testConnection(h, p, db, user, pass, false);
+            case "prometheus" -> prometheusService.testConnection(h, p, user, pass, false);
             default -> Optional.of("error.specifyHostDbUser");
         };
     }
@@ -102,6 +108,8 @@ public class ConnectionTestService {
             case "kafka" -> 9092;
             case "elasticsearch" -> 9200;
             case "kubernetes" -> 443;
+            case "s3" -> 443;
+            case "prometheus" -> 9090;
             default -> 5432;
         };
     }
