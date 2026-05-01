@@ -10,7 +10,7 @@
             <div class="detail-field-name"><span th:text="${field.name + ' : ' + field.type}"></span> : <span class="detail-field-value" th:text="${field.value}"></span></div>
         </div>
         <div class="detail-actions" th:if="${dataDiffPayload != null}">
-            <button type="button" class="query-button data-diff-add"
+            <button type="button" class="btn btn--primary data-diff-add"
                     th:attr="data-diff-payload=${dataDiffPayload}, data-diff-added-text=${msg['diff.added']}"
                     th:text="${msg['diff.addToCompare']}">Add to comparison</button>
         </div>

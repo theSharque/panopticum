@@ -109,6 +109,7 @@ tasks.withType(JavaCompile).configureEach {
 }
 
 shadowJar {
+    zip64 = true
     mergeServiceFiles()
     archiveFileName.set("panopticum-all.jar")
 }

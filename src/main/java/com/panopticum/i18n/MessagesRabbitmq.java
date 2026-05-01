@@ -23,7 +23,6 @@ public class MessagesRabbitmq {
             Map.entry("rabbitmq.routingKey", "Routing key"),
             Map.entry("rabbitmq.payload", "Payload"),
             Map.entry("rabbitmq.properties", "Properties"),
-            Map.entry("rabbitmq.refresh", "Refresh"),
             Map.entry("connectionTest.failed", "Connection failed.")
     );
 
@@ -43,7 +42,6 @@ public class MessagesRabbitmq {
             Map.entry("rabbitmq.routingKey", "Routing key"),
             Map.entry("rabbitmq.payload", "Тело"),
             Map.entry("rabbitmq.properties", "Свойства"),
-            Map.entry("rabbitmq.refresh", "Обновить"),
             Map.entry("connectionTest.failed", "Подключение не удалось.")
     );
 }

@@ -13,7 +13,7 @@
                     <input type="hidden" name="limit" th:value="${limit}"/>
                     <input type="hidden" name="target" value="table"/>
                     <input type="hidden" name="offset" th:value="${prevOffset}"/>
-                    <button type="submit" class="query-pagination-btn" th:classappend="${!hasPrev} ? 'query-pagination-btn-disabled' : ''" th:disabled="${!hasPrev}" th:aria-label="${msg['common.prev']}" th:title="${msg['common.prev']}"><svg th:replace="~{fragments/pagination-arrows :: arrowPrev}"></svg></button>
+                    <button type="submit" class="btn btn--icon" th:classappend="${!hasPrev} ? ' btn--disabled' : ''" th:disabled="${!hasPrev}" th:aria-label="${msg['common.prev']}" th:title="${msg['common.prev']}"><svg th:replace="~{fragments/pagination-arrows :: arrowPrev}"></svg></button>
                 </form>
                 <form class="query-pagination-form"
                       th:action="@{/elasticsearch/{id}/search(id=${connectionId})}"
@@ -26,7 +26,7 @@
                     <input type="hidden" name="limit" th:value="${limit}"/>
                     <input type="hidden" name="target" value="table"/>
                     <input type="hidden" name="offset" th:value="${nextOffset}"/>
-                    <button type="submit" class="query-pagination-btn" th:classappend="${!hasMore} ? 'query-pagination-btn-disabled' : ''" th:disabled="${!hasMore}" th:aria-label="${msg['common.next']}" th:title="${msg['common.next']}"><svg th:replace="~{fragments/pagination-arrows :: arrowNext}"></svg></button>
+                    <button type="submit" class="btn btn--icon" th:classappend="${!hasMore} ? ' btn--disabled' : ''" th:disabled="${!hasMore}" th:aria-label="${msg['common.next']}" th:title="${msg['common.next']}"><svg th:replace="~{fragments/pagination-arrows :: arrowNext}"></svg></button>
                 </form>
             </span>
             <span class="query-pagination-range" th:text="${msg['common.rowsRange'] + fromRow + '–' + toRow}"></span>
@@ -44,8 +44,8 @@
                         <td class="query-detail-cell">
                             <a th:if="${currentDocId != null and !currentDocId.isEmpty()}"
                                th:href="@{/elasticsearch/{id}/indices/{idx}/doc/{docId}(id=${connectionId}, idx=${indexNameEncoded}, docId=${currentDocId})}"
-                               class="query-detail-link" th:attr="aria-label=${msg['common.open']}, title=${msg['common.open']}">
-                                <svg class="icon-link" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
+                               class="btn btn--icon btn--ghost" th:attr="aria-label=${msg['common.open']}, title=${msg['common.open']}">
+                                <svg class="icon" aria-hidden="true"><use href="#icon-link"/></svg>
                             </a>
                             <span th:if="${currentDocId == null or currentDocId.isEmpty()}"
                                   class="text-dim">—</span>

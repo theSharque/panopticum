@@ -4,7 +4,6 @@
 <body>
 <main th:fragment="main" class="main-content">
     <div th:replace="~{fragments/page-heading :: pageHeading(items=${breadcrumbs})}"></div>
-    <div th:replace="~{fragments/app-alert :: slot}"></div>
     <h1 th:text="${msg['kubernetes.deploymentsTitle']}">Deployments</h1>
     <div th:if="${items != null and !items.isEmpty()}" class="query-result-data">
         <div class="query-table-wrapper">

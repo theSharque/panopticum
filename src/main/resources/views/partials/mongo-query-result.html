@@ -11,7 +11,7 @@
                     <input type="hidden" name="collection" th:value="${collection}"/>
                     <input type="hidden" name="limit" th:value="${limit}"/>
                     <input type="hidden" name="offset" th:value="${prevOffset}"/>
-                    <button type="submit" class="query-pagination-btn" th:classappend="${!hasPrev} ? 'query-pagination-btn-disabled' : ''" th:disabled="${!hasPrev}" th:aria-label="${msg['common.prev']}" th:title="${msg['common.prev']}"><svg th:replace="~{fragments/pagination-arrows :: arrowPrev}"></svg></button>
+                    <button type="submit" class="btn btn--icon" th:classappend="${!hasPrev} ? ' btn--disabled' : ''" th:disabled="${!hasPrev}" th:aria-label="${msg['common.prev']}" th:title="${msg['common.prev']}"><svg th:replace="~{fragments/pagination-arrows :: arrowPrev}"></svg></button>
                 </form>
                 <form class="query-pagination-form"
                       th:attr="hx-post=@{/mongo/{id}/query(id=${connectionId})}"
@@ -22,7 +22,7 @@
                     <input type="hidden" name="collection" th:value="${collection}"/>
                     <input type="hidden" name="limit" th:value="${limit}"/>
                     <input type="hidden" name="offset" th:value="${nextOffset}"/>
-                    <button type="submit" class="query-pagination-btn" th:classappend="${!hasMore} ? 'query-pagination-btn-disabled' : ''" th:disabled="${!hasMore}" th:aria-label="${msg['common.next']}" th:title="${msg['common.next']}"><svg th:replace="~{fragments/pagination-arrows :: arrowNext}"></svg></button>
+                    <button type="submit" class="btn btn--icon" th:classappend="${!hasMore} ? ' btn--disabled' : ''" th:disabled="${!hasMore}" th:aria-label="${msg['common.next']}" th:title="${msg['common.next']}"><svg th:replace="~{fragments/pagination-arrows :: arrowNext}"></svg></button>
                 </form>
             </span>
             <span class="query-pagination-range" th:text="${msg['common.rowsRange'] + fromRow + '–' + toRow}"></span>
@@ -35,8 +35,8 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr th:each="row : ${rows}">
-                        <td th:each="cell : ${row}" th:text="${cell}"></td>
+                    <tr th:each="row : ${rows}" class="query-data-row">
+                        <td th:each="cell : ${row}" th:text="${cell}" class="query-cell-mono"></td>
                     </tr>
                 </tbody>
             </table>

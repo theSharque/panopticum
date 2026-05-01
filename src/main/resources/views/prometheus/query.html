@@ -4,11 +4,10 @@
 <body>
 <main th:fragment="main" class="main-content">
     <div th:replace="~{fragments/page-heading :: pageHeading(items=${breadcrumbs})}"></div>
-    <div th:replace="~{fragments/app-alert :: slot}"></div>
 
     <div class="toolbar">
         <h1 th:text="${msg['prometheus.queryTitle']}">Query</h1>
-        <a th:href="@{/prometheus/{id}/metrics(id=${connectionId})}" class="btn-secondary" th:text="${msg['prometheus.metricsTitle']}">Metrics</a>
+        <a th:href="@{/prometheus/{id}/metrics(id=${connectionId})}" class="btn" th:text="${msg['prometheus.metricsTitle']}">Metrics</a>
     </div>
 
     <form method="get" class="query-form">
@@ -24,33 +23,35 @@
         </div>
 
         <div class="form-row form-row--inline">
-            <div class="form-group form-group--inline">
+            <div class="form-group--inline">
                 <label th:text="${msg['prometheus.instant']}">Instant</label>
                 <input type="radio" name="mode" value="instant" th:checked="${mode == 'instant' or mode == null or mode.isEmpty()}">
             </div>
-            <div class="form-group form-group--inline">
+            <div class="form-group--inline">
                 <label th:text="${msg['prometheus.range']}">Range</label>
                 <input type="radio" name="mode" value="range" th:checked="${mode == 'range'}">
             </div>
         </div>
 
         <div class="form-row form-row--inline range-fields" id="range-fields">
-            <div class="form-group form-group--inline">
+            <div class="form-group--inline">
                 <label for="start-input" th:text="${msg['prometheus.start']}">Start</label>
-                <input type="text" id="start-input" name="start" placeholder="-1h" th:value="${start}" class="form-control-sm">
+                <input type="text" id="start-input" name="start" placeholder="-1h" th:value="${start}">
             </div>
-            <div class="form-group form-group--inline">
+            <div class="form-group--inline">
                 <label for="end-input" th:text="${msg['prometheus.end']}">End</label>
-                <input type="text" id="end-input" name="end" placeholder="now" th:value="${end}" class="form-control-sm">
+                <input type="text" id="end-input" name="end" placeholder="now" th:value="${end}">
             </div>
-            <div class="form-group form-group--inline">
+            <div class="form-group--inline">
                 <label for="step-input" th:text="${msg['prometheus.step']}">Step</label>
-                <input type="text" id="step-input" name="step" placeholder="60" th:value="${step}" class="form-control-sm">
+                <input type="text" id="step-input" name="step" placeholder="60" th:value="${step}">
             </div>
         </div>
 
-        <div class="form-actions">
-            <button type="submit" class="btn-primary" th:text="${msg['prometheus.execute']}">Execute</button>
+        <div class="query-actions">
+            <button type="submit" class="btn btn--icon btn--primary query-execute" th:attr="aria-label=${msg['query.refresh']}, title=${msg['query.refresh']}">
+                <svg class="icon icon--lg" aria-hidden="true"><use href="#icon-refresh"/></svg>
+            </button>
         </div>
     </form>
 

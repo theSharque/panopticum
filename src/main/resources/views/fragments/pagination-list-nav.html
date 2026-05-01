@@ -1,6 +1,6 @@
 <th:block xmlns:th="http://www.thymeleaf.org" th:fragment="arrows(hasPrev, prevUrl, hasMore, nextUrl, prevLabel, nextLabel)">
-    <a th:if="${hasPrev}" th:href="${prevUrl}" class="query-pagination-btn" th:attr="aria-label=${prevLabel}, title=${prevLabel}"><svg th:replace="~{fragments/pagination-arrows :: arrowPrev}"></svg></a>
-    <span th:unless="${hasPrev}" class="query-pagination-btn query-pagination-btn-disabled" tabindex="-1" th:attr="aria-label=${prevLabel}, title=${prevLabel}"><svg th:replace="~{fragments/pagination-arrows :: arrowPrev}"></svg></span>
-    <a th:if="${hasMore}" th:href="${nextUrl}" class="query-pagination-btn" th:attr="aria-label=${nextLabel}, title=${nextLabel}"><svg th:replace="~{fragments/pagination-arrows :: arrowNext}"></svg></a>
-    <span th:unless="${hasMore}" class="query-pagination-btn query-pagination-btn-disabled" tabindex="-1" th:attr="aria-label=${nextLabel}, title=${nextLabel}"><svg th:replace="~{fragments/pagination-arrows :: arrowNext}"></svg></span>
+    <a th:if="${hasPrev}" th:href="${prevUrl}" class="btn btn--icon" th:attr="aria-label=${prevLabel}, title=${prevLabel}"><svg th:replace="~{fragments/pagination-arrows :: arrowPrev}"></svg></a>
+    <span th:unless="${hasPrev}" class="btn btn--icon btn--disabled" tabindex="-1" th:attr="aria-label=${prevLabel}, title=${prevLabel}"><svg th:replace="~{fragments/pagination-arrows :: arrowPrev}"></svg></span>
+    <a th:if="${hasMore}" th:href="${nextUrl}" class="btn btn--icon" th:attr="aria-label=${nextLabel}, title=${nextLabel}"><svg th:replace="~{fragments/pagination-arrows :: arrowNext}"></svg></a>
+    <span th:unless="${hasMore}" class="btn btn--icon btn--disabled" tabindex="-1" th:attr="aria-label=${nextLabel}, title=${nextLabel}"><svg th:replace="~{fragments/pagination-arrows :: arrowNext}"></svg></span>
 </th:block>

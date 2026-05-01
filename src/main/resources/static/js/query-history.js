@@ -58,11 +58,11 @@
     }
 
     function getClockIconSvg() {
-        return '<svg class="icon-clock" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
+        return '<svg class="icon" aria-hidden="true"><use href="#icon-clock"/></svg>';
     }
 
     function getDeleteIconSvg() {
-        return '<svg class="icon-delete" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+        return '<svg class="icon icon--sm" aria-hidden="true"><use href="#icon-cross"/></svg>';
     }
 
     function truncate(str, len) {
@@ -100,7 +100,7 @@
                     text.title = q;
                     const delBtn = document.createElement('button');
                     delBtn.type = 'button';
-                    delBtn.className = 'query-history-item-delete';
+                    delBtn.className = 'btn btn--icon-sm btn--ghost btn--danger query-history-item-delete';
                     delBtn.innerHTML = getDeleteIconSvg();
                     delBtn.setAttribute('aria-label', 'Delete');
                     delBtn.addEventListener('click', function (ev) {
@@ -120,7 +120,7 @@
                 });
                 const clearLink = document.createElement('button');
                 clearLink.type = 'button';
-                clearLink.className = 'query-history-clear';
+                clearLink.className = 'btn btn--ghost btn--danger query-history-clear';
                 clearLink.textContent = 'Clear all';
                 clearLink.addEventListener('click', function () {
                     clearHistory(key);
@@ -177,7 +177,7 @@
 
         const historyBtn = document.createElement('button');
         historyBtn.type = 'button';
-        historyBtn.className = 'query-history-btn';
+        historyBtn.className = 'btn btn--icon btn--ghost query-history-btn';
         historyBtn.setAttribute('aria-label', 'Query history');
         historyBtn.setAttribute('title', 'Query history');
         historyBtn.innerHTML = getClockIconSvg();
@@ -203,7 +203,7 @@
         const target = ev.detail && ev.detail.target ? ev.detail.target : ev.target;
         if (!target || typeof target.querySelector !== 'function') return;
 
-        const hasError = target.querySelector && target.querySelector('.query-error');
+        const hasError = target.querySelector && (target.querySelector('.query-error') || target.querySelector('.app-alert--error'));
         if (hasError) return;
 
         const targetId = target.id;

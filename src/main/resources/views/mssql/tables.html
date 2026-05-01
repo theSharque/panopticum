@@ -20,16 +20,16 @@
                     <tr>
                         <th class="query-th query-th-detail"></th>
                         <th class="query-th query-th-sortable">
-                            <a th:href="@{/mssql/{id}/{db}/{schema}(id=${connectionId}, db=${dbName}, schema=${schema}, page=1, size=${size}, sort='name', order=${orderName})}" class="query-th-link"><span th:text="${msg['common.name']}">Name</span> <span th:if="${sort == 'name' and order == 'asc'}" class="query-sort-ind">▲</span><span th:if="${sort == 'name' and order == 'desc'}" class="query-sort-ind">▼</span></a>
+                            <a th:href="@{/mssql/{id}/{db}/{schema}(id=${connectionId}, db=${dbName}, schema=${schema}, page=1, size=${size}, sort='name', order=${orderName})}" class="query-th-link"><span th:text="${msg['common.name']}">Name</span> <span th:if="${sort == 'name' and order == 'asc'}" class="query-sort-ind"><svg class="icon icon--sm" aria-hidden="true"><use href="#icon-sort-asc"/></svg></span><span th:if="${sort == 'name' and order == 'desc'}" class="query-sort-ind"><svg class="icon icon--sm" aria-hidden="true"><use href="#icon-sort-desc"/></svg></span></a>
                         </th>
                         <th class="query-th query-th-sortable">
-                            <a th:href="@{/mssql/{id}/{db}/{schema}(id=${connectionId}, db=${dbName}, schema=${schema}, page=1, size=${size}, sort='type', order=${orderType})}" class="query-th-link"><span th:text="${msg['common.type']}">Type</span> <span th:if="${sort == 'type' and order == 'asc'}" class="query-sort-ind">▲</span><span th:if="${sort == 'type' and order == 'desc'}" class="query-sort-ind">▼</span></a>
+                            <a th:href="@{/mssql/{id}/{db}/{schema}(id=${connectionId}, db=${dbName}, schema=${schema}, page=1, size=${size}, sort='type', order=${orderType})}" class="query-th-link"><span th:text="${msg['common.type']}">Type</span> <span th:if="${sort == 'type' and order == 'asc'}" class="query-sort-ind"><svg class="icon icon--sm" aria-hidden="true"><use href="#icon-sort-asc"/></svg></span><span th:if="${sort == 'type' and order == 'desc'}" class="query-sort-ind"><svg class="icon icon--sm" aria-hidden="true"><use href="#icon-sort-desc"/></svg></span></a>
                         </th>
                         <th class="query-th query-th-sortable">
-                            <a th:href="@{/mssql/{id}/{db}/{schema}(id=${connectionId}, db=${dbName}, schema=${schema}, page=1, size=${size}, sort='rows', order=${orderRows})}" class="query-th-link"><span th:text="${msg['pg.rowsApprox']}">Rows ≈</span> <span th:if="${sort == 'rows' and order == 'asc'}" class="query-sort-ind">▲</span><span th:if="${sort == 'rows' and order == 'desc'}" class="query-sort-ind">▼</span></a>
+                            <a th:href="@{/mssql/{id}/{db}/{schema}(id=${connectionId}, db=${dbName}, schema=${schema}, page=1, size=${size}, sort='rows', order=${orderRows})}" class="query-th-link"><span th:text="${msg['pg.rowsApprox']}">Rows ≈</span> <span th:if="${sort == 'rows' and order == 'asc'}" class="query-sort-ind"><svg class="icon icon--sm" aria-hidden="true"><use href="#icon-sort-asc"/></svg></span><span th:if="${sort == 'rows' and order == 'desc'}" class="query-sort-ind"><svg class="icon icon--sm" aria-hidden="true"><use href="#icon-sort-desc"/></svg></span></a>
                         </th>
                         <th class="query-th query-th-sortable">
-                            <a th:href="@{/mssql/{id}/{db}/{schema}(id=${connectionId}, db=${dbName}, schema=${schema}, page=1, size=${size}, sort='size', order=${orderSize})}" class="query-th-link"><span th:text="${msg['common.size']}">Size</span> <span th:if="${sort == 'size' and order == 'asc'}" class="query-sort-ind">▲</span><span th:if="${sort == 'size' and order == 'desc'}" class="query-sort-ind">▼</span></a>
+                            <a th:href="@{/mssql/{id}/{db}/{schema}(id=${connectionId}, db=${dbName}, schema=${schema}, page=1, size=${size}, sort='size', order=${orderSize})}" class="query-th-link"><span th:text="${msg['common.size']}">Size</span> <span th:if="${sort == 'size' and order == 'asc'}" class="query-sort-ind"><svg class="icon icon--sm" aria-hidden="true"><use href="#icon-sort-asc"/></svg></span><span th:if="${sort == 'size' and order == 'desc'}" class="query-sort-ind"><svg class="icon icon--sm" aria-hidden="true"><use href="#icon-sort-desc"/></svg></span></a>
                         </th>
                     </tr>
                 </thead>
@@ -37,8 +37,8 @@
                     <tr th:each="t : ${tables}" class="query-data-row">
                         <td class="query-detail-cell">
                             <a th:href="@{/mssql/{id}/{dbName}/{schema}/{table}(id=${connectionId}, dbName=${dbName}, schema=${schema}, table=${t.name})}"
-                               class="query-detail-link" th:attr="aria-label=${msg['common.open']}, title=${msg['common.open']}">
-                                <svg class="icon-link" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
+                               class="btn btn--icon btn--ghost" th:attr="aria-label=${msg['common.open']}, title=${msg['common.open']}">
+                                <svg class="icon" aria-hidden="true"><use href="#icon-link"/></svg>
                             </a>
                         </td>
                         <td th:text="${t.name}"></td>

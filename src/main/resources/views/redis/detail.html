@@ -6,11 +6,20 @@
     <div th:replace="~{fragments/page-heading :: pageHeading(items=${breadcrumbs})}"></div>
     <h1 th:text="${msg['redis.keyDetailTitle']}">Key</h1>
     <div th:if="${keyDetail != null}" class="query-result-data">
-        <dl class="detail-dl">
-            <dt><span th:text="${msg['redis.key']}">Key</span> : <span th:text="${keyDetail.key}" class="query-cell-mono"></span></dt>
-            <dt><span th:text="${msg['common.type']}">Type</span> : <span th:text="${keyDetail.type}"></span></dt>
-            <dt><span th:text="${msg['redis.ttl']}">TTL</span> : <span th:text="${keyDetail.ttl != null ? keyDetail.ttl + ' ms' : msg['redis.noExpiry']}"></span></dt>
-        </dl>
+        <div class="detail-block detail-block--grid">
+            <div class="detail-field">
+                <div class="detail-field-name" th:text="${msg['redis.key']}">Key</div>
+                <div class="detail-field-value query-cell-mono" th:text="${keyDetail.key}"></div>
+            </div>
+            <div class="detail-field">
+                <div class="detail-field-name" th:text="${msg['common.type']}">Type</div>
+                <div class="detail-field-value" th:text="${keyDetail.type}"></div>
+            </div>
+            <div class="detail-field">
+                <div class="detail-field-name" th:text="${msg['redis.ttl']}">TTL</div>
+                <div class="detail-field-value" th:text="${keyDetail.ttl != null ? keyDetail.ttl + ' ms' : msg['redis.noExpiry']}"></div>
+            </div>
+        </div>
         <h2 th:text="${msg['common.value']}">Value</h2>
         <div th:if="${keyDetail.type == 'string' and !readOnly}" class="detail-value">
             <form th:action="@{/redis/{id}/{dbIndex}/detail(id=${connectionId}, dbIndex=${dbIndex})}" method="post" class="detail-form">
@@ -18,68 +27,104 @@
                 <input type="hidden" name="type" th:value="${keyDetail.type}"/>
                 <textarea name="value" class="detail-json detail-json-textarea" data-detail-editor="json" th:text="${keyDetail.value}"></textarea>
                 <div class="detail-actions">
-                    <button type="submit" id="redis-save-btn" class="query-button" th:text="${msg['common.save']}">Save</button>
+                    <button type="submit" id="redis-save-btn" class="btn btn--primary" th:text="${msg['common.save']}">Save</button>
+                    <button th:if="${dataDiffPayload != null}" type="button" class="btn btn--primary data-diff-add"
+                            th:attr="data-diff-payload=${dataDiffPayload}, data-diff-added-text=${msg['diff.added']}"
+                            th:text="${msg['diff.addToCompare']}">Add to comparison</button>
                 </div>
             </form>
         </div>
         <div th:if="${keyDetail.type == 'string' and readOnly}" class="detail-value">
             <pre class="detail-value detail-json"><code class="language-json" th:text="${keyDetail.value}">—</code></pre>
+            <div class="detail-actions" th:if="${dataDiffPayload != null}">
+                <button type="button" class="btn btn--primary data-diff-add"
+                        th:attr="data-diff-payload=${dataDiffPayload}, data-diff-added-text=${msg['diff.added']}"
+                        th:text="${msg['diff.addToCompare']}">Add to comparison</button>
+            </div>
         </div>
         <div th:if="${keyDetail.type == 'hash' and keyDetail.value != null and !readOnly}" class="detail-value">
             <form th:action="@{/redis/{id}/{dbIndex}/detail(id=${connectionId}, dbIndex=${dbIndex})}" method="post" class="detail-form">
                 <input type="hidden" name="key" th:value="${keyDetail.key}"/>
                 <input type="hidden" name="type" th:value="${keyDetail.type}"/>
+                <div class="query-table-wrapper">
+                    <table class="query-table">
+                        <thead>
+                            <tr><th class="query-th" th:text="${msg['common.field']}">Field</th><th class="query-th" th:text="${msg['common.value']}">Value</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="entry : ${keyDetail.value}" class="query-data-row">
+                                <td><input type="hidden" name="fieldKeys" th:value="${entry.key}"/><span class="query-cell-mono" th:text="${entry.key}"></span></td>
+                                <td><input type="text" name="fieldValues" th:value="${entry.value}" class="query-cell-mono detail-edit-input"/></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="detail-actions">
+                    <button type="submit" id="redis-save-btn" class="btn btn--primary" th:text="${msg['common.save']}">Save</button>
+                    <button th:if="${dataDiffPayload != null}" type="button" class="btn btn--primary data-diff-add"
+                            th:attr="data-diff-payload=${dataDiffPayload}, data-diff-added-text=${msg['diff.added']}"
+                            th:text="${msg['diff.addToCompare']}">Add to comparison</button>
+                </div>
+            </form>
+        </div>
+        <div th:if="${keyDetail.type == 'hash' and keyDetail.value != null and readOnly}" class="detail-value">
+            <div class="query-table-wrapper">
                 <table class="query-table">
                     <thead>
                         <tr><th class="query-th" th:text="${msg['common.field']}">Field</th><th class="query-th" th:text="${msg['common.value']}">Value</th></tr>
                     </thead>
                     <tbody>
-                        <tr th:each="entry : ${keyDetail.value}">
-                            <td><input type="hidden" name="fieldKeys" th:value="${entry.key}"/><span class="query-cell-mono" th:text="${entry.key}"></span></td>
-                            <td><input type="text" name="fieldValues" th:value="${entry.value}" class="query-cell-mono detail-edit-input"/></td>
+                        <tr th:each="entry : ${keyDetail.value}" class="query-data-row">
+                            <td><span class="query-cell-mono" th:text="${entry.key}"></span></td>
+                            <td><span class="query-cell-mono" th:text="${entry.value}"></span></td>
                         </tr>
                     </tbody>
                 </table>
-                <div class="detail-actions">
-                    <button type="submit" id="redis-save-btn" class="query-button" th:text="${msg['common.save']}">Save</button>
-                </div>
-            </form>
-        </div>
-        <div th:if="${keyDetail.type == 'hash' and keyDetail.value != null and readOnly}" class="detail-value">
-            <table class="query-table">
-                <thead>
-                    <tr><th class="query-th" th:text="${msg['common.field']}">Field</th><th class="query-th" th:text="${msg['common.value']}">Value</th></tr>
-                </thead>
-                <tbody>
-                    <tr th:each="entry : ${keyDetail.value}">
-                        <td><span class="query-cell-mono" th:text="${entry.key}"></span></td>
-                        <td><span class="query-cell-mono" th:text="${entry.value}"></span></td>
-                    </tr>
-                </tbody>
-            </table>
+            </div>
+            <div class="detail-actions" th:if="${dataDiffPayload != null}">
+                <button type="button" class="btn btn--primary data-diff-add"
+                        th:attr="data-diff-payload=${dataDiffPayload}, data-diff-added-text=${msg['diff.added']}"
+                        th:text="${msg['diff.addToCompare']}">Add to comparison</button>
+            </div>
         </div>
         <div th:if="${(keyDetail.type == 'list' or keyDetail.type == 'set') and keyDetail.value != null}" class="detail-value">
-            <ul class="detail-list">
-                <li th:each="elem : ${keyDetail.value}" th:text="${elem}" class="query-cell-mono"></li>
-            </ul>
+            <div class="query-table-wrapper">
+                <table class="query-table">
+                    <thead>
+                        <tr><th class="query-th" th:text="${msg['common.value']}">Value</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="elem : ${keyDetail.value}" class="query-data-row">
+                            <td th:text="${elem}" class="query-cell-mono"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="detail-actions" th:if="${dataDiffPayload != null}">
+                <button type="button" class="btn btn--primary data-diff-add"
+                        th:attr="data-diff-payload=${dataDiffPayload}, data-diff-added-text=${msg['diff.added']}"
+                        th:text="${msg['diff.addToCompare']}">Add to comparison</button>
+            </div>
         </div>
         <div th:if="${keyDetail.type == 'zset' and keyDetail.value != null}" class="detail-value">
-            <table class="query-table">
-                <thead>
-                    <tr><th class="query-th" th:text="${msg['common.element']}">Element</th><th class="query-th" th:text="${msg['common.score']}">Score</th></tr>
-                </thead>
-                <tbody>
-                    <tr th:each="sv : ${keyDetail.value}">
-                        <td th:text="${sv.value}" class="query-cell-mono"></td>
-                        <td th:text="${sv.score}" class="query-cell-mono"></td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-        <div class="detail-actions" th:if="${dataDiffPayload != null}">
-            <button type="button" class="query-button data-diff-add"
-                    th:attr="data-diff-payload=${dataDiffPayload}, data-diff-added-text=${msg['diff.added']}"
-                    th:text="${msg['diff.addToCompare']}">Add to comparison</button>
+            <div class="query-table-wrapper">
+                <table class="query-table">
+                    <thead>
+                        <tr><th class="query-th" th:text="${msg['common.element']}">Element</th><th class="query-th" th:text="${msg['common.score']}">Score</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="sv : ${keyDetail.value}" class="query-data-row">
+                            <td th:text="${sv.value}" class="query-cell-mono"></td>
+                            <td th:text="${sv.score}" class="query-cell-mono"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="detail-actions" th:if="${dataDiffPayload != null}">
+                <button type="button" class="btn btn--primary data-diff-add"
+                        th:attr="data-diff-payload=${dataDiffPayload}, data-diff-added-text=${msg['diff.added']}"
+                        th:text="${msg['diff.addToCompare']}">Add to comparison</button>
+            </div>
         </div>
     </div>
     <p th:if="${keyDetail == null}" class="text-dim" th:text="${msg['redis.keyNotFoundOrError']}">Key not found or connection error.</p>

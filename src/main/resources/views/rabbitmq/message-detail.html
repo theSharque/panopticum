@@ -6,24 +6,33 @@
     <div th:replace="~{fragments/page-heading :: pageHeading(items=${breadcrumbs})}"></div>
     <h1 th:text="${msg['rabbitmq.messageDetailTitle']}">Message</h1>
     <div th:if="${message != null}" class="query-result-data">
-        <dl class="detail-dl">
-            <dt><span th:text="${msg['rabbitmq.routingKey']}">Routing key</span> : <span th:text="${message.routingKey != null ? message.routingKey : '—'}" class="query-cell-mono"></span></dt>
-            <dt><span th:text="${msg['common.size']}">Size</span> : <span th:text="${message.payloadBytes != null ? message.payloadBytes + ' bytes' : '—'}" class="query-cell-mono"></span></dt>
-        </dl>
+        <div class="detail-block detail-block--grid">
+            <div class="detail-field">
+                <div class="detail-field-name" th:text="${msg['rabbitmq.routingKey']}">Routing key</div>
+                <div class="detail-field-value query-cell-mono" th:text="${message.routingKey != null ? message.routingKey : '—'}"></div>
+            </div>
+            <div class="detail-field">
+                <div class="detail-field-name" th:text="${msg['common.size']}">Size</div>
+                <div class="detail-field-value query-cell-mono" th:text="${message.payloadBytes != null ? message.payloadBytes + ' bytes' : '—'}"></div>
+            </div>
+        </div>
         <h2 th:text="${msg['rabbitmq.payload']}">Payload</h2>
         <pre class="detail-value detail-json"><code class="language-json" th:text="${message.payload}">—</code></pre>
         <div class="detail-actions" th:if="${dataDiffPayload != null}">
-            <button type="button" class="query-button data-diff-add"
+            <button type="button" class="btn btn--primary data-diff-add"
                     th:attr="data-diff-payload=${dataDiffPayload}, data-diff-added-text=${msg['diff.added']}"
                     th:text="${msg['diff.addToCompare']}">Add to comparison</button>
         </div>
         <div th:if="${message.properties != null and !message.properties.isEmpty()}">
             <h2 th:text="${msg['rabbitmq.properties']}">Properties</h2>
-            <dl class="detail-dl">
+            <div class="detail-block">
                 <th:block th:each="entry : ${message.properties}">
-                    <dt><span th:text="${entry.key}" class="query-cell-mono"></span> : <span th:text="${entry.value != null ? entry.value.toString() : '—'}" class="query-cell-mono"></span></dt>
+                    <div class="detail-field">
+                        <div class="detail-field-name query-cell-mono" th:text="${entry.key}"></div>
+                        <div class="detail-field-value query-cell-mono" th:text="${entry.value != null ? entry.value.toString() : '—'}"></div>
+                    </div>
                 </th:block>
-            </dl>
+            </div>
         </div>
     </div>
     <p th:if="${message == null}" class="text-dim" th:text="${msg['common.noData']}">No data.</p>

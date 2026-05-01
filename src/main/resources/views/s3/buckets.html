@@ -4,7 +4,6 @@
 <body>
 <main th:fragment="main" class="main-content">
     <div th:replace="~{fragments/page-heading :: pageHeading(items=${breadcrumbs})}"></div>
-    <div th:replace="~{fragments/app-alert :: slot}"></div>
     <h1 th:text="${msg['s3.bucketsTitle']}">Buckets</h1>
     <div th:if="${items != null and !items.isEmpty()}" class="query-result-data">
         <div class="query-table-wrapper">
@@ -20,8 +19,8 @@
                     <tr th:each="b : ${items}" class="query-data-row">
                         <td class="query-detail-cell">
                             <a th:href="@{/s3/{id}/buckets/{bucket}(id=${connectionId},bucket=${b.name})}"
-                               class="query-detail-link">
-                                <svg class="icon-link" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
+                               class="btn btn--icon btn--ghost">
+                                <svg class="icon" aria-hidden="true"><use href="#icon-link"/></svg>
                             </a>
                         </td>
                         <td th:text="${b.name}" class="query-cell-mono"></td>

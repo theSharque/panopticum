@@ -20,21 +20,21 @@
                     <tr>
                         <th class="query-th query-th-detail"></th>
                         <th class="query-th query-th-sortable">
-                            <a th:href="@{/elasticsearch/{id}/indices(id=${connectionId}, page=1, size=${size}, sort='index', order=${orderIndex})}" class="query-th-link"><span th:text="${msg['elasticsearch.index']}">Index</span> <span th:if="${sort == 'index' and order == 'asc'}" class="query-sort-ind">▲</span><span th:if="${sort == 'index' and order == 'desc'}" class="query-sort-ind">▼</span></a>
+                            <a th:href="@{/elasticsearch/{id}/indices(id=${connectionId}, page=1, size=${size}, sort='index', order=${orderIndex})}" class="query-th-link"><span th:text="${msg['elasticsearch.index']}">Index</span> <span th:if="${sort == 'index' and order == 'asc'}" class="query-sort-ind"><svg class="icon icon--sm" aria-hidden="true"><use href="#icon-sort-asc"/></svg></span><span th:if="${sort == 'index' and order == 'desc'}" class="query-sort-ind"><svg class="icon icon--sm" aria-hidden="true"><use href="#icon-sort-desc"/></svg></span></a>
                         </th>
                         <th class="query-th query-th-sortable">
-                            <a th:href="@{/elasticsearch/{id}/indices(id=${connectionId}, page=1, size=${size}, sort='docsCount', order=${orderDocsCount})}" class="query-th-link"><span th:text="${msg['elasticsearch.docsCount']}">Docs</span> <span th:if="${sort == 'docsCount' and order == 'asc'}" class="query-sort-ind">▲</span><span th:if="${sort == 'docsCount' and order == 'desc'}" class="query-sort-ind">▼</span></a>
+                            <a th:href="@{/elasticsearch/{id}/indices(id=${connectionId}, page=1, size=${size}, sort='docsCount', order=${orderDocsCount})}" class="query-th-link"><span th:text="${msg['elasticsearch.docsCount']}">Docs</span> <span th:if="${sort == 'docsCount' and order == 'asc'}" class="query-sort-ind"><svg class="icon icon--sm" aria-hidden="true"><use href="#icon-sort-asc"/></svg></span><span th:if="${sort == 'docsCount' and order == 'desc'}" class="query-sort-ind"><svg class="icon icon--sm" aria-hidden="true"><use href="#icon-sort-desc"/></svg></span></a>
                         </th>
                         <th class="query-th query-th-sortable">
-                            <a th:href="@{/elasticsearch/{id}/indices(id=${connectionId}, page=1, size=${size}, sort='storeSize', order=${orderStoreSize})}" class="query-th-link"><span th:text="${msg['elasticsearch.storeSize']}">Size</span> <span th:if="${sort == 'storeSize' and order == 'asc'}" class="query-sort-ind">▲</span><span th:if="${sort == 'storeSize' and order == 'desc'}" class="query-sort-ind">▼</span></a>
+                            <a th:href="@{/elasticsearch/{id}/indices(id=${connectionId}, page=1, size=${size}, sort='storeSize', order=${orderStoreSize})}" class="query-th-link"><span th:text="${msg['elasticsearch.storeSize']}">Size</span> <span th:if="${sort == 'storeSize' and order == 'asc'}" class="query-sort-ind"><svg class="icon icon--sm" aria-hidden="true"><use href="#icon-sort-asc"/></svg></span><span th:if="${sort == 'storeSize' and order == 'desc'}" class="query-sort-ind"><svg class="icon icon--sm" aria-hidden="true"><use href="#icon-sort-desc"/></svg></span></a>
                         </th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr th:each="item : ${items}" class="query-data-row">
                         <td class="query-detail-cell">
-                            <a th:href="@{/elasticsearch/{id}/indices/{idx}/search(id=${connectionId}, idx=${item.index})}" class="query-detail-link" th:attr="aria-label=${msg['common.open']}, title=${msg['common.open']}">
-                                <svg class="icon-link" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
+                            <a th:href="@{/elasticsearch/{id}/indices/{idx}/search(id=${connectionId}, idx=${item.index})}" class="btn btn--icon btn--ghost" th:attr="aria-label=${msg['common.open']}, title=${msg['common.open']}">
+                                <svg class="icon" aria-hidden="true"><use href="#icon-link"/></svg>
                             </a>
                         </td>
                         <td th:text="${item.index}" class="query-cell-mono"></td>

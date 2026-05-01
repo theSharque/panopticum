@@ -23,8 +23,7 @@ public class MessagesKafka {
             Map.entry("kafka.noTopics", "No topics or connection error."),
             Map.entry("kafka.noPartitions", "No partitions or connection error."),
             Map.entry("kafka.noRecords", "No records or connection error."),
-            Map.entry("kafka.recordNotFound", "Record not found."),
-            Map.entry("kafka.refresh", "Refresh")
+            Map.entry("kafka.recordNotFound", "Record not found.")
     );
 
     public static final Map<String, String> RU = Map.ofEntries(
@@ -43,7 +42,6 @@ public class MessagesKafka {
             Map.entry("kafka.noTopics", "Нет топиков или ошибка подключения."),
             Map.entry("kafka.noPartitions", "Нет партиций или ошибка подключения."),
             Map.entry("kafka.noRecords", "Нет записей или ошибка подключения."),
-            Map.entry("kafka.recordNotFound", "Запись не найдена."),
-            Map.entry("kafka.refresh", "Обновить")
+            Map.entry("kafka.recordNotFound", "Запись не найдена.")
     );
 }

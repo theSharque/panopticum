@@ -4,7 +4,6 @@
 <body>
 <main th:fragment="main" class="main-content">
     <div th:replace="~{fragments/page-heading :: pageHeading(items=${breadcrumbs})}"></div>
-    <div th:replace="~{fragments/app-alert :: slot}"></div>
     <h1 th:text="${msg['s3.peekTitle']}">Peek</h1>
     <form method="get" th:action="@{/s3/{id}/buckets/{bucket}/peek(id=${connectionId},bucket=${bucket})}" class="query-form">
         <input type="hidden" name="key" th:value="${key}">
@@ -23,7 +22,9 @@
                     <option value="hex" th:selected="${format == 'hex'}">hex</option>
                 </select>
             </div>
-            <button type="submit" class="btn-primary" th:text="${msg['s3.peek']}">Peek</button>
+            <button type="submit" class="btn btn--icon btn--primary query-execute" th:attr="aria-label=${msg['query.refresh']}, title=${msg['query.refresh']}">
+                <svg class="icon icon--lg" aria-hidden="true"><use href="#icon-refresh"/></svg>
+            </button>
         </div>
     </form>
     <pre th:if="${content != null}" class="query-result-pre" th:text="${content}"></pre>

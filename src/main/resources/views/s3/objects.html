@@ -4,7 +4,6 @@
 <body>
 <main th:fragment="main" class="main-content">
     <div th:replace="~{fragments/page-heading :: pageHeading(items=${breadcrumbs})}"></div>
-    <div th:replace="~{fragments/app-alert :: slot}"></div>
     <h1 th:text="${msg['s3.objectsTitle']}">Objects</h1>
     <div th:if="${items != null and !items.isEmpty()}" class="query-result-data">
         <div class="query-pagination-info">
@@ -29,14 +28,14 @@
                         <td class="query-detail-cell">
                             <th:block th:if="${!obj.prefix}">
                                 <a th:href="@{/s3/{id}/buckets/{bucket}/peek(id=${connectionId},bucket=${bucket},key=${obj.key})}"
-                                   class="query-detail-link">
-                                    <svg class="icon-link" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
+                                   class="btn btn--icon btn--ghost">
+                                    <svg class="icon" aria-hidden="true"><use href="#icon-link"/></svg>
                                 </a>
                             </th:block>
                             <th:block th:if="${obj.prefix}">
                                 <a th:href="@{/s3/{id}/buckets/{bucket}(id=${connectionId},bucket=${bucket},prefix=${obj.key})}"
-                                   class="query-detail-link">
-                                    <svg class="icon-link" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
+                                   class="btn btn--icon btn--ghost">
+                                    <svg class="icon" aria-hidden="true"><use href="#icon-link"/></svg>
                                 </a>
                             </th:block>
                         </td>

@@ -65,6 +65,7 @@ function initEditor(textarea) {
 
     textarea.dataset.cmInitialized = 'true';
     textarea._panopticumCmView = view;
+    textarea.value = '';
 
     var form = textarea.closest('form');
     if (form) {

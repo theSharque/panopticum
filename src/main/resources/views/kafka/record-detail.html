@@ -6,26 +6,41 @@
     <div th:replace="~{fragments/page-heading :: pageHeading(items=${breadcrumbs})}"></div>
     <h1 th:text="${msg['kafka.recordDetailTitle']}">Record</h1>
     <div th:if="${record != null}" class="query-result-data">
-        <dl class="detail-dl">
-            <dt><span th:text="${msg['kafka.offset']}">Offset</span> : <span th:text="${record.offset}" class="query-cell-mono"></span></dt>
-            <dt><span th:text="${msg['kafka.partition']}">Partition</span> : <span th:text="${record.partition}" class="query-cell-mono"></span></dt>
-            <dt><span th:text="${msg['kafka.key']}">Key</span> : <span th:text="${record.key != null ? record.key : '—'}" class="query-cell-mono"></span></dt>
-            <dt th:if="${record.timestamp != null}"><span th:text="${msg['kafka.timestamp']}">Timestamp</span> : <span th:text="${record.timestamp}" class="query-cell-mono"></span></dt>
-        </dl>
+        <div class="detail-block detail-block--grid">
+            <div class="detail-field">
+                <div class="detail-field-name" th:text="${msg['kafka.offset']}">Offset</div>
+                <div class="detail-field-value query-cell-mono" th:text="${record.offset}"></div>
+            </div>
+            <div class="detail-field">
+                <div class="detail-field-name" th:text="${msg['kafka.partition']}">Partition</div>
+                <div class="detail-field-value query-cell-mono" th:text="${record.partition}"></div>
+            </div>
+            <div class="detail-field">
+                <div class="detail-field-name" th:text="${msg['kafka.key']}">Key</div>
+                <div class="detail-field-value query-cell-mono" th:text="${record.key != null ? record.key : '—'}"></div>
+            </div>
+            <div class="detail-field" th:if="${record.timestamp != null}">
+                <div class="detail-field-name" th:text="${msg['kafka.timestamp']}">Timestamp</div>
+                <div class="detail-field-value query-cell-mono" th:text="${record.timestamp}"></div>
+            </div>
+        </div>
         <h2 th:text="${msg['kafka.value']}">Value</h2>
         <pre class="detail-value detail-json"><code class="language-json" th:text="${record.value}">—</code></pre>
         <div class="detail-actions" th:if="${dataDiffPayload != null}">
-            <button type="button" class="query-button data-diff-add"
+            <button type="button" class="btn btn--primary data-diff-add"
                     th:attr="data-diff-payload=${dataDiffPayload}, data-diff-added-text=${msg['diff.added']}"
                     th:text="${msg['diff.addToCompare']}">Add to comparison</button>
         </div>
         <div th:if="${record.headers != null and !record.headers.isEmpty()}">
             <h2 th:text="${msg['kafka.headers']}">Headers</h2>
-            <dl class="detail-dl">
+            <div class="detail-block">
                 <th:block th:each="entry : ${record.headers}">
-                    <dt><span th:text="${entry.key}" class="query-cell-mono"></span> : <span th:text="${entry.value != null ? entry.value : '—'}" class="query-cell-mono"></span></dt>
+                    <div class="detail-field">
+                        <div class="detail-field-name query-cell-mono" th:text="${entry.key}"></div>
+                        <div class="detail-field-value query-cell-mono" th:text="${entry.value != null ? entry.value : '—'}"></div>
+                    </div>
                 </th:block>
-            </dl>
+            </div>
         </div>
     </div>
     <p th:if="${record == null}" class="text-dim" th:text="${msg['common.noData']}">No data.</p>

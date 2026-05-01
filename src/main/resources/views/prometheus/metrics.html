@@ -4,16 +4,15 @@
 <body>
 <main th:fragment="main" class="main-content">
     <div th:replace="~{fragments/page-heading :: pageHeading(items=${breadcrumbs})}"></div>
-    <div th:replace="~{fragments/app-alert :: slot}"></div>
 
     <div class="toolbar">
         <h1 th:text="${msg['prometheus.metricsTitle']}">Metrics</h1>
-        <a th:href="@{/prometheus/{id}/query(id=${connectionId})}" class="btn-secondary" th:text="${msg['prometheus.queryTitle']}">Query</a>
+        <a th:href="@{/prometheus/{id}/query(id=${connectionId})}" class="btn" th:text="${msg['prometheus.queryTitle']}">Query</a>
     </div>
 
     <form method="get" class="filter-form">
         <input type="hidden" name="page" value="1">
-        <div class="form-group form-group--inline">
+        <div class="form-group--inline">
             <label for="job-filter" th:text="${msg['prometheus.job']}">Job</label>
             <select id="job-filter" name="job" class="filter-select" onchange="this.form.submit()">
                 <option value="" th:selected="${selectedJob == null or selectedJob.isEmpty()}">— all —</option>
@@ -30,6 +29,7 @@
                     <th:block th:replace="~{fragments/pagination-list-nav :: arrows(hasPrev=${hasPrev}, prevUrl=${prevUrl}, hasMore=${hasMore}, nextUrl=${nextUrl}, prevLabel=${prevLabel}, nextLabel=${nextLabel})}" />
                 </th:block>
             </span>
+            <span class="query-pagination-range" th:text="${msg['common.rowsRange'] + fromRow + '–' + toRow}" th:if="${fromRow != null and toRow != null}"></span>
         </div>
         <div class="query-table-wrapper">
             <table class="query-table">
@@ -44,8 +44,8 @@
                     <tr th:each="m : ${metrics}" class="query-data-row">
                         <td class="query-detail-cell">
                             <a th:href="@{/prometheus/{id}/query(id=${connectionId},promql=${m.name})}"
-                               class="query-detail-link">
-                                <svg class="icon-link" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
+                               class="btn btn--icon btn--ghost">
+                                <svg class="icon" aria-hidden="true"><use href="#icon-link"/></svg>
                             </a>
                         </td>
                         <td th:text="${m.name}" class="query-cell-mono"></td>

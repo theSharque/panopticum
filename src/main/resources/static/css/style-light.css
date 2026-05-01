@@ -15,6 +15,7 @@
     --accent-hover: #1d4ed8;
     --border: rgba(15, 23, 42, 0.08);
     --border-strong: rgba(15, 23, 42, 0.15);
+    --border-subtle: rgba(15, 23, 42, 0.04);
 
     --green-500: #059669;
     --red-500: #dc2626;
@@ -24,30 +25,16 @@
     --scrollbar-track: var(--bg-elevated);
     --scrollbar-thumb: var(--text-dim);
     --scrollbar-thumb-hover: var(--accent);
+
+    --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.08);
+    --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.10);
+    --shadow-lg: 0 10px 40px rgba(15, 23, 42, 0.16);
+
+    --focus-ring: 0 0 0 3px rgba(37, 99, 235, 0.18);
+
+    --btn-primary-glow: rgba(37, 99, 235, 0.10);
 }
 
-.sidebar-footer {
-    margin-top: auto;
-    padding: var(--space-md) var(--space-lg);
-    border-top: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-md);
-}
-
-.sidebar-footer-link {
-    font-size: 12px;
-    color: var(--text-dim);
-    text-decoration: none;
-    transition: color var(--duration);
-}
-
-.sidebar-footer-link:hover {
-    color: var(--accent);
-}
-
-.sidebar-footer-version {
-    font-size: 11px;
-    color: var(--text-muted);
+.btn--primary:hover {
+    background: var(--btn-primary-glow);
 }

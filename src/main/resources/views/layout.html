@@ -27,6 +27,7 @@
 </head>
 
 <body th:attr="data-theme=${theme}">
+<th:block th:replace="~{fragments/icons :: sprite}"/>
 <div class="layout">
     <div th:replace="~{fragments/sidebar :: sidebar(connections=${connections}, adminLock=${adminLock})}"></div>
 

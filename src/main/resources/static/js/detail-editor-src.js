@@ -49,6 +49,7 @@ function initEditor(textarea) {
         parent: wrapper
     });
     textarea.dataset.cmInitialized = 'true';
+    textarea.value = '';
 
     var form = textarea.closest('form');
     if (form) {

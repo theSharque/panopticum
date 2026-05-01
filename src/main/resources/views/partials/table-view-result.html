@@ -14,7 +14,7 @@
                     <input type="hidden" name="target" value="table"/>
                     <input type="hidden" name="search" th:value="${searchTerm != null ? searchTerm : ''}"/>
                     <input type="hidden" name="offset" th:value="${prevOffset}"/>
-                    <button type="submit" class="query-pagination-btn" th:classappend="${!hasPrev} ? 'query-pagination-btn-disabled' : ''" th:disabled="${!hasPrev}" th:aria-label="${msg['common.prev']}" th:title="${msg['common.prev']}"><svg th:replace="~{fragments/pagination-arrows :: arrowPrev}"></svg></button>
+                    <button type="submit" class="btn btn--icon" th:classappend="${!hasPrev} ? ' btn--disabled' : ''" th:disabled="${!hasPrev}" th:aria-label="${msg['common.prev']}" th:title="${msg['common.prev']}"><svg th:replace="~{fragments/pagination-arrows :: arrowPrev}"></svg></button>
                 </form>
                 <form class="query-pagination-form"
                       th:attr="action=${tableQueryActionUrl}, hx-post=${tableQueryActionUrl}"
@@ -28,7 +28,7 @@
                     <input type="hidden" name="target" value="table"/>
                     <input type="hidden" name="search" th:value="${searchTerm != null ? searchTerm : ''}"/>
                     <input type="hidden" name="offset" th:value="${nextOffset}"/>
-                    <button type="submit" class="query-pagination-btn" th:classappend="${!hasMore} ? 'query-pagination-btn-disabled' : ''" th:disabled="${!hasMore}" th:aria-label="${msg['common.next']}" th:title="${msg['common.next']}"><svg th:replace="~{fragments/pagination-arrows :: arrowNext}"></svg></button>
+                    <button type="submit" class="btn btn--icon" th:classappend="${!hasMore} ? ' btn--disabled' : ''" th:disabled="${!hasMore}" th:aria-label="${msg['common.next']}" th:title="${msg['common.next']}"><svg th:replace="~{fragments/pagination-arrows :: arrowNext}"></svg></button>
                 </form>
             </span>
             <span class="query-pagination-range" th:text="${msg['common.rowsRange'] + fromRow + '–' + toRow}"></span>
@@ -88,8 +88,8 @@
                                 <input type="hidden" name="search" th:value="${searchTerm != null ? searchTerm : ''}"/>
                                 <button type="submit" class="query-th-link" th:text="${col}"></button>
                             </form>
-                            <span th:if="${sort == col and order == 'asc'}" class="query-sort-ind" title="ASC"> ▲</span>
-                            <span th:if="${sort == col and order == 'desc'}" class="query-sort-ind" title="DESC"> ▼</span>
+                            <span th:if="${sort == col and order == 'asc'}" class="query-sort-ind" title="ASC"><svg class="icon icon--sm" aria-hidden="true"><use href="#icon-sort-asc"/></svg></span>
+                            <span th:if="${sort == col and order == 'desc'}" class="query-sort-ind" title="DESC"><svg class="icon icon--sm" aria-hidden="true"><use href="#icon-sort-desc"/></svg></span>
                         </th>
                     </tr>
                 </thead>
@@ -102,12 +102,12 @@
                                 <input type="hidden" name="order" th:value="${order}"/>
                                 <input type="hidden" name="search" th:value="${searchTerm != null ? searchTerm : ''}"/>
                                 <input type="hidden" name="rowNum" th:value="${offset + rowStat.index}"/>
-                                <button type="submit" class="query-detail-link" th:attr="aria-label=${msg['common.open']}, title=${msg['common.open']}">
-                                    <svg class="icon-link" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
+                                <button type="submit" class="btn btn--icon btn--ghost" th:attr="aria-label=${msg['common.open']}, title=${msg['common.open']}">
+                                    <svg class="icon" aria-hidden="true"><use href="#icon-link"/></svg>
                                 </button>
                             </form>
                         </td>
-                        <td th:each="cell : ${row}" th:text="${cell}"></td>
+                        <td th:each="cell : ${row}" th:text="${cell}" class="query-cell-mono"></td>
                     </tr>
                 </tbody>
             </table>

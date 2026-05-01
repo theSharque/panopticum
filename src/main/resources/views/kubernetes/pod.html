@@ -4,60 +4,75 @@
 <body>
 <main th:fragment="main" class="main-content">
     <div th:replace="~{fragments/page-heading :: pageHeading(items=${breadcrumbs})}"></div>
-    <div th:replace="~{fragments/app-alert :: slot}"></div>
 
     <th:block th:if="${podDesc != null}">
         <h1 th:text="${podDesc.name}">Pod</h1>
-        <div class="detail-grid">
-            <div class="detail-field"><span class="detail-label" th:text="${msg['kubernetes.phase']}">Phase</span><span th:text="${podDesc.phase}"></span></div>
-            <div class="detail-field"><span class="detail-label">Node</span><span th:text="${podDesc.nodeName}"></span></div>
-            <div class="detail-field"><span class="detail-label">Pod IP</span><span th:text="${podDesc.podIP}"></span></div>
+        <div class="detail-block detail-block--grid">
+            <div class="detail-field">
+                <div class="detail-field-name" th:text="${msg['kubernetes.phase']}">Phase</div>
+                <div class="detail-field-value" th:text="${podDesc.phase}"></div>
+            </div>
+            <div class="detail-field">
+                <div class="detail-field-name">Node</div>
+                <div class="detail-field-value" th:text="${podDesc.nodeName}"></div>
+            </div>
+            <div class="detail-field">
+                <div class="detail-field-name">Pod IP</div>
+                <div class="detail-field-value query-cell-mono" th:text="${podDesc.podIP}"></div>
+            </div>
         </div>
 
         <h2 th:text="${msg['kubernetes.ready']}">Containers</h2>
-        <table class="query-table" th:if="${!podDesc.containers.isEmpty()}">
-            <thead>
-                <tr>
-                    <th class="query-th" th:text="${msg['kubernetes.name']}">Name</th>
-                    <th class="query-th" th:text="${msg['kubernetes.image']}">Image</th>
-                    <th class="query-th" th:text="${msg['kubernetes.ready']}">Ready</th>
-                    <th class="query-th" th:text="${msg['kubernetes.restarts']}">Restarts</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr th:each="c : ${podDesc.containers}" class="query-data-row">
-                    <td th:text="${c.name}" class="query-cell-mono"></td>
-                    <td th:text="${c.image}" class="query-cell-mono"></td>
-                    <td th:text="${c.ready ? '✓' : '✗'}"></td>
-                    <td th:text="${c.restartCount}"></td>
-                </tr>
-            </tbody>
-        </table>
+        <div class="query-table-wrapper" th:if="${!podDesc.containers.isEmpty()}">
+            <table class="query-table">
+                <thead>
+                    <tr>
+                        <th class="query-th" th:text="${msg['kubernetes.name']}">Name</th>
+                        <th class="query-th" th:text="${msg['kubernetes.image']}">Image</th>
+                        <th class="query-th" th:text="${msg['kubernetes.ready']}">Ready</th>
+                        <th class="query-th" th:text="${msg['kubernetes.restarts']}">Restarts</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="c : ${podDesc.containers}" class="query-data-row">
+                        <td th:text="${c.name}" class="query-cell-mono"></td>
+                        <td th:text="${c.image}" class="query-cell-mono"></td>
+                        <td>
+                            <th:block th:if="${c.ready}"><svg class="icon" style="color:var(--green-500)" aria-label="ready"><use href="#icon-check"/></svg></th:block>
+                            <th:block th:unless="${c.ready}"><svg class="icon" style="color:var(--red-500)" aria-label="not ready"><use href="#icon-cross"/></svg></th:block>
+                        </td>
+                        <td th:text="${c.restartCount}"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
 
         <h2 th:text="${msg['kubernetes.eventsTitle']}">Events</h2>
-        <table class="query-table" th:if="${!podDesc.recentEvents.isEmpty()}">
-            <thead>
-                <tr>
-                    <th class="query-th">Type</th>
-                    <th class="query-th" th:text="${msg['kubernetes.reason']}">Reason</th>
-                    <th class="query-th" th:text="${msg['kubernetes.message']}">Message</th>
-                    <th class="query-th" th:text="${msg['kubernetes.count']}">Count</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr th:each="e : ${podDesc.recentEvents}" class="query-data-row">
-                    <td th:text="${e.type}" class="query-cell-mono"></td>
-                    <td th:text="${e.reason}" class="query-cell-mono"></td>
-                    <td th:text="${e.message}"></td>
-                    <td th:text="${e.count}"></td>
-                </tr>
-            </tbody>
-        </table>
+        <div class="query-table-wrapper" th:if="${!podDesc.recentEvents.isEmpty()}">
+            <table class="query-table">
+                <thead>
+                    <tr>
+                        <th class="query-th">Type</th>
+                        <th class="query-th" th:text="${msg['kubernetes.reason']}">Reason</th>
+                        <th class="query-th" th:text="${msg['kubernetes.message']}">Message</th>
+                        <th class="query-th" th:text="${msg['kubernetes.count']}">Count</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="e : ${podDesc.recentEvents}" class="query-data-row">
+                        <td th:text="${e.type}" class="query-cell-mono"></td>
+                        <td th:text="${e.reason}" class="query-cell-mono"></td>
+                        <td th:text="${e.message}"></td>
+                        <td th:text="${e.count}"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
         <p th:if="${podDesc.recentEvents.isEmpty()}" class="text-dim" th:text="${msg['kubernetes.noItems']}"></p>
 
-        <div class="detail-actions" style="margin-top:1rem">
+        <div class="detail-actions">
             <a th:href="@{/kubernetes/{id}/namespaces/{ns}/pods/{p}/logs(id=${connectionId}, ns=${namespace}, p=${podName})}+?tail=500"
-               class="btn-secondary" th:text="${msg['kubernetes.logsTitle']}">Logs</a>
+               class="btn" th:text="${msg['kubernetes.logsTitle']}">Logs</a>
         </div>
     </th:block>
 </main>

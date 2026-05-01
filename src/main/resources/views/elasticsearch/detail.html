@@ -10,8 +10,8 @@
         <input type="hidden" name="docId" th:value="${docId}"/>
         <textarea name="body" class="detail-json detail-json-textarea" data-detail-editor="json" th:text="${prettyJson}"></textarea>
         <div class="detail-actions">
-            <button type="submit" class="query-button" th:text="${msg['common.save']}">Save</button>
-            <button th:if="${dataDiffPayload != null}" type="button" class="query-button data-diff-add"
+            <button type="submit" class="btn btn--primary" th:text="${msg['common.save']}">Save</button>
+            <button th:if="${dataDiffPayload != null}" type="button" class="btn btn--primary data-diff-add"
                     th:attr="data-diff-payload=${dataDiffPayload}, data-diff-added-text=${msg['diff.added']}"
                     th:text="${msg['diff.addToCompare']}">Add to comparison</button>
         </div>
@@ -19,7 +19,7 @@
     <div th:if="${readOnly}" class="detail-block">
         <pre class="detail-json detail-json-textarea"><code class="language-json" th:text="${prettyJson}"></code></pre>
         <div class="detail-actions" th:if="${dataDiffPayload != null}">
-            <button type="button" class="query-button data-diff-add"
+            <button type="button" class="btn btn--primary data-diff-add"
                     th:attr="data-diff-payload=${dataDiffPayload}, data-diff-added-text=${msg['diff.added']}"
                     th:text="${msg['diff.addToCompare']}">Add to comparison</button>
         </div>
