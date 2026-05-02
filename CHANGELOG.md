@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [8.0.1] - 2026-05-02
+
+### Security
+
+- Dependency upgrades addressing CVEs in Parquet/Avro/Hadoop/ZooKeeper/Kerby/aircompressor chain (`parquet-avro` 1.15.2, `hadoop-common` 3.4.1), pinned `commons-beanutils` 1.11.0
+- Docker images based on `eclipse-temurin` Ubuntu Noble (`17-*-noble`); CI Docker build uses `pull: true` for fresh base layers
+- Helm packaging workflow uses Helm `v3.20.2`
+
 ## [8.0.0] - 2026-05-01
 
 ### Added
