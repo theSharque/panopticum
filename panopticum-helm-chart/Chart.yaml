@@ -1,8 +1,8 @@
 apiVersion: v2
 name: panopticum
 description: A tool for developers and QA — web interface for viewing and managing database connections
-version: 1.0.1
-appVersion: "8.0.1"
+version: 1.0.2
+appVersion: "8.0.2"
 type: application
 keywords:
   - database
@@ -30,7 +30,7 @@ annotations:
   artifacthub.io/prerelease: "false"
   artifacthub.io/changes: |
     - kind: security
-      description: App image 8.0.1 — dependency and base-image security fixes (see project CHANGELOG)
+      description: App image 8.0.2 — Gradle CVE pins (ZooKeeper, Aircompressor, Jetty 12.x, MSSQL JDBC 13.x); see CHANGELOG
   artifacthub.io/links: |
     - name: Source
       url: https://github.com/thesharque/panopticum

@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+## [8.0.2] - 2026-05-03
+
+### Security
+
+- ZooKeeper `3.8.6` via Gradle resolution pin (addresses CVE-2026-24308 / CVE-2026-24281 for the `3.8.4` line pulled by Hadoop)
+- Aircompressor `2.0.3` (CVE-2025-67721)
+- Jetty 12.x core stack `12.1.8`: `jetty-server`, `jetty-http`, `jetty-io`, `jetty-util`, `jetty-security`, `jetty-xml`, `jetty-util-ajax` (CVE-2026-1605, CVE-2026-2332); Hadoop still bundles Jetty `9.4.x` servlet/webapp separately
+- MSSQL JDBC `13.4.0.jre11` (driver refresh; avoids Docker Scout flagging `12.10.2` vs `12.10.2.jre11` artifact naming)
+
 ## [8.0.1] - 2026-05-02
 
 ### Security

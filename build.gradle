@@ -3,7 +3,7 @@ plugins {
     id("io.micronaut.application") version "4.6.2"
 }
 
-version = "8.0.1"
+version = "8.0.2"
 group = "com.panopticum"
 
 repositories {
@@ -32,8 +32,31 @@ configurations.all {
                 details.because("CVE fixes: 2024-12798, 2025-11226, 2024-12801, 2026-1225")
             }
             if (details.requested.group == "com.microsoft.sqlserver" && details.requested.name == "mssql-jdbc") {
-                details.useVersion("12.10.2.jre11")
-                details.because("CVE fix: 2025-59250")
+                details.useVersion("13.4.0.jre11")
+                details.because("Beyond CVE-2025-59250 12.10.x range; Scout normalized 12.10.2 vs .jre11 artifact id")
+            }
+            if (details.requested.group == "org.apache.zookeeper") {
+                details.useVersion("3.8.6")
+                details.because("CVE-2026-24308, CVE-2026-24281")
+            }
+            if (details.requested.group == "io.airlift" && details.requested.name == "aircompressor") {
+                details.useVersion("2.0.3")
+                details.because("CVE-2025-67721")
+            }
+            if (details.requested.group == "org.eclipse.jetty") {
+                def jetty12Core = [
+                        "jetty-server",
+                        "jetty-http",
+                        "jetty-io",
+                        "jetty-util",
+                        "jetty-security",
+                        "jetty-xml",
+                        "jetty-util-ajax",
+                ] as Set
+                if (jetty12Core.contains(details.requested.name)) {
+                    details.useVersion("12.1.8")
+                    details.because("CVE-2026-1605, CVE-2026-2332 (Hadoop still pulls Jetty 9.4 servlet stack separately)")
+                }
             }
             if (details.requested.group == "com.fasterxml.jackson.core" && details.requested.name == "jackson-core") {
                 details.useVersion("2.21.1")
@@ -76,7 +99,7 @@ dependencies {
     runtimeOnly("com.h2database:h2:2.3.232")
     runtimeOnly("org.postgresql:postgresql:42.7.4")
     runtimeOnly("com.mysql:mysql-connector-j:9.1.0")
-    runtimeOnly("com.microsoft.sqlserver:mssql-jdbc:12.10.2.jre11")
+    runtimeOnly("com.microsoft.sqlserver:mssql-jdbc:13.4.0.jre11")
     runtimeOnly("com.oracle.database.jdbc:ojdbc11:21.18.0.0")
     implementation("org.mongodb:mongodb-driver-sync:1.5.1")
     implementation("io.lettuce:lettuce-core:6.5.4.RELEASE")
