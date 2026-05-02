@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [8.0.3] - 2026-05-04
+
+### Security
+
+- Direct dependencies for SBOM / vulnerability scanners: `org.apache.zookeeper:zookeeper:3.8.6`, `io.airlift:aircompressor:2.0.3`, `org.eclipse.jetty:jetty-server` / `jetty-http` `12.1.8` (alongside existing resolution pins)
+- `resolutionStrategy` notes: CVE-2025-11143 on Jetty HTTP (`>=12.1.5`), ZooKeeper CVE-2026-24308 / CVE-2026-24281 advisory range text, MSSQL JDBC CVE-2025-59250 clarification for `13.4.0.jre11`
+
 ## [8.0.2] - 2026-05-03
 
 ### Security

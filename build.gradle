@@ -3,7 +3,7 @@ plugins {
     id("io.micronaut.application") version "4.6.2"
 }
 
-version = "8.0.2"
+version = "8.0.3"
 group = "com.panopticum"
 
 repositories {
@@ -33,11 +33,11 @@ configurations.all {
             }
             if (details.requested.group == "com.microsoft.sqlserver" && details.requested.name == "mssql-jdbc") {
                 details.useVersion("13.4.0.jre11")
-                details.because("Beyond CVE-2025-59250 12.10.x range; Scout normalized 12.10.2 vs .jre11 artifact id")
+                details.because("CVE-2025-59250 fixed >=12.10.2.jre11; 13.4.0.jre11 clears BOM downgrade + Scout string normalization")
             }
             if (details.requested.group == "org.apache.zookeeper") {
                 details.useVersion("3.8.6")
-                details.because("CVE-2026-24308, CVE-2026-24281")
+                details.because("CVE-2026-24308, CVE-2026-24281: ZooKeeper >=3.8.0,<3.8.6 → 3.8.6")
             }
             if (details.requested.group == "io.airlift" && details.requested.name == "aircompressor") {
                 details.useVersion("2.0.3")
@@ -55,7 +55,7 @@ configurations.all {
                 ] as Set
                 if (jetty12Core.contains(details.requested.name)) {
                     details.useVersion("12.1.8")
-                    details.because("CVE-2026-1605, CVE-2026-2332 (Hadoop still pulls Jetty 9.4 servlet stack separately)")
+                    details.because("CVE-2025-11143 jetty-http >=12.1.5; CVE-2026-1605 jetty-server >=12.1.6; CVE-2026-2332 jetty-http >=12.1.7 (Hadoop still pulls Jetty 9.4 servlet stack separately)")
                 }
             }
             if (details.requested.group == "com.fasterxml.jackson.core" && details.requested.name == "jackson-core") {
@@ -84,6 +84,8 @@ dependencies {
     annotationProcessor("io.micronaut.openapi:micronaut-openapi")
     implementation("io.micronaut.openapi:micronaut-openapi-annotations")
     implementation("io.swagger.core.v3:swagger-annotations:2.2.39")
+    implementation("org.eclipse.jetty:jetty-server:12.1.8")
+    implementation("org.eclipse.jetty:jetty-http:12.1.8")
     implementation("io.micronaut:micronaut-http-client")
     implementation("io.micronaut:micronaut-http-server-netty")
     implementation("io.micronaut.security:micronaut-security")
@@ -110,6 +112,7 @@ dependencies {
     implementation("io.fabric8:kubernetes-client:6.13.4")
     implementation("io.minio:minio:8.5.17")
     implementation("org.apache.parquet:parquet-avro:1.15.2")
+    implementation("io.airlift:aircompressor:2.0.3")
     implementation("org.apache.hadoop:hadoop-common:3.4.1") {
         exclude group: "log4j", module: "log4j"
         exclude group: "org.slf4j", module: "slf4j-log4j12"
@@ -120,6 +123,7 @@ dependencies {
         exclude group: "org.mortbay.jetty"
         exclude group: "tomcat"
     }
+    implementation("org.apache.zookeeper:zookeeper:3.8.6")
 }
 
 application {
