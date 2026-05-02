@@ -5,7 +5,7 @@
 ## Возможности
 
 - **Подключение** к PostgreSQL, MySQL, MongoDB, Redis, ClickHouse, Kafka, Elasticsearch, API Kubernetes, S3/MinIO, Prometheus/VictoriaMetrics и [другим источникам](#поддерживаемые-бд)
-- **Просмотр** схем, таблиц, ключей, топиков; **Kubernetes**: namespace, pod-ы, деплойменты, сервисы, секреты (с раскрытием), события; **S3**: бакеты и префиксы; **Prometheus**: jobs и метрики
+- **Просмотр** схем, таблиц, ключей, топиков; **Kubernetes**: namespace, pod-ы, Deployment, StatefulSet, Service, Ingress, ConfigMap, Secret (раскрытие по запросу, с аудитом — значение не пишется в логи), события; **S3**: бакеты и префиксы; **Prometheus**: jobs и метрики
 - **Запросы** — SQL, CQL, MQL, PromQL; просмотр содержимого S3-объектов (JSON/CSV/Parquet/hex)
 - **Сравнение** — Data Diff для записей между Dev / Stage / Prod
 - **Интеграция** — MCP endpoint для AI-агентов (Cursor, Claude Desktop) — включая новый инструмент `describe-entity` для схемного контекста
@@ -28,7 +28,7 @@ docker run -d --name panopticum \
 
 Откройте **http://localhost:8080**.
 
-Образы: [GHCR](https://github.com/thesharque/panopticum/pkgs/container/panopticum) `ghcr.io/thesharque/panopticum:latest`, [Docker Hub](https://hub.docker.com/r/sharque/panopticum) `sharque/panopticum:latest`. Для фиксированной версии — тег, например `:v4.1.0`.
+Образы: [GHCR](https://github.com/thesharque/panopticum/pkgs/container/panopticum) `ghcr.io/thesharque/panopticum:latest`, [Docker Hub](https://hub.docker.com/r/sharque/panopticum) `sharque/panopticum:latest`. Для фиксированной версии — тег, например `:v8.0.3`.
 
 ### Helm
 
@@ -82,7 +82,7 @@ helm install my-panopticum panopticum/panopticum
 | **RabbitMQ** | Просмотр очередей; peek сообщений |
 | **Kafka** | Просмотр топиков; peek записей |
 | **Elasticsearch / OpenSearch** | Просмотр индексов; Query DSL; редактирование по _id |
-| **Kubernetes** | URL API-сервера + bearer-токен; namespace через запятую; просмотр pod-ов, деплойментов, сервисов, ingress, configmap, secrets; tail логов; describe pod; события namespace. Мягкая обработка "нет доступа" — 401/403 отображается как алерт, без краша |
+| **Kubernetes** | URL API-сервера + bearer-токен; namespace через запятую; просмотр pod-ов, Deployment, StatefulSet, Service, Ingress, ConfigMap, Secret; tail логов; describe pod (контейнеры, образы, ресурсы, пробы, условия, события); события namespace; раскрытие секрета по запросу с аудитом (содержимое не попадает в логи). Мягкая обработка "нет доступа" — 401/403/404 как алерт, без краша |
 | **S3 / MinIO** | Endpoint + access/secret key; просмотр бакетов и префиксов; peek объектов (JSON, CSV, Parquet head, hex). Регион опционален |
 | **Prometheus / VictoriaMetrics** | Instant и range PromQL; просмотр jobs и метрик. Auth: Basic или Bearer-токен |
 
@@ -138,4 +138,4 @@ JAR: `build/libs/panopticum-all.jar`
 
 ## CI/CD
 
-Пуш тега версии (например `v4.1.0`) запускает GitHub Actions — сборка и пуш Docker-образов в GHCR и Docker Hub.
+Пуш тега версии (например `v8.0.3`) запускает GitHub Actions — сборка и пуш Docker-образов в GHCR и Docker Hub.

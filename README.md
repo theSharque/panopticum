@@ -5,7 +5,7 @@ A tool for developers and QA — web interface for viewing and managing database
 ## What it does
 
 - **Connect** to PostgreSQL, MySQL, MongoDB, Redis, ClickHouse, Kafka, Elasticsearch, Kubernetes API, S3/MinIO, Prometheus/VictoriaMetrics, and [many more](#supported-databases)
-- **Browse** schemas, tables, keys, topics — with pagination and tree view; **Kubernetes**: namespaces, pods, deployments, services, secrets (with reveal), events; **S3**: buckets and object prefixes; **Prometheus**: jobs and metrics
+- **Browse** schemas, tables, keys, topics — with pagination and tree view; **Kubernetes**: namespaces, pods, Deployments, StatefulSets, Services, Ingresses, ConfigMaps, Secrets (reveal on demand, audited — value never logged), events; **S3**: buckets and object prefixes; **Prometheus**: jobs and metrics
 - **Query** — run SQL, CQL, MQL, PromQL; peek S3 object contents (JSON/CSV/Parquet/hex)
 - **Compare** — Data Diff for records across Dev / Stage / Prod
 - **Integrate** — MCP endpoint for AI agents (Cursor, Claude Desktop) — including new `describe-entity` tool for schema context
@@ -28,7 +28,7 @@ docker run -d --name panopticum \
 
 Open **http://localhost:8080**.
 
-Images: [GHCR](https://github.com/thesharque/panopticum/pkgs/container/panopticum) `ghcr.io/thesharque/panopticum:latest`, [Docker Hub](https://hub.docker.com/r/sharque/panopticum) `sharque/panopticum:latest`. For a fixed version use a tag, e.g. `:v4.1.0`.
+Images: [GHCR](https://github.com/thesharque/panopticum/pkgs/container/panopticum) `ghcr.io/thesharque/panopticum:latest`, [Docker Hub](https://hub.docker.com/r/sharque/panopticum) `sharque/panopticum:latest`. For a fixed version use a tag, e.g. `:v8.0.3`.
 
 ### Helm
 
@@ -82,7 +82,7 @@ For Helm: use a Secret with `valueFrom.secretKeyRef` if the JSON contains passwo
 | **RabbitMQ** | Browse queues; peek messages |
 | **Kafka** | Browse topics; peek records |
 | **Elasticsearch / OpenSearch** | Browse indices; Query DSL; edit by _id |
-| **Kubernetes** | API server URL + bearer token; namespaces (comma-separated); browse pods, deployments, services, ingresses, configmaps, secrets; tail logs; describe pod; namespace events. Graceful "no access" — 401/403 shown as soft alert |
+| **Kubernetes** | API server URL + bearer token; namespaces (comma-separated); browse pods, Deployments, StatefulSets, Services, Ingresses, ConfigMaps, Secrets; tail logs; describe pod (containers, images, resources, probes, conditions, events); namespace events; secret reveal on demand with audit log (payload not logged). Graceful "no access" — 401/403/404 as soft alert |
 | **S3 / MinIO** | Endpoint + access/secret key; browse buckets and prefixes; peek objects (JSON, CSV, Parquet head, hex). Region optional |
 | **Prometheus / VictoriaMetrics** | Instant and range PromQL; browse jobs and metrics. Auth: Basic or Bearer token |
 
@@ -138,4 +138,4 @@ JAR: `build/libs/panopticum-all.jar`
 
 ## CI/CD
 
-Push a version tag (e.g. `v4.1.0`) to trigger a GitHub Actions workflow that builds and pushes Docker images to GHCR and Docker Hub.
+Push a version tag (e.g. `v8.0.3`) to trigger a GitHub Actions workflow that builds and pushes Docker images to GHCR and Docker Hub.
