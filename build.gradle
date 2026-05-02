@@ -43,6 +43,10 @@ configurations.all {
                 details.useVersion("4.2.11.Final")
                 details.because("CVE-2026-33871: netty-codec-http2; align Netty with patched release")
             }
+            if (details.requested.group == "commons-beanutils" && details.requested.name == "commons-beanutils") {
+                details.useVersion("1.11.0")
+                details.because("CVE-2025-48734")
+            }
         }
     }
 }
@@ -82,8 +86,8 @@ dependencies {
     runtimeOnly("org.yaml:snakeyaml:2.2")
     implementation("io.fabric8:kubernetes-client:6.13.4")
     implementation("io.minio:minio:8.5.17")
-    implementation("org.apache.parquet:parquet-avro:1.13.1")
-    implementation("org.apache.hadoop:hadoop-common:3.3.6") {
+    implementation("org.apache.parquet:parquet-avro:1.15.2")
+    implementation("org.apache.hadoop:hadoop-common:3.4.1") {
         exclude group: "log4j", module: "log4j"
         exclude group: "org.slf4j", module: "slf4j-log4j12"
         exclude group: "org.slf4j", module: "slf4j-reload4j"

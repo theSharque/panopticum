@@ -1,4 +1,4 @@
-FROM eclipse-temurin:17-jdk AS builder
+FROM eclipse-temurin:17-jdk-noble AS builder
 
 WORKDIR /app
 
@@ -8,7 +8,7 @@ COPY src src/
 
 RUN ./gradlew shadowJar --no-daemon
 
-FROM eclipse-temurin:17-jre
+FROM eclipse-temurin:17-jre-noble
 
 ARG APP_VERSION=dev
 ENV APP_VERSION=$APP_VERSION
