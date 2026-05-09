@@ -3,7 +3,7 @@ plugins {
     id("io.micronaut.application") version "4.6.2"
 }
 
-version = "8.0.3"
+version = "8.1.0"
 group = "com.panopticum"
 
 repositories {
@@ -63,8 +63,8 @@ configurations.all {
                 details.because("CVE fix: GHSA-72hv-8253-57qq (jackson-core DoS)")
             }
             if (details.requested.group == "io.netty") {
-                details.useVersion("4.2.11.Final")
-                details.because("CVE-2026-33871: netty-codec-http2; align Netty with patched release")
+                details.useVersion("4.2.13.Final")
+                details.because("CVE-2026-42577, CVE-2026-42583, CVE-2026-42587 and related 2026 Netty codec/transport fixes")
             }
             if (details.requested.group == "commons-beanutils" && details.requested.name == "commons-beanutils") {
                 details.useVersion("1.11.0")
