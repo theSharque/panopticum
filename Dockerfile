@@ -1,4 +1,4 @@
-FROM eclipse-temurin:17-jdk-noble AS builder
+FROM gradle:8.11.1-jdk17 AS builder
 
 WORKDIR /app
 
@@ -6,16 +6,18 @@ COPY gradle gradle
 COPY gradlew build.gradle settings.gradle ./
 COPY src src/
 
-RUN ./gradlew shadowJar --no-daemon
+RUN gradle shadowJar --no-daemon
 
-FROM eclipse-temurin:17-jre-noble
+FROM debian:bookworm-slim
 
 ARG APP_VERSION=dev
 ENV APP_VERSION=$APP_VERSION
 
 RUN apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get upgrade -y \
-    && DEBIAN_FRONTEND=noninteractive apt-get purge -y --auto-remove wget \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    openjdk-17-jre-headless \
+    ca-certificates \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
