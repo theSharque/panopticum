@@ -9,7 +9,6 @@ import com.panopticum.mcp.model.ColumnInfo;
 import com.panopticum.mcp.model.EntityDescription;
 import com.panopticum.s3.model.S3BucketInfo;
 import com.panopticum.s3.model.S3ObjectInfo;
-import io.minio.BucketExistsArgs;
 import io.minio.GetObjectArgs;
 import io.minio.ListBucketsArgs;
 import io.minio.ListObjectsArgs;
@@ -181,7 +180,6 @@ public class S3Service {
 
     MinioClient buildClient(String host, int port, String accessKey, String secretKey, boolean useHttps) {
         String endpoint = resolveEndpoint(host, port, useHttps);
-        boolean pathStyle = !host.endsWith(".amazonaws.com");
         return MinioClient.builder()
                 .endpoint(endpoint)
                 .credentials(accessKey != null ? accessKey : "", secretKey != null ? secretKey : "")

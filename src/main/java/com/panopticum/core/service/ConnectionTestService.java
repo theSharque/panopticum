@@ -2,6 +2,8 @@ package com.panopticum.core.service;
 
 import com.panopticum.cassandra.service.CassandraMetadataService;
 import com.panopticum.clickhouse.service.ClickHouseMetadataService;
+import com.panopticum.couchbase.service.CouchbaseService;
+import com.panopticum.lightjdbc.service.LightJdbcMetadataService;
 import com.panopticum.mongo.service.MongoMetadataService;
 import com.panopticum.mssql.service.MssqlMetadataService;
 import com.panopticum.oracle.service.OracleMetadataService;
@@ -14,6 +16,7 @@ import com.panopticum.prometheus.service.PrometheusService;
 import com.panopticum.rabbitmq.service.RabbitMqService;
 import com.panopticum.redis.service.RedisMetadataService;
 import com.panopticum.s3.service.S3Service;
+import com.panopticum.core.model.DbConnection;
 
 import jakarta.inject.Singleton;
 import lombok.RequiredArgsConstructor;
@@ -40,9 +43,17 @@ public class ConnectionTestService {
     private final KubernetesService kubernetesService;
     private final S3Service s3Service;
     private final PrometheusService prometheusService;
+    private final LightJdbcMetadataService lightJdbcMetadataService;
+    private final CouchbaseService couchbaseService;
+    private final DbConnectionService dbConnectionService;
 
     public Optional<String> test(String type, String host, Integer port, String database,
                                 String username, String password, Optional<Long> connectionId) {
+        return test(type, host, port, database, username, password, connectionId, null);
+    }
+
+    public Optional<String> test(String type, String host, Integer port, String database,
+                                String username, String password, Optional<Long> connectionId, Boolean couchbaseTlsOverride) {
         if (type == null || type.isBlank()) {
             return Optional.of("error.specifyHostDbUser");
         }
@@ -53,7 +64,7 @@ public class ConnectionTestService {
         String pass = password != null ? password : "";
 
         return switch (type.toLowerCase()) {
-            case "postgresql" -> pgMetadataService.testConnection(h, p, db, user, pass);
+            case "postgresql", "greenplum", "yugabytedb", "cockroachdb" -> pgMetadataService.testConnection(h, p, db, user, pass);
             case "mongodb" -> mongoMetadataService.testConnection(h, p, db, user, pass);
             case "redis" -> {
                 int dbIndex = 0;
@@ -87,6 +98,8 @@ public class ConnectionTestService {
             case "kubernetes" -> kubernetesService.testConnection(h, p, db, pass);
             case "s3" -> s3Service.testConnection(h, p, db, user, pass, false);
             case "prometheus" -> prometheusService.testConnection(h, p, user, pass, false);
+            case "h2", "hsqldb", "derby" -> lightJdbcMetadataService.testConnection(h, p, db, user, pass, type.toLowerCase());
+            case "couchbase" -> couchbaseService.testProbe(h, p, db, user, pass, couchbaseTls(connectionId, couchbaseTlsOverride));
             default -> Optional.of("error.specifyHostDbUser");
         };
     }
@@ -96,7 +109,13 @@ public class ConnectionTestService {
             return 5432;
         }
         return switch (type.toLowerCase()) {
-            case "postgresql" -> 5432;
+            case "postgresql", "greenplum" -> 5432;
+            case "yugabytedb" -> 5433;
+            case "cockroachdb" -> 26257;
+            case "h2" -> 9092;
+            case "hsqldb" -> 9001;
+            case "derby" -> 1527;
+            case "couchbase" -> 11210;
             case "mongodb" -> 27017;
             case "redis" -> 6379;
             case "clickhouse" -> 8123;
@@ -112,5 +131,12 @@ public class ConnectionTestService {
             case "prometheus" -> 9090;
             default -> 5432;
         };
+    }
+
+    private boolean couchbaseTls(Optional<Long> connectionId, Boolean override) {
+        if (override != null) {
+            return override;
+        }
+        return connectionId.flatMap(dbConnectionService::findById).map(DbConnection::isUseHttps).orElse(false);
     }
 }

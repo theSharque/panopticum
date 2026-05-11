@@ -116,6 +116,182 @@ public class SettingsController {
         return testConnectionResult(request, "postgresql", host, port, database, username, password, id);
     }
 
+    @Post("/add-greenplum")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @Produces(MediaType.TEXT_HTML)
+    public Object addGreenplum(HttpRequest<?> request,
+                               String name, String host, Integer port, String database, String username, String password,
+                               Optional<Long> id) {
+        assertNotLocked();
+        DbConnection conn = saveOrUpdate("greenplum", id, name, host, port, database, username, password);
+        Map<String, Object> model = new HashMap<>();
+        model.put("connections", dbConnectionService.findAll());
+
+        return responseAfterAdd(request, model, conn.getId(), "/pg/" + conn.getId());
+    }
+
+    @Post("/test-greenplum")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @Produces(MediaType.TEXT_HTML)
+    public ModelAndView<Map<String, Object>> testGreenplum(HttpRequest<?> request,
+            String host, Integer port, String database, String username, String password,
+            Optional<Long> id) {
+        return testConnectionResult(request, "greenplum", host, port, database, username, password, id);
+    }
+
+    @Post("/add-yugabytedb")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @Produces(MediaType.TEXT_HTML)
+    public Object addYugabytedb(HttpRequest<?> request,
+                              String name, String host, Integer port, String database, String username, String password,
+                              Optional<Long> id) {
+        assertNotLocked();
+        DbConnection conn = saveOrUpdate("yugabytedb", id, name, host, port, database, username, password);
+        Map<String, Object> model = new HashMap<>();
+        model.put("connections", dbConnectionService.findAll());
+
+        return responseAfterAdd(request, model, conn.getId(), "/pg/" + conn.getId());
+    }
+
+    @Post("/test-yugabytedb")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @Produces(MediaType.TEXT_HTML)
+    public ModelAndView<Map<String, Object>> testYugabytedb(HttpRequest<?> request,
+            String host, Integer port, String database, String username, String password,
+            Optional<Long> id) {
+        return testConnectionResult(request, "yugabytedb", host, port, database, username, password, id);
+    }
+
+    @Post("/add-cockroachdb")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @Produces(MediaType.TEXT_HTML)
+    public Object addCockroachdb(HttpRequest<?> request,
+                                String name, String host, Integer port, String database, String username, String password,
+                                Optional<Long> id) {
+        assertNotLocked();
+        DbConnection conn = saveOrUpdate("cockroachdb", id, name, host, port, database, username, password);
+        Map<String, Object> model = new HashMap<>();
+        model.put("connections", dbConnectionService.findAll());
+
+        return responseAfterAdd(request, model, conn.getId(), "/pg/" + conn.getId());
+    }
+
+    @Post("/test-cockroachdb")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @Produces(MediaType.TEXT_HTML)
+    public ModelAndView<Map<String, Object>> testCockroachdb(HttpRequest<?> request,
+            String host, Integer port, String database, String username, String password,
+            Optional<Long> id) {
+        return testConnectionResult(request, "cockroachdb", host, port, database, username, password, id);
+    }
+
+    @Post("/add-h2")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @Produces(MediaType.TEXT_HTML)
+    public Object addH2(HttpRequest<?> request,
+                       String name, String host, Integer port, String database, String username, String password,
+                       Optional<Long> id) {
+        assertNotLocked();
+        DbConnection conn = saveOrUpdate("h2", id, name, host, port, database, username, password);
+        Map<String, Object> model = new HashMap<>();
+        model.put("connections", dbConnectionService.findAll());
+
+        return responseAfterAdd(request, model, conn.getId(), "/lightjdbc/" + conn.getId() + "/schemas");
+    }
+
+    @Post("/test-h2")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @Produces(MediaType.TEXT_HTML)
+    public ModelAndView<Map<String, Object>> testH2(HttpRequest<?> request,
+            String host, Integer port, String database, String username, String password,
+            Optional<Long> id) {
+        return testConnectionResult(request, "h2", host, port, database, username, password, id);
+    }
+
+    @Post("/add-hsqldb")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @Produces(MediaType.TEXT_HTML)
+    public Object addHsqldb(HttpRequest<?> request,
+                           String name, String host, Integer port, String database, String username, String password,
+                           Optional<Long> id) {
+        assertNotLocked();
+        DbConnection conn = saveOrUpdate("hsqldb", id, name, host, port, database, username, password);
+        Map<String, Object> model = new HashMap<>();
+        model.put("connections", dbConnectionService.findAll());
+
+        return responseAfterAdd(request, model, conn.getId(), "/lightjdbc/" + conn.getId() + "/schemas");
+    }
+
+    @Post("/test-hsqldb")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @Produces(MediaType.TEXT_HTML)
+    public ModelAndView<Map<String, Object>> testHsqldb(HttpRequest<?> request,
+            String host, Integer port, String database, String username, String password,
+            Optional<Long> id) {
+        return testConnectionResult(request, "hsqldb", host, port, database, username, password, id);
+    }
+
+    @Post("/add-derby")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @Produces(MediaType.TEXT_HTML)
+    public Object addDerby(HttpRequest<?> request,
+                          String name, String host, Integer port, String database, String username, String password,
+                          Optional<Long> id) {
+        assertNotLocked();
+        DbConnection conn = saveOrUpdate("derby", id, name, host, port, database, username, password);
+        Map<String, Object> model = new HashMap<>();
+        model.put("connections", dbConnectionService.findAll());
+
+        return responseAfterAdd(request, model, conn.getId(), "/lightjdbc/" + conn.getId() + "/schemas");
+    }
+
+    @Post("/test-derby")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @Produces(MediaType.TEXT_HTML)
+    public ModelAndView<Map<String, Object>> testDerby(HttpRequest<?> request,
+            String host, Integer port, String database, String username, String password,
+            Optional<Long> id) {
+        return testConnectionResult(request, "derby", host, port, database, username, password, id);
+    }
+
+    @Post("/add-couchbase")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @Produces(MediaType.TEXT_HTML)
+    public Object addCouchbase(HttpRequest<?> request,
+                               String name, String host, Integer port, String database,
+                               String username, String password, Optional<Boolean> useHttps,
+                               Optional<Long> id) {
+        assertNotLocked();
+        DbConnection conn = saveOrUpdateWithHttps("couchbase", id, name, host, port, database, username, password, useHttps.orElse(false));
+        Map<String, Object> model = new HashMap<>();
+        model.put("connections", dbConnectionService.findAll());
+
+        return responseAfterAdd(request, model, conn.getId(), "/couchbase/" + conn.getId() + "/buckets");
+    }
+
+    @Post("/test-couchbase")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @Produces(MediaType.TEXT_HTML)
+    public ModelAndView<Map<String, Object>> testCouchbase(HttpRequest<?> request,
+            String host, Integer port, String database, String username, String password,
+            Optional<Boolean> useHttps, Optional<Long> id) {
+        String pwd = resolvePasswordForTest(id, password);
+        Map<String, Object> model = new HashMap<>();
+        try {
+            var error = connectionTestService.test("couchbase", host, port, database, username, pwd, id, useHttps.orElse(null));
+            model.put("success", error.isEmpty());
+            String messageKey = error.orElse("connectionTest.success");
+            model.put("message", messageKey);
+            putDisplayText(model, request, messageKey);
+        } catch (Exception e) {
+            model.put("success", false);
+            String messageKey = e.getMessage() != null ? e.getMessage() : "error.queryExecutionFailed";
+            model.put("message", messageKey);
+            putDisplayText(model, request, messageKey);
+        }
+        return new ModelAndView<>("partials/connection-test-result", model);
+    }
+
     @Post("/add-mongo")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces(MediaType.TEXT_HTML)

@@ -1,0 +1,44 @@
+<div xmlns:th="http://www.thymeleaf.org" id="form-yugabytedb" class="connection-form-block" hidden th:fragment="form-yugabytedb">
+    <form id="connection-form-yugabytedb" action="/settings/add-yugabytedb" method="post" class="add-connection-form"
+          hx-post="/settings/add-yugabytedb"
+          hx-target="#sidebar"
+          hx-swap="outerHTML">
+        <input type="hidden" name="id" th:if="${editingConnection != null}" th:value="${editingConnection != null ? editingConnection.id : null}">
+        <div class="form-group">
+            <label for="name-yb" th:text="${msg['common.name']}">Name</label>
+            <input type="text" id="name-yb" name="name" required th:attr="placeholder=${msg['settings.placeholderNameYugabyte']}" th:value="${editingConnection != null ? editingConnection.name : null}">
+        </div>
+        <div class="form-group">
+            <label for="host-yb" th:text="${msg['settings.host']}">Host</label>
+            <input type="text" id="host-yb" name="host" required placeholder="localhost" th:value="${editingConnection != null ? editingConnection.host : 'localhost'}">
+        </div>
+        <div class="form-group">
+            <label for="port-yb" th:text="${msg['settings.port']}">Port</label>
+            <input type="number" id="port-yb" name="port" th:value="${editingConnection != null ? editingConnection.port : 5433}">
+        </div>
+        <div class="form-group">
+            <label for="database-yb" th:text="${msg['settings.database']}">Database</label>
+            <input type="text" id="database-yb" name="database" required placeholder="yugabyte" th:value="${editingConnection != null ? editingConnection.dbName : null}">
+        </div>
+        <div class="form-group">
+            <label for="username-yb" th:text="${msg['settings.username']}">Username</label>
+            <input type="text" id="username-yb" name="username" required placeholder="user" th:value="${editingConnection != null ? editingConnection.username : null}">
+        </div>
+        <div class="form-group">
+            <label for="password-yb" th:text="${msg['settings.password']}">Password</label>
+            <input type="password" id="password-yb" name="password" placeholder="password">
+        </div>
+        <div class="form-actions">
+            <span id="test-indicator-yb" class="connection-test-indicator" aria-hidden="true" th:text="${msg['settings.testing']}">Checking...</span>
+            <button type="button" class="btn-check"
+                    hx-post="/settings/test-yugabytedb"
+                    hx-include="#connection-form-yugabytedb"
+                    hx-target="#connection-test-result-yugabytedb"
+                    hx-swap="innerHTML show:bottom"
+                    hx-indicator="#test-indicator-yb"
+                    th:text="${msg['settings.test']}">Test</button>
+            <button type="submit" class="btn btn--primary" th:text="${editingConnection != null ? msg['settings.save'] : msg['settings.add']}">Add</button>
+        </div>
+        <div id="connection-test-result-yugabytedb" class="connection-test-result"></div>
+    </form>
+</div>

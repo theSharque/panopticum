@@ -36,6 +36,9 @@ public class ConnectionRequest {
     @Schema(description = "Password")
     private String password;
 
+    @Schema(description = "Use HTTPS/TLS (Couchbase couchbases://, S3, etc.)")
+    private Boolean useHttps;
+
     @Schema(description = "Connection ID for update (omit for create)")
     private Long id;
 }

@@ -1,0 +1,44 @@
+<div xmlns:th="http://www.thymeleaf.org" id="form-hsqldb" class="connection-form-block" hidden th:fragment="form-hsqldb">
+    <form id="connection-form-hsqldb" action="/settings/add-hsqldb" method="post" class="add-connection-form"
+          hx-post="/settings/add-hsqldb"
+          hx-target="#sidebar"
+          hx-swap="outerHTML">
+        <input type="hidden" name="id" th:if="${editingConnection != null}" th:value="${editingConnection != null ? editingConnection.id : null}">
+        <div class="form-group">
+            <label for="name-hsqldb" th:text="${msg['common.name']}">Name</label>
+            <input type="text" id="name-hsqldb" name="name" required th:attr="placeholder=${msg['settings.placeholderNameHsqldb']}" th:value="${editingConnection != null ? editingConnection.name : null}">
+        </div>
+        <div class="form-group">
+            <label for="host-hsqldb" th:text="${msg['settings.host']}">Host</label>
+            <input type="text" id="host-hsqldb" name="host" required placeholder="localhost" th:value="${editingConnection != null ? editingConnection.host : 'localhost'}">
+        </div>
+        <div class="form-group">
+            <label for="port-hsqldb" th:text="${msg['settings.port']}">Port</label>
+            <input type="number" id="port-hsqldb" name="port" th:value="${editingConnection != null ? editingConnection.port : 9001}">
+        </div>
+        <div class="form-group">
+            <label for="database-hsqldb" th:text="${msg['settings.database']}">Database</label>
+            <input type="text" id="database-hsqldb" name="database" required th:attr="placeholder=${msg['settings.lightJdbcDbHelp']}" th:value="${editingConnection != null ? editingConnection.dbName : null}">
+        </div>
+        <div class="form-group">
+            <label for="username-hsqldb" th:text="${msg['settings.username']}">Username</label>
+            <input type="text" id="username-hsqldb" name="username" placeholder="SA" th:value="${editingConnection != null ? editingConnection.username : null}">
+        </div>
+        <div class="form-group">
+            <label for="password-hsqldb" th:text="${msg['settings.password']}">Password</label>
+            <input type="password" id="password-hsqldb" name="password" autocomplete="off">
+        </div>
+        <div class="form-actions">
+            <span id="test-indicator-hsqldb" class="connection-test-indicator" aria-hidden="true" th:text="${msg['settings.testing']}">Checking...</span>
+            <button type="button" class="btn-check"
+                    hx-post="/settings/test-hsqldb"
+                    hx-include="#connection-form-hsqldb"
+                    hx-target="#connection-test-result-hsqldb"
+                    hx-swap="innerHTML show:bottom"
+                    hx-indicator="#test-indicator-hsqldb"
+                    th:text="${msg['settings.test']}">Test</button>
+            <button type="submit" class="btn btn--primary" th:text="${editingConnection != null ? msg['settings.save'] : msg['settings.add']}">Add</button>
+        </div>
+        <div id="connection-test-result-hsqldb" class="connection-test-result"></div>
+    </form>
+</div>

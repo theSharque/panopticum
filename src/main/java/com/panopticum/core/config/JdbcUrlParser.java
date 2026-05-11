@@ -34,6 +34,16 @@ public final class JdbcUrlParser {
         if ("oracle".equals(type)) {
             return parseOracleUrl(rest);
         }
+        if ("h2".equals(type)) {
+            return parseNetworkJdbcRest(rest, "h2", "tcp://", 9092);
+        }
+        if ("hsqldb".equals(type)) {
+            return parseNetworkJdbcRest(rest, "hsqldb", "hsql://", 9001);
+        }
+        if ("derby".equals(type)) {
+            String r = rest.startsWith("//") ? rest.substring(2) : rest;
+            return parseNetworkJdbcPlain(r, "derby", 1527);
+        }
 
         String authority = rest;
         String path = "";
@@ -102,6 +112,36 @@ public final class JdbcUrlParser {
         }
 
         return new JdbcUrlParts(type, host, port, database, username, password);
+    }
+
+    private static JdbcUrlParts parseNetworkJdbcRest(String rest, String jdbcType, String prefix, int defaultPort) {
+        String r = rest;
+        if (prefix != null && !prefix.isBlank() && r.startsWith(prefix)) {
+            r = r.substring(prefix.length());
+        }
+        return parseNetworkJdbcPlain(r, jdbcType, defaultPort);
+    }
+
+    private static JdbcUrlParts parseNetworkJdbcPlain(String r, String jdbcType, int defaultPort) {
+        int slash = r.indexOf('/');
+        String hostPort = slash >= 0 ? r.substring(0, slash) : r;
+        String db = slash >= 0 && slash < r.length() - 1 ? r.substring(slash + 1) : "";
+        String host = "localhost";
+        int port = defaultPort;
+        if (!hostPort.isBlank()) {
+            int c = hostPort.lastIndexOf(':');
+            if (c > 0) {
+                host = hostPort.substring(0, c);
+                try {
+                    port = Integer.parseInt(hostPort.substring(c + 1));
+                } catch (NumberFormatException e) {
+                    log.warn("Cannot parse port: {}", hostPort);
+                }
+            } else {
+                host = hostPort;
+            }
+        }
+        return new JdbcUrlParts(jdbcType, host, port, db, null, null);
     }
 
     private static JdbcUrlParts parseSqlServerUrl(String rest) {

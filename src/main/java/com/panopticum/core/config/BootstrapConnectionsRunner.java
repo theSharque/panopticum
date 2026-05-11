@@ -64,6 +64,9 @@ public class BootstrapConnectionsRunner {
 
             DbConnection conn = toDbConnection(entry);
             if (conn != null) {
+                if (entry.getUseHttps() != null) {
+                    conn.setUseHttps(entry.getUseHttps());
+                }
                 dbConnectionService.save(conn);
                 LOG.info("Bootstrap added connection: name={}, type={}, host={}:{}",
                         conn.getName(), conn.getType(), conn.getHost(), conn.getPort());

@@ -9,6 +9,7 @@ import com.panopticum.core.error.ConnectionSupport;
 import com.panopticum.core.error.MetadataAccessException;
 import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.core.util.SizeFormatter;
+import com.panopticum.postgres.PostgresWireCompat;
 import com.panopticum.mcp.model.ColumnInfo;
 import com.panopticum.mcp.model.EntityDescription;
 import com.panopticum.mcp.model.ForeignKeyInfo;
@@ -37,18 +38,27 @@ public class PgMetadataRepository {
 
     private static final String POSTGRESQL_PREFIX = "jdbc:postgresql://";
 
-    private static final String LIST_DATABASES_SQL =
+    private static final String LIST_DATABASES_SQL_WITH_SIZE =
             "SELECT datname, pg_database_size(datname)::bigint AS size FROM pg_catalog.pg_database WHERE datistemplate = false";
+
+    private static final String LIST_DATABASES_SQL_NO_SIZE =
+            "SELECT datname, 0::bigint AS size FROM pg_catalog.pg_database WHERE datistemplate = false";
 
     private static final String LIST_SCHEMAS_SQL =
             "SELECT s.schema_name, s.schema_owner, (SELECT count(*) FROM information_schema.tables t WHERE t.table_schema = s.schema_name AND t.table_type IN ('BASE TABLE', 'VIEW'))::int AS table_count "
                     + "FROM information_schema.schemata s WHERE s.schema_name NOT IN ('information_schema', 'pg_catalog') AND s.schema_name NOT LIKE 'pg_toast%'";
 
-    private static final String LIST_TABLES_SQL =
+    private static final String LIST_TABLES_SQL_PG_STATS =
             "SELECT c.relname, CASE c.relkind WHEN 'r' THEN 'table' WHEN 'v' THEN 'view' END AS reltype, "
                     + "COALESCE(c.reltuples::bigint, 0) AS row_estimate, COALESCE(pg_total_relation_size(c.oid), 0)::bigint AS size "
                     + "FROM pg_class c JOIN pg_namespace n ON c.relnamespace = n.oid "
                     + "WHERE n.nspname = ? AND c.relkind IN ('r','v') ORDER BY c.relname";
+
+    private static final String LIST_TABLES_SQL_INFORMATION_SCHEMA =
+            "SELECT table_name AS relname, CASE LOWER(table_type) WHEN 'base table' THEN 'table' ELSE 'view' END AS reltype, "
+                    + "0::bigint AS row_estimate, 0::bigint AS size "
+                    + "FROM information_schema.tables WHERE table_schema = ? AND table_type IN ('BASE TABLE', 'VIEW') "
+                    + "ORDER BY table_name";
 
     private static final String COLUMN_TYPES_SQL =
             "SELECT column_name, data_type FROM information_schema.columns WHERE table_schema = ? AND table_name = ? ORDER BY ordinal_position";
@@ -61,7 +71,7 @@ public class PgMetadataRepository {
 
     public Optional<Connection> getConnection(Long connectionId, String dbName) {
         return dbConnectionService.findById(connectionId)
-                .filter(c -> "postgresql".equalsIgnoreCase(c.getType()))
+                .filter(c -> PostgresWireCompat.isCompatible(c.getType()))
                 .flatMap(c -> createConnectionToDb(c, dbName != null && !dbName.isBlank() ? dbName : c.getDbName()));
     }
 
@@ -81,7 +91,7 @@ public class PgMetadataRepository {
     }
 
     private Optional<Connection> createConnection(DbConnection conn) {
-        if (!"postgresql".equalsIgnoreCase(conn.getType())) {
+        if (!PostgresWireCompat.isCompatible(conn.getType())) {
             return Optional.empty();
         }
 
@@ -101,9 +111,12 @@ public class PgMetadataRepository {
     }
 
     public List<DatabaseInfo> listDatabaseInfos(Long connectionId) {
+        Optional<DbConnection> dc = dbConnectionService.findById(connectionId);
+        boolean withSize = dc.map(c -> PostgresWireCompat.supportsPgStatsAndSizes(c.getType())).orElse(false);
         try (Connection conn = ConnectionSupport.require(getConnection(connectionId))) {
             List<DatabaseInfo> infos = new ArrayList<>();
-            try (PreparedStatement ps = conn.prepareStatement(LIST_DATABASES_SQL);
+            String sql = withSize ? LIST_DATABASES_SQL_WITH_SIZE : LIST_DATABASES_SQL_NO_SIZE;
+            try (PreparedStatement ps = conn.prepareStatement(sql);
                  ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     String name = rs.getString("datname");
@@ -114,7 +127,29 @@ public class PgMetadataRepository {
 
             return infos;
         } catch (SQLException e) {
+            if (withSize) {
+                return listDatabaseInfosFallbackSize(connectionId);
+            }
             log.warn("listDatabaseInfos failed: {}", e.getMessage());
+            throw new MetadataAccessException(e.getMessage(), e);
+        }
+    }
+
+    private List<DatabaseInfo> listDatabaseInfosFallbackSize(Long connectionId) {
+        try (Connection conn = ConnectionSupport.require(getConnection(connectionId))) {
+            List<DatabaseInfo> infos = new ArrayList<>();
+            try (PreparedStatement ps = conn.prepareStatement(LIST_DATABASES_SQL_NO_SIZE);
+                 ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String name = rs.getString("datname");
+                    long size = rs.getLong("size");
+                    infos.add(new DatabaseInfo(name, size, SizeFormatter.formatSize(size)));
+                }
+            }
+
+            return infos;
+        } catch (SQLException e) {
+            log.warn("listDatabaseInfos fallback failed: {}", e.getMessage());
             throw new MetadataAccessException(e.getMessage(), e);
         }
     }
@@ -156,9 +191,12 @@ public class PgMetadataRepository {
         if (schema == null || schema.isBlank()) {
             return List.of();
         }
+        Optional<DbConnection> dc = dbConnectionService.findById(connectionId);
+        boolean pgStats = dc.map(c -> PostgresWireCompat.supportsPgStatsAndSizes(c.getType())).orElse(false);
         try (Connection conn = ConnectionSupport.require(getConnection(connectionId, dbName))) {
             List<TableInfo> tables = new ArrayList<>();
-            try (PreparedStatement ps = conn.prepareStatement(LIST_TABLES_SQL)) {
+            String sql = pgStats ? LIST_TABLES_SQL_PG_STATS : LIST_TABLES_SQL_INFORMATION_SCHEMA;
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
                 ps.setString(1, schema);
 
                 try (ResultSet rs = ps.executeQuery()) {
@@ -167,7 +205,7 @@ public class PgMetadataRepository {
                         String type = rs.getString("reltype");
                         long rowEst = rs.getLong("row_estimate");
                         long size = rs.getLong("size");
-                        if (rowEst < 0) {
+                        if (rowEst <= 0 && pgStats) {
                             rowEst = getExactRowCount(conn, schema, name);
                         }
                         tables.add(new TableInfo(name, type != null ? type : "table", rowEst, size, SizeFormatter.formatSize(size)));
@@ -177,7 +215,33 @@ public class PgMetadataRepository {
 
             return tables;
         } catch (SQLException e) {
+            if (pgStats) {
+                return listTableInfosInformationSchema(connectionId, dbName, schema);
+            }
             log.warn("listTableInfos failed: {}", e.getMessage());
+            throw new MetadataAccessException(e.getMessage(), e);
+        }
+    }
+
+    private List<TableInfo> listTableInfosInformationSchema(Long connectionId, String dbName, String schema) {
+        try (Connection conn = ConnectionSupport.require(getConnection(connectionId, dbName))) {
+            List<TableInfo> tables = new ArrayList<>();
+            try (PreparedStatement ps = conn.prepareStatement(LIST_TABLES_SQL_INFORMATION_SCHEMA)) {
+                ps.setString(1, schema);
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        String name = rs.getString("relname");
+                        String type = rs.getString("reltype");
+                        long rowEst = rs.getLong("row_estimate");
+                        long size = rs.getLong("size");
+                        tables.add(new TableInfo(name, type != null ? type : "table", rowEst, size, SizeFormatter.formatSize(size)));
+                    }
+                }
+            }
+
+            return tables;
+        } catch (SQLException e) {
+            log.warn("listTableInfos information_schema failed: {}", e.getMessage());
             throw new MetadataAccessException(e.getMessage(), e);
         }
     }
@@ -338,6 +402,9 @@ public class PgMetadataRepository {
             List<ForeignKeyInfo> fks = fetchPgForeignKeys(conn, schema, tableName);
             List<IndexInfo> indexes = fetchPgIndexes(conn, schema, tableName);
             long rowCount = fetchPgRowCount(conn, schema, tableName);
+            if (rowCount < 0) {
+                rowCount = getExactRowCount(conn, schema, tableName);
+            }
 
             return Optional.of(EntityDescription.builder()
                     .entityKind("table")
@@ -410,7 +477,7 @@ public class PgMetadataRepository {
         return result;
     }
 
-    private static List<IndexInfo> fetchPgIndexes(Connection conn, String schema, String tableName) throws SQLException {
+    private static List<IndexInfo> fetchPgIndexes(Connection conn, String schema, String tableName) {
         String sql = "SELECT indexname, indexdef FROM pg_indexes WHERE schemaname = ? AND tablename = ?";
         List<IndexInfo> result = new ArrayList<>();
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -427,6 +494,8 @@ public class PgMetadataRepository {
                             .build());
                 }
             }
+        } catch (SQLException e) {
+            return List.of();
         }
         return result;
     }
@@ -441,7 +510,7 @@ public class PgMetadataRepository {
                 return rs.next() ? rs.getLong(1) : 0L;
             }
         } catch (SQLException e) {
-            return 0L;
+            return -1L;
         }
     }
 }

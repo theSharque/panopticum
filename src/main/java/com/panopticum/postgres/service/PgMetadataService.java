@@ -6,8 +6,11 @@ import com.panopticum.core.model.QueryResult;
 import com.panopticum.core.model.QueryResultData;
 import com.panopticum.core.model.SchemaInfo;
 import com.panopticum.core.model.TableInfo;
+import com.panopticum.core.model.DbConnection;
+import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.core.util.StringUtils;
 import com.panopticum.mcp.model.EntityDescription;
+import com.panopticum.postgres.PostgresWireCompat;
 import com.panopticum.postgres.repository.PgMetadataRepository;
 import io.micronaut.context.annotation.Value;
 import jakarta.inject.Singleton;
@@ -33,6 +36,7 @@ public class PgMetadataService {
     private static final String POSTGRESQL_PREFIX = "jdbc:postgresql://";
 
     private final PgMetadataRepository pgMetadataRepository;
+    private final DbConnectionService dbConnectionService;
 
     @Value("${panopticum.limits.query-rows:1000}")
     private int queryRowsLimit;
@@ -267,6 +271,12 @@ public class PgMetadataService {
     public Map<String, Object> getDetailRowWithCtid(Long connectionId, String dbName, String schema, String sql,
                                                    int rowNum, String sortBy, String sortOrder) {
         Map<String, Object> out = new LinkedHashMap<>();
+        Optional<DbConnection> connMeta = dbConnectionService.findById(connectionId);
+        if (connMeta.isEmpty() || !PostgresWireCompat.supportsCtidUpdates(connMeta.get().getType())) {
+            out.put("error", "pg.ctidUnsupported");
+            return out;
+        }
+
         Optional<String> tableRef = parseTableFromSql(sql);
 
         if (tableRef.isEmpty()) {
@@ -335,6 +345,11 @@ public class PgMetadataService {
                                                 String ctid, Map<String, String> columnValues) {
         if (ctid == null || ctid.isBlank() || qualifiedTable == null || qualifiedTable.isBlank()) {
             return Optional.of("Missing ctid or table.");
+        }
+
+        Optional<DbConnection> connMeta = dbConnectionService.findById(connectionId);
+        if (connMeta.isEmpty() || !PostgresWireCompat.supportsCtidUpdates(connMeta.get().getType())) {
+            return Optional.of("pg.ctidUnsupported");
         }
 
         if (columnValues == null || columnValues.isEmpty()) {

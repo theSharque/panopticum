@@ -1,0 +1,44 @@
+<div xmlns:th="http://www.thymeleaf.org" id="form-derby" class="connection-form-block" hidden th:fragment="form-derby">
+    <form id="connection-form-derby" action="/settings/add-derby" method="post" class="add-connection-form"
+          hx-post="/settings/add-derby"
+          hx-target="#sidebar"
+          hx-swap="outerHTML">
+        <input type="hidden" name="id" th:if="${editingConnection != null}" th:value="${editingConnection != null ? editingConnection.id : null}">
+        <div class="form-group">
+            <label for="name-derby" th:text="${msg['common.name']}">Name</label>
+            <input type="text" id="name-derby" name="name" required th:attr="placeholder=${msg['settings.placeholderNameDerby']}" th:value="${editingConnection != null ? editingConnection.name : null}">
+        </div>
+        <div class="form-group">
+            <label for="host-derby" th:text="${msg['settings.host']}">Host</label>
+            <input type="text" id="host-derby" name="host" required placeholder="localhost" th:value="${editingConnection != null ? editingConnection.host : 'localhost'}">
+        </div>
+        <div class="form-group">
+            <label for="port-derby" th:text="${msg['settings.port']}">Port</label>
+            <input type="number" id="port-derby" name="port" th:value="${editingConnection != null ? editingConnection.port : 1527}">
+        </div>
+        <div class="form-group">
+            <label for="database-derby" th:text="${msg['settings.database']}">Database</label>
+            <input type="text" id="database-derby" name="database" required th:attr="placeholder=${msg['settings.lightJdbcDbHelp']}" th:value="${editingConnection != null ? editingConnection.dbName : null}">
+        </div>
+        <div class="form-group">
+            <label for="username-derby" th:text="${msg['settings.username']}">Username</label>
+            <input type="text" id="username-derby" name="username" placeholder="app" th:value="${editingConnection != null ? editingConnection.username : null}">
+        </div>
+        <div class="form-group">
+            <label for="password-derby" th:text="${msg['settings.password']}">Password</label>
+            <input type="password" id="password-derby" name="password" autocomplete="off">
+        </div>
+        <div class="form-actions">
+            <span id="test-indicator-derby" class="connection-test-indicator" aria-hidden="true" th:text="${msg['settings.testing']}">Checking...</span>
+            <button type="button" class="btn-check"
+                    hx-post="/settings/test-derby"
+                    hx-include="#connection-form-derby"
+                    hx-target="#connection-test-result-derby"
+                    hx-swap="innerHTML show:bottom"
+                    hx-indicator="#test-indicator-derby"
+                    th:text="${msg['settings.test']}">Test</button>
+            <button type="submit" class="btn btn--primary" th:text="${editingConnection != null ? msg['settings.save'] : msg['settings.add']}">Add</button>
+        </div>
+        <div id="connection-test-result-derby" class="connection-test-result"></div>
+    </form>
+</div>

@@ -13,7 +13,8 @@ public class MessagesPg {
             Map.entry("pg.schemas", "Schemas"),
             Map.entry("pg.owner", "Owner"),
             Map.entry("pg.tableCount", "Tables"),
-            Map.entry("pg.rowDetail", "Row details")
+            Map.entry("pg.rowDetail", "Row details"),
+            Map.entry("pg.ctidUnsupported", "Row editing by CTID is only supported for PostgreSQL and Greenplum.")
     );
 
     public static final Map<String, String> RU = Map.ofEntries(
@@ -22,6 +23,7 @@ public class MessagesPg {
             Map.entry("pg.schemas", "Схемы"),
             Map.entry("pg.owner", "Владелец"),
             Map.entry("pg.tableCount", "Таблиц"),
-            Map.entry("pg.rowDetail", "Детали строки")
+            Map.entry("pg.rowDetail", "Детали строки"),
+            Map.entry("pg.ctidUnsupported", "Редактирование строки через CTID доступно только для PostgreSQL и Greenplum.")
     );
 }

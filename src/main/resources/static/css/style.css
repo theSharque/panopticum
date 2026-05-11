@@ -690,6 +690,10 @@ body {
     border-color: var(--green-500);
 }
 
+.form-actions .btn--primary {
+    padding: var(--space-sm) var(--space-lg);
+}
+
 /* ── toolbar ─────────────────────────────────────────────── */
 .toolbar {
     display: flex;

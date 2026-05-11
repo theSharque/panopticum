@@ -4,7 +4,7 @@ A tool for developers and QA — web interface for viewing and managing database
 
 ## What it does
 
-- **Connect** to PostgreSQL, MySQL, MongoDB, Redis, ClickHouse, Kafka, Elasticsearch, Kubernetes API, S3/MinIO, Prometheus/VictoriaMetrics, and [many more](#supported-databases)
+- **Connect** to PostgreSQL, Greenplum, YugabyteDB, CockroachDB, MySQL, MongoDB, Redis, ClickHouse, Kafka, Elasticsearch, H2, HSQLDB, Derby, Couchbase, Kubernetes API, S3/MinIO, Prometheus/VictoriaMetrics, and [many more](#supported-databases)
 - **Browse** schemas, tables, keys, topics — with pagination and tree view; **Kubernetes**: namespaces, pods, Deployments, StatefulSets, Services, Ingresses, ConfigMaps, Secrets (reveal on demand, audited — value never logged), events; **S3**: buckets and object prefixes; **Prometheus**: jobs and metrics
 - **Query** — run SQL, CQL, MQL, PromQL; peek S3 object contents (JSON/CSV/Parquet/hex)
 - **Compare** — Data Diff for records across Dev / Stage / Prod
@@ -71,7 +71,10 @@ For Helm: use a Secret with `valueFrom.secretKeyRef` if the JSON contains passwo
 
 | Type | Features |
 |------|----------|
-| **PostgreSQL / CockroachDB / YugabyteDB** | Browse; SQL; edit rows |
+| **PostgreSQL** | Browse; SQL; row edit via CTID where supported |
+| **Greenplum** | Same UI as PostgreSQL (`/pg/{id}`); SQL; CTID edit when available |
+| **YugabyteDB** | Same UI as PostgreSQL; SQL; metadata fallbacks for compatibility |
+| **CockroachDB** | Same UI as PostgreSQL; SQL; metadata fallbacks for compatibility |
 | **MySQL / MariaDB** | Browse; SQL; edit (with PK/unique) |
 | **MS SQL Server** | Browse; SQL; edit (with PK/unique) |
 | **Oracle Database** | Browse; SQL; edit by ROWID |
@@ -84,9 +87,10 @@ For Helm: use a Secret with `valueFrom.secretKeyRef` if the JSON contains passwo
 | **Elasticsearch / OpenSearch** | Browse indices; Query DSL; edit by _id |
 | **Kubernetes** | API server URL + bearer token; namespaces (comma-separated); browse pods, Deployments, StatefulSets, Services, Ingresses, ConfigMaps, Secrets; tail logs; describe pod (containers, images, resources, probes, conditions, events); namespace events; secret reveal on demand with audit log (payload not logged). Graceful "no access" — 401/403/404 as soft alert |
 | **S3 / MinIO** | Endpoint + access/secret key; browse buckets and prefixes; peek objects (JSON, CSV, Parquet head, hex). Region optional |
-| **Prometheus / VictoriaMetrics** | Instant and range PromQL; browse jobs and metrics. Auth: Basic or Bearer token |
-
-## MCP (AI agents)
+| **H2 (TCP)** | Browse schemas/tables; SQL (`/lightjdbc/{id}/...`) |
+| **HSQLDB** | Same as H2 |
+| **Apache Derby (network)** | Same as H2 |
+| **Couchbase** | Buckets → scopes → collections; documents; N1QL (`/couchbase/{id}/...`). TLS: `couchbases://` via settings |
 
 MCP-compatible endpoint at `POST /mcp` for Cursor, Claude Desktop, etc. Same HTTP Basic Auth as the UI.
 
@@ -113,13 +117,17 @@ Replace `YWRtaW46YWRtaW4=` with Base64 of `username:password` (`echo -n "admin:c
 | `list-catalogs` | List databases / buckets / jobs / namespaces |
 | `list-namespaces` | List schemas (where applicable) |
 | `list-entities` | List tables / collections / objects / metrics / pods |
-| `query-data` | Execute SQL, CQL, MQL, PromQL or peek S3 objects |
+| `query-data` | Execute SQL, CQL, N1QL, MQL, PromQL or peek S3 objects |
 | `get-record-detail` | Fetch a single record by PK or document ID |
 | `describe-entity` | Full schema: columns, types, PK/FK/indexes, row count — eliminates `SELECT *`. Supports all data sources |
 
 For **Kubernetes**: `list-catalogs` → namespaces; `list-entities` → pods; `query-data` → tail logs.
 For **S3**: `list-catalogs` → buckets; `list-entities` → objects; `query-data` → peek content.
-For **Prometheus**: `list-catalogs` → jobs; `list-entities` → metric names; `query-data` → instant PromQL.
+For **Couchbase**: `list-catalogs` → buckets; `list-namespaces` → scopes (catalog = bucket); `list-entities` → collections (namespace = scope); `query-data` → N1QL; `get-record-detail` → KV get by `documentId`.
+
+### Docker smoke (optional)
+
+Use official images locally for Greenplum / Yugabyte / CockroachDB, H2 TCP / HSQLDB / Derby network server, and Couchbase Server, add connections in Settings, run **Test**, then browse and run queries from the UI or MCP.
 
 ## Stack
 

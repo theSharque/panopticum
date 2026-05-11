@@ -37,7 +37,7 @@
                     hx-swap="innerHTML show:bottom"
                     hx-indicator="#test-indicator-rabbitmq"
                     th:text="${msg['settings.test']}">Test</button>
-            <button type="submit" th:text="${editingConnection != null ? msg['settings.save'] : msg['settings.add']}">Add</button>
+            <button type="submit" class="btn btn--primary" th:text="${editingConnection != null ? msg['settings.save'] : msg['settings.add']}">Add</button>
         </div>
         <div id="connection-test-result-rabbitmq" class="connection-test-result"></div>
     </form>

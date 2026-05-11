@@ -89,6 +89,7 @@ public class QueryDataToolExecutor implements McpToolExecutor {
             case "kubernetes" -> "tail";
             case "redis" -> "pattern";
             case "elasticsearch" -> "json";
+            case "couchbase" -> "n1ql";
             default -> "sql";
         };
     }

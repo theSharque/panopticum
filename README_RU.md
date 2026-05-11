@@ -4,9 +4,9 @@
 
 ## Возможности
 
-- **Подключение** к PostgreSQL, MySQL, MongoDB, Redis, ClickHouse, Kafka, Elasticsearch, API Kubernetes, S3/MinIO, Prometheus/VictoriaMetrics и [другим источникам](#поддерживаемые-бд)
+- **Подключение** к PostgreSQL, Greenplum, YugabyteDB, CockroachDB, MySQL, MongoDB, Redis, ClickHouse, Kafka, Elasticsearch, H2, HSQLDB, Derby, Couchbase, API Kubernetes, S3/MinIO, Prometheus/VictoriaMetrics и [другим источникам](#поддерживаемые-бд)
 - **Просмотр** схем, таблиц, ключей, топиков; **Kubernetes**: namespace, pod-ы, Deployment, StatefulSet, Service, Ingress, ConfigMap, Secret (раскрытие по запросу, с аудитом — значение не пишется в логи), события; **S3**: бакеты и префиксы; **Prometheus**: jobs и метрики
-- **Запросы** — SQL, CQL, MQL, PromQL; просмотр содержимого S3-объектов (JSON/CSV/Parquet/hex)
+- **Запросы** — SQL, CQL, N1QL, MQL, PromQL; просмотр содержимого S3-объектов (JSON/CSV/Parquet/hex)
 - **Сравнение** — Data Diff для записей между Dev / Stage / Prod
 - **Интеграция** — MCP endpoint для AI-агентов (Cursor, Claude Desktop) — включая новый инструмент `describe-entity` для схемного контекста
 - **Офлайн** — все ресурсы встроены, CDN не требуется
@@ -71,7 +71,10 @@ helm install my-panopticum panopticum/panopticum
 
 | Тип | Возможности |
 |-----|--------------|
-| **PostgreSQL / CockroachDB / YugabyteDB** | Просмотр; SQL; редактирование строк |
+| **PostgreSQL** | Просмотр; SQL; правка строк через CTID где доступно |
+| **Greenplum** | Тот же UI, что у PostgreSQL (`/pg/{id}`); SQL; CTID при поддержке |
+| **YugabyteDB** | Как PostgreSQL; SQL; fallback метаданных для совместимости |
+| **CockroachDB** | Как PostgreSQL; SQL; fallback метаданных для совместимости |
 | **MySQL / MariaDB** | Просмотр; SQL; редактирование (с PK/unique) |
 | **MS SQL Server** | Просмотр; SQL; редактирование (с PK/unique) |
 | **Oracle Database** | Просмотр; SQL; редактирование по ROWID |
@@ -84,9 +87,10 @@ helm install my-panopticum panopticum/panopticum
 | **Elasticsearch / OpenSearch** | Просмотр индексов; Query DSL; редактирование по _id |
 | **Kubernetes** | URL API-сервера + bearer-токен; namespace через запятую; просмотр pod-ов, Deployment, StatefulSet, Service, Ingress, ConfigMap, Secret; tail логов; describe pod (контейнеры, образы, ресурсы, пробы, условия, события); события namespace; раскрытие секрета по запросу с аудитом (содержимое не попадает в логи). Мягкая обработка "нет доступа" — 401/403/404 как алерт, без краша |
 | **S3 / MinIO** | Endpoint + access/secret key; просмотр бакетов и префиксов; peek объектов (JSON, CSV, Parquet head, hex). Регион опционален |
-| **Prometheus / VictoriaMetrics** | Instant и range PromQL; просмотр jobs и метрик. Auth: Basic или Bearer-токен |
-
-## MCP (AI-агенты)
+| **H2 (TCP)** | Схемы и таблицы; SQL (`/lightjdbc/{id}/...`) |
+| **HSQLDB** | Как H2 |
+| **Apache Derby (сеть)** | Как H2 |
+| **Couchbase** | Бакеты → области → коллекции; документы; N1QL (`/couchbase/{id}/...`). TLS: `couchbases://` в настройках |
 
 MCP-совместимый endpoint `POST /mcp` для Cursor, Claude Desktop и др. Та же HTTP Basic Auth, что и для веб-интерфейса.
 
@@ -113,13 +117,17 @@ MCP-совместимый endpoint `POST /mcp` для Cursor, Claude Desktop и
 | `list-catalogs` | Базы данных / бакеты / jobs / namespace |
 | `list-namespaces` | Схемы (где применимо) |
 | `list-entities` | Таблицы / коллекции / объекты / метрики / pod-ы |
-| `query-data` | SQL, CQL, MQL, PromQL или peek S3-объекта |
+| `query-data` | SQL, CQL, N1QL, MQL, PromQL или peek S3-объекта |
 | `get-record-detail` | Получить запись по PK или document ID |
 | `describe-entity` | Полная схема: колонки, типы, PK/FK/индексы, кол-во строк — устраняет потребность в `SELECT *`. Поддерживает все источники данных |
 
 Для **Kubernetes**: `list-catalogs` → namespaces; `list-entities` → pod-ы; `query-data` → tail логов.
 Для **S3**: `list-catalogs` → бакеты; `list-entities` → объекты; `query-data` → peek содержимого.
-Для **Prometheus**: `list-catalogs` → jobs; `list-entities` → имена метрик; `query-data` → instant PromQL.
+Для **Couchbase**: `list-catalogs` → бакеты; `list-namespaces` → области (catalog = bucket); `list-entities` → коллекции (namespace = scope); `query-data` → N1QL; `get-record-detail` → KV по `documentId`.
+
+### Локальная проверка в Docker (по желанию)
+
+Официальные образы Greenplum / Yugabyte / CockroachDB, TCP-сервер H2 / HSQLDB / сеть Derby и Couchbase Server: добавьте подключения в Настройках, **Проверить**, затем обзор и запросы из UI или MCP.
 
 ## Стек
 

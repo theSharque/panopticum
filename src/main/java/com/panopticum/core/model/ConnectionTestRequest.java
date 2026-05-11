@@ -31,4 +31,7 @@ public class ConnectionTestRequest {
 
     @Schema(description = "Existing connection ID to use credentials from")
     private Long id;
+
+    @Schema(description = "Use TLS for Couchbase test (optional if id provided)")
+    private Boolean useHttps;
 }

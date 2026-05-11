@@ -1,0 +1,44 @@
+<div xmlns:th="http://www.thymeleaf.org" id="form-h2" class="connection-form-block" hidden th:fragment="form-h2">
+    <form id="connection-form-h2" action="/settings/add-h2" method="post" class="add-connection-form"
+          hx-post="/settings/add-h2"
+          hx-target="#sidebar"
+          hx-swap="outerHTML">
+        <input type="hidden" name="id" th:if="${editingConnection != null}" th:value="${editingConnection != null ? editingConnection.id : null}">
+        <div class="form-group">
+            <label for="name-h2" th:text="${msg['common.name']}">Name</label>
+            <input type="text" id="name-h2" name="name" required th:attr="placeholder=${msg['settings.placeholderNameH2']}" th:value="${editingConnection != null ? editingConnection.name : null}">
+        </div>
+        <div class="form-group">
+            <label for="host-h2" th:text="${msg['settings.host']}">Host</label>
+            <input type="text" id="host-h2" name="host" required placeholder="localhost" th:value="${editingConnection != null ? editingConnection.host : 'localhost'}">
+        </div>
+        <div class="form-group">
+            <label for="port-h2" th:text="${msg['settings.port']}">Port</label>
+            <input type="number" id="port-h2" name="port" th:value="${editingConnection != null ? editingConnection.port : 9092}">
+        </div>
+        <div class="form-group">
+            <label for="database-h2" th:text="${msg['settings.database']}">Database</label>
+            <input type="text" id="database-h2" name="database" required th:attr="placeholder=${msg['settings.lightJdbcDbHelp']}" th:value="${editingConnection != null ? editingConnection.dbName : null}">
+        </div>
+        <div class="form-group">
+            <label for="username-h2" th:text="${msg['settings.username']}">Username</label>
+            <input type="text" id="username-h2" name="username" placeholder="sa" th:value="${editingConnection != null ? editingConnection.username : null}">
+        </div>
+        <div class="form-group">
+            <label for="password-h2" th:text="${msg['settings.password']}">Password</label>
+            <input type="password" id="password-h2" name="password" autocomplete="off">
+        </div>
+        <div class="form-actions">
+            <span id="test-indicator-h2" class="connection-test-indicator" aria-hidden="true" th:text="${msg['settings.testing']}">Checking...</span>
+            <button type="button" class="btn-check"
+                    hx-post="/settings/test-h2"
+                    hx-include="#connection-form-h2"
+                    hx-target="#connection-test-result-h2"
+                    hx-swap="innerHTML show:bottom"
+                    hx-indicator="#test-indicator-h2"
+                    th:text="${msg['settings.test']}">Test</button>
+            <button type="submit" class="btn btn--primary" th:text="${editingConnection != null ? msg['settings.save'] : msg['settings.add']}">Add</button>
+        </div>
+        <div id="connection-test-result-h2" class="connection-test-result"></div>
+    </form>
+</div>

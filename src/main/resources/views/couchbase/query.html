@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(~{::main})}">
+<head></head>
+<body>
+<main th:fragment="main" class="main-content">
+    <div th:replace="~{fragments/page-heading :: pageHeading(items=${breadcrumbs})}"></div>
+    <h1 th:text="${msg['couchbase.n1qlTitle']}">N1QL</h1>
+    <section class="query-panel query-panel-table">
+        <form th:action="@{/couchbase/{id}/query(id=${connectionId})}" method="post" class="query-form">
+            <input type="hidden" name="offset" th:value="${offset}"/>
+            <input type="hidden" name="limit" th:value="${limit}"/>
+            <textarea name="statement" class="query-textarea" data-lang="sql" rows="6" th:text="${statement}" th:attr="placeholder=${msg['couchbase.n1qlPlaceholder']}">SELECT 1</textarea>
+            <button type="submit" class="btn btn--icon btn--primary query-execute" th:attr="aria-label=${msg['query.refresh']}, title=${msg['query.refresh']}">
+                <svg class="icon icon--lg" aria-hidden="true"><use href="#icon-refresh"/></svg>
+            </button>
+        </form>
+    </section>
+    <div th:if="${columns != null and !columns.isEmpty()}" class="query-table-wrapper">
+        <table class="query-table">
+            <thead>
+                <tr><th th:each="col : ${columns}" th:text="${col}">col</th></tr>
+            </thead>
+            <tbody>
+                <tr th:each="row : ${rows}">
+                    <td th:each="cell : ${row}" th:text="${cell}">cell</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+</body>
+</html>

@@ -24,6 +24,8 @@ public class Messages {
             merged.putAll(MessagesKubernetes.RU);
             merged.putAll(MessagesS3.RU);
             merged.putAll(MessagesPrometheus.RU);
+            merged.putAll(MessagesLightJdbc.RU);
+            merged.putAll(MessagesCouchbase.RU);
         } else {
             merged.putAll(MessagesCommon.EN);
             merged.putAll(MessagesSettings.EN);
@@ -38,6 +40,8 @@ public class Messages {
             merged.putAll(MessagesKubernetes.EN);
             merged.putAll(MessagesS3.EN);
             merged.putAll(MessagesPrometheus.EN);
+            merged.putAll(MessagesLightJdbc.EN);
+            merged.putAll(MessagesCouchbase.EN);
         }
         return merged;
     }

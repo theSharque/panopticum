@@ -90,7 +90,7 @@ public class McpToolRegistry {
                         "SQL/Cassandra: tables/views. Mongo: collections. Kafka: partitions (catalog=topic). Redis/Elasticsearch: notApplicable.";
             case "query-data" ->
                 "Execute a query and return a unified JSON envelope. Required: connectionId (number), query (string). Optional: catalog, namespace, entity, offset, limit (hard max 100). " +
-                        "SQL: SQL text. CQL: CQL text. Mongo/Elasticsearch: JSON (MQL/DSL). Kafka: JSON {\"partition\",\"fromOffset\",\"count\",\"fromEnd\"}, catalog=topic. Redis: glob pattern (e.g. user:*), catalog=dbIndex.";
+                        "SQL: SQL text. CQL: CQL text. N1QL: N1QL text (Couchbase). Mongo/Elasticsearch: JSON (MQL/DSL). Kafka: JSON {\"partition\",\"fromOffset\",\"count\",\"fromEnd\"}, catalog=topic. Redis: glob pattern (e.g. user:*), catalog=dbIndex.";
             case "get-record-detail" ->
                 "Get full detail of a single record/document for point comparison between sources. " +
                         "Required: connectionId (number), entity (string), and one of: documentId (Mongo), primaryKey (object), locator (engine-specific). " +

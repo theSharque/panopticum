@@ -1,0 +1,44 @@
+<div xmlns:th="http://www.thymeleaf.org" id="form-cockroachdb" class="connection-form-block" hidden th:fragment="form-cockroachdb">
+    <form id="connection-form-cockroachdb" action="/settings/add-cockroachdb" method="post" class="add-connection-form"
+          hx-post="/settings/add-cockroachdb"
+          hx-target="#sidebar"
+          hx-swap="outerHTML">
+        <input type="hidden" name="id" th:if="${editingConnection != null}" th:value="${editingConnection != null ? editingConnection.id : null}">
+        <div class="form-group">
+            <label for="name-cr" th:text="${msg['common.name']}">Name</label>
+            <input type="text" id="name-cr" name="name" required th:attr="placeholder=${msg['settings.placeholderNameCockroach']}" th:value="${editingConnection != null ? editingConnection.name : null}">
+        </div>
+        <div class="form-group">
+            <label for="host-cr" th:text="${msg['settings.host']}">Host</label>
+            <input type="text" id="host-cr" name="host" required placeholder="localhost" th:value="${editingConnection != null ? editingConnection.host : 'localhost'}">
+        </div>
+        <div class="form-group">
+            <label for="port-cr" th:text="${msg['settings.port']}">Port</label>
+            <input type="number" id="port-cr" name="port" th:value="${editingConnection != null ? editingConnection.port : 26257}">
+        </div>
+        <div class="form-group">
+            <label for="database-cr" th:text="${msg['settings.database']}">Database</label>
+            <input type="text" id="database-cr" name="database" required placeholder="defaultdb" th:value="${editingConnection != null ? editingConnection.dbName : null}">
+        </div>
+        <div class="form-group">
+            <label for="username-cr" th:text="${msg['settings.username']}">Username</label>
+            <input type="text" id="username-cr" name="username" required placeholder="root" th:value="${editingConnection != null ? editingConnection.username : null}">
+        </div>
+        <div class="form-group">
+            <label for="password-cr" th:text="${msg['settings.password']}">Password</label>
+            <input type="password" id="password-cr" name="password" placeholder="password">
+        </div>
+        <div class="form-actions">
+            <span id="test-indicator-cr" class="connection-test-indicator" aria-hidden="true" th:text="${msg['settings.testing']}">Checking...</span>
+            <button type="button" class="btn-check"
+                    hx-post="/settings/test-cockroachdb"
+                    hx-include="#connection-form-cockroachdb"
+                    hx-target="#connection-test-result-cockroachdb"
+                    hx-swap="innerHTML show:bottom"
+                    hx-indicator="#test-indicator-cr"
+                    th:text="${msg['settings.test']}">Test</button>
+            <button type="submit" class="btn btn--primary" th:text="${editingConnection != null ? msg['settings.save'] : msg['settings.add']}">Add</button>
+        </div>
+        <div id="connection-test-result-cockroachdb" class="connection-test-result"></div>
+    </form>
+</div>

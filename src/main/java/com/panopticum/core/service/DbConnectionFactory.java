@@ -8,6 +8,12 @@ import jakarta.inject.Singleton;
 public class DbConnectionFactory {
 
     private static final int PORT_POSTGRESQL = 5432;
+    private static final int PORT_YUGABYTEDB = 5433;
+    private static final int PORT_COCKROACHDB = 26257;
+    private static final int PORT_H2 = 9092;
+    private static final int PORT_HSQLDB = 9001;
+    private static final int PORT_DERBY = 1527;
+    private static final int PORT_COUCHBASE = 11210;
     private static final int PORT_MONGODB = 27017;
     private static final int PORT_REDIS = 6379;
     private static final int PORT_CLICKHOUSE = 8123;
@@ -29,7 +35,7 @@ public class DbConnectionFactory {
                     .name(nullToEmpty(name))
                     .type("")
                     .host(nullToEmpty(host))
-                    .port(5432)
+                    .port(PORT_POSTGRESQL)
                     .dbName(nullToEmpty(database))
                     .username(nullToEmpty(username))
                     .password(nullToEmpty(password))
@@ -65,8 +71,14 @@ public class DbConnectionFactory {
         }
         return switch (type.toLowerCase()) {
             case "postgresql" -> PORT_POSTGRESQL;
-            case "mongodb" -> PORT_MONGODB;
+            case "greenplum" -> PORT_POSTGRESQL;
+            case "yugabytedb" -> PORT_YUGABYTEDB;
+            case "cockroachdb" -> PORT_COCKROACHDB;
+            case "h2" -> PORT_H2;
+            case "hsqldb" -> PORT_HSQLDB;
+            case "derby" -> PORT_DERBY;
             case "redis" -> PORT_REDIS;
+            case "mongodb" -> PORT_MONGODB;
             case "clickhouse" -> PORT_CLICKHOUSE;
             case "mysql" -> PORT_MYSQL;
             case "cassandra" -> PORT_CASSANDRA;
@@ -78,6 +90,7 @@ public class DbConnectionFactory {
             case "kubernetes" -> PORT_KUBERNETES;
             case "s3" -> PORT_S3;
             case "prometheus" -> PORT_PROMETHEUS;
+            case "couchbase" -> PORT_COUCHBASE;
             default -> PORT_POSTGRESQL;
         };
     }
@@ -96,6 +109,7 @@ public class DbConnectionFactory {
             case "kubernetes" -> "";
             case "s3" -> "";
             case "prometheus" -> "";
+            case "couchbase" -> "";
             default -> "";
         };
     }

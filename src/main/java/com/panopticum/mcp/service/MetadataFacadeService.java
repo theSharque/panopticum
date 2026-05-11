@@ -11,12 +11,14 @@ import com.panopticum.cassandra.model.CassandraKeyspaceInfo;
 import com.panopticum.cassandra.model.CassandraTableInfo;
 import com.panopticum.cassandra.service.CassandraMetadataService;
 import com.panopticum.clickhouse.service.ClickHouseMetadataService;
+import com.panopticum.couchbase.service.CouchbaseService;
 import com.panopticum.core.model.DbConnection;
 import com.panopticum.elasticsearch.model.ElasticsearchIndexInfo;
 import com.panopticum.elasticsearch.service.ElasticsearchService;
 import com.panopticum.kafka.model.KafkaPartitionInfo;
 import com.panopticum.kafka.model.KafkaTopicInfo;
 import com.panopticum.kafka.service.KafkaService;
+import com.panopticum.lightjdbc.service.LightJdbcMetadataService;
 import com.panopticum.kubernetes.model.KubernetesPodDescription;
 import com.panopticum.kubernetes.model.KubernetesPodInfo;
 import com.panopticum.kubernetes.service.KubernetesService;
@@ -28,6 +30,7 @@ import com.panopticum.mongo.service.MongoMetadataService;
 import com.panopticum.mssql.service.MssqlMetadataService;
 import com.panopticum.mysql.service.MySqlMetadataService;
 import com.panopticum.oracle.service.OracleMetadataService;
+import com.panopticum.postgres.PostgresWireCompat;
 import com.panopticum.postgres.service.PgMetadataService;
 import com.panopticum.prometheus.service.PrometheusService;
 import com.panopticum.rabbitmq.service.RabbitMqService;
@@ -68,6 +71,8 @@ public class MetadataFacadeService {
     private final RabbitMqService rabbitMqService;
     private final S3Service s3Service;
     private final PrometheusService prometheusService;
+    private final LightJdbcMetadataService lightJdbcMetadataService;
+    private final CouchbaseService couchbaseService;
 
     public Optional<DbConnection> getConnection(Long connectionId) {
         return dbConnectionService.findById(connectionId);
@@ -89,7 +94,9 @@ public class MetadataFacadeService {
 
         try {
             return switch (type) {
-                case "postgresql" -> toCatalogPage(pgMetadataService.listDatabasesPaged(connectionId, page, size, sort, order), "database");
+                case "postgresql", "greenplum", "yugabytedb", "cockroachdb" -> toCatalogPage(pgMetadataService.listDatabasesPaged(connectionId, page, size, sort, order), "database");
+                case "h2", "hsqldb", "derby" -> toCatalogPage(lightJdbcMetadataService.listDatabasesPaged(connectionId, page, size, sort, order), "database");
+                case "couchbase" -> toCatalogPage(couchbaseService.listBucketsAsDatabasePage(connectionId, page, size, sort, order), "database");
                 case "mysql" -> toCatalogPage(mySqlMetadataService.listDatabasesPaged(connectionId, page, size, sort, order), "database");
                 case "sqlserver" -> toCatalogPage(mssqlMetadataService.listDatabasesPaged(connectionId, page, size, sort, order), "database");
                 case "clickhouse" -> toCatalogPage(clickHouseMetadataService.listDatabasesPaged(connectionId, page, size, sort, order), "database");
@@ -121,7 +128,15 @@ public class MetadataFacadeService {
 
         try {
             return switch (type) {
-                case "postgresql" -> toNamespacePage(pgMetadataService.listSchemasPaged(connectionId, catalog != null ? catalog : "", page, size, sort, order), false);
+                case "postgresql", "greenplum", "yugabytedb", "cockroachdb" -> toNamespacePage(pgMetadataService.listSchemasPaged(connectionId, catalog != null ? catalog : "", page, size, sort, order), false);
+                case "h2", "hsqldb", "derby" -> toNamespacePage(lightJdbcMetadataService.listSchemasPaged(connectionId, page, size, sort, order), false);
+                case "couchbase" -> {
+                    String bucket = catalog != null && !catalog.isBlank() ? catalog : resolveDefaultCatalog(connOpt.get());
+                    if (bucket.isBlank()) {
+                        yield errorResult("error.specifyDatabase");
+                    }
+                    yield toNamespacePage(couchbaseService.listScopesPaged(connectionId, bucket, page, size, sort, order), false);
+                }
                 case "sqlserver" -> toNamespacePage(mssqlMetadataService.listSchemasPaged(connectionId, catalog != null ? catalog : "", page, size, sort, order), false);
                 case "oracle" -> toNamespacePage(oracleMetadataService.listSchemasPaged(connectionId, page, size, sort, order), true);
                 case "mysql", "clickhouse", "mongodb", "cassandra", "kafka", "redis", "elasticsearch", "kubernetes", "s3", "prometheus" -> notApplicableResult();
@@ -145,7 +160,23 @@ public class MetadataFacadeService {
 
         try {
             return switch (type) {
-                case "postgresql" -> toEntityPage(pgMetadataService.listTablesPaged(connectionId, cat, ns, page, size, sort, order), cat, ns);
+                case "postgresql", "greenplum", "yugabytedb", "cockroachdb" -> toEntityPage(pgMetadataService.listTablesPaged(connectionId, cat, ns, page, size, sort, order), cat, ns);
+                case "h2", "hsqldb", "derby" -> {
+                    if (ns.isBlank()) {
+                        yield errorResult("error.specifyCollection");
+                    }
+                    String pseudo = lightJdbcMetadataService.pseudoCatalog(connectionId);
+                    yield toEntityPage(lightJdbcMetadataService.listTablesPaged(connectionId, ns, page, size, sort, order), pseudo, ns);
+                }
+                case "couchbase" -> {
+                    if (cat.isBlank()) {
+                        yield errorResult("error.specifyDatabase");
+                    }
+                    if (ns.isBlank()) {
+                        yield errorResult("error.specifyCollection");
+                    }
+                    yield toEntityPage(couchbaseService.listCollectionsAsTablesPaged(connectionId, cat, ns, page, size, sort, order), cat, ns);
+                }
                 case "mysql" -> toEntityPage(mySqlMetadataService.listTablesPaged(connectionId, cat, page, size, sort, order), cat, null);
                 case "sqlserver" -> toEntityPage(mssqlMetadataService.listTablesPaged(connectionId, cat, ns, page, size, sort, order), cat, ns);
                 case "oracle" -> {
@@ -197,7 +228,9 @@ public class MetadataFacadeService {
 
         try {
             return switch (type) {
-                case "postgresql" -> pgMetadataService.executeQuery(connectionId, cat, query, offset, limit, sort != null ? sort : "", order != null ? order : "");
+                case "postgresql", "greenplum", "yugabytedb", "cockroachdb" -> pgMetadataService.executeQuery(connectionId, cat, query, offset, limit, sort != null ? sort : "", order != null ? order : "");
+                case "h2", "hsqldb", "derby" -> lightJdbcMetadataService.executeQuery(connectionId, query, offset, limit, sort != null ? sort : "", order != null ? order : "");
+                case "couchbase" -> Optional.of(couchbaseService.executeN1ql(connectionId, query, offset, limit));
                 case "mysql" -> mySqlMetadataService.executeQuery(connectionId, cat, query, offset, limit, sort != null ? sort : "", order != null ? order : "");
                 case "sqlserver" -> mssqlMetadataService.executeQuery(connectionId, cat, query, offset, limit, sort != null ? sort : "", order != null ? order : "");
                 case "oracle" -> {
@@ -318,11 +351,21 @@ public class MetadataFacadeService {
                     });
         }
 
+        if (documentId != null && !documentId.isBlank() && "couchbase".equals(type)) {
+            return couchbaseService.getDocument(connectionId, cat, ns, entity, documentId)
+                    .map(doc -> {
+                        Map<String, Object> out = new HashMap<>();
+                        out.put("record", doc);
+                        out.put("metadata", Map.of("entity", entity, "dbType", type, "identifierType", "documentId", "identifierValue", documentId));
+                        return out;
+                    });
+        }
+
         if (primaryKey != null && !primaryKey.isEmpty()) {
             return getRecordByPrimaryKey(connectionId, type, cat, ns, entity, primaryKey);
         }
 
-        if (locator != null && !locator.isBlank() && "postgresql".equals(type)) {
+        if (locator != null && !locator.isBlank() && PostgresWireCompat.supportsCtidUpdates(type)) {
             return getPgRecordByCtid(connectionId, cat, ns, locator);
         }
 
@@ -354,7 +397,7 @@ public class MetadataFacadeService {
                 List<String> nss = KubernetesNamespaceCsv.parse(conn.getDbName());
                 yield nss.isEmpty() ? "" : nss.get(0);
             }
-            case "s3", "prometheus" -> conn.getDbName() != null ? conn.getDbName() : "";
+            case "s3", "prometheus", "couchbase" -> conn.getDbName() != null ? conn.getDbName() : "";
             default -> conn.getDbName() != null ? conn.getDbName() : "";
         };
     }
@@ -756,7 +799,11 @@ public class MetadataFacadeService {
 
         try {
             return switch (type) {
-                case "postgresql" -> pgMetadataService.describeEntity(connectionId, cat, ns, entity)
+                case "postgresql", "greenplum", "yugabytedb", "cockroachdb" -> pgMetadataService.describeEntity(connectionId, cat, ns, entity)
+                        .map(d -> withConnectionId(d, connectionId, type));
+                case "h2", "hsqldb", "derby" -> lightJdbcMetadataService.describeEntity(connectionId, cat, ns, entity)
+                        .map(d -> withConnectionId(d, connectionId, type));
+                case "couchbase" -> couchbaseService.describeCollection(connectionId, cat, ns, entity)
                         .map(d -> withConnectionId(d, connectionId, type));
                 case "mysql" -> mySqlMetadataService.describeEntity(connectionId, cat, entity)
                         .map(d -> withConnectionId(d, connectionId, type));

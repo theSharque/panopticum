@@ -13,6 +13,7 @@ public class BootstrapConnectionEntry {
     private String database;
     private String username;
     private String password;
+    private Boolean useHttps;
 
     @JsonProperty("jdbcUrl")
     private String jdbcUrl;

@@ -78,6 +78,7 @@ public class ListDataSourcesToolExecutor implements McpToolExecutor {
             case "kafka" -> "json";
             case "kubernetes" -> "tail";
             case "redis" -> "pattern";
+            case "couchbase" -> "n1ql";
             default -> "sql";
         };
     }
@@ -87,8 +88,10 @@ public class ListDataSourcesToolExecutor implements McpToolExecutor {
             return "catalog.entity";
         }
         return switch (type.toLowerCase()) {
-            case "postgresql", "sqlserver" -> "catalog.namespace.entity";
+            case "postgresql", "greenplum", "yugabytedb", "cockroachdb", "sqlserver" -> "catalog.namespace.entity";
             case "oracle" -> "namespace.entity";
+            case "couchbase" -> "catalog.namespace.entity";
+            case "h2", "hsqldb", "derby" -> "catalog.namespace.entity";
             case "kafka" -> "catalog.entity";
             case "kubernetes" -> "catalog.entity";
             case "redis" -> "catalog";
