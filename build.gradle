@@ -70,6 +70,14 @@ configurations.all {
                 details.useVersion("1.11.0")
                 details.because("CVE-2025-48734")
             }
+            if (details.requested.group == "com.couchbase.client" && details.requested.name == "java-client") {
+                details.useVersion("3.11.1")
+                details.because("Couchbase SDK alignment; newer core-io refreshes bundled Netty metadata relative to app Netty")
+            }
+            if (details.requested.group == "com.couchbase.client" && details.requested.name == "core-io") {
+                details.useVersion("3.11.1")
+                details.because("Keep core-io on the same SDK line as java-client")
+            }
         }
     }
 }
@@ -101,7 +109,7 @@ dependencies {
     runtimeOnly("com.h2database:h2:2.3.232")
     runtimeOnly("org.hsqldb:hsqldb:2.7.3")
     runtimeOnly("org.apache.derby:derbyclient:10.17.1.0")
-    implementation("com.couchbase.client:java-client:3.8.2")
+    implementation("com.couchbase.client:java-client:3.11.1")
     runtimeOnly("org.postgresql:postgresql:42.7.4")
     runtimeOnly("com.mysql:mysql-connector-j:9.1.0")
     runtimeOnly("com.microsoft.sqlserver:mssql-jdbc:13.4.0.jre11")
@@ -146,4 +154,5 @@ shadowJar {
     zip64 = true
     mergeServiceFiles()
     archiveFileName.set("panopticum-all.jar")
+    exclude("META-INF/maven/io.netty/**")
 }
