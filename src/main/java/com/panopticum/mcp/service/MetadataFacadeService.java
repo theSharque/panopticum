@@ -11,6 +11,7 @@ import com.panopticum.cassandra.model.CassandraKeyspaceInfo;
 import com.panopticum.cassandra.model.CassandraTableInfo;
 import com.panopticum.cassandra.service.CassandraMetadataService;
 import com.panopticum.clickhouse.service.ClickHouseMetadataService;
+import com.panopticum.couchbase.model.CouchbaseBucketInfo;
 import com.panopticum.couchbase.service.CouchbaseService;
 import com.panopticum.core.model.DbConnection;
 import com.panopticum.elasticsearch.model.ElasticsearchIndexInfo;
@@ -34,6 +35,8 @@ import com.panopticum.postgres.PostgresWireCompat;
 import com.panopticum.postgres.service.PgMetadataService;
 import com.panopticum.prometheus.service.PrometheusService;
 import com.panopticum.rabbitmq.service.RabbitMqService;
+import com.panopticum.rabbitmq.model.RabbitMqMessage;
+import com.panopticum.rabbitmq.model.RabbitMqQueueInfo;
 import com.panopticum.redis.model.RedisDbInfo;
 import com.panopticum.redis.service.RedisMetadataService;
 import com.panopticum.s3.model.S3BucketInfo;
@@ -96,7 +99,7 @@ public class MetadataFacadeService {
             return switch (type) {
                 case "postgresql", "greenplum", "yugabytedb", "cockroachdb" -> toCatalogPage(pgMetadataService.listDatabasesPaged(connectionId, page, size, sort, order), "database");
                 case "h2", "hsqldb", "derby" -> toCatalogPage(lightJdbcMetadataService.listDatabasesPaged(connectionId, page, size, sort, order), "database");
-                case "couchbase" -> toCatalogPage(couchbaseService.listBucketsAsDatabasePage(connectionId, page, size, sort, order), "database");
+                case "couchbase" -> toCouchbaseBucketCatalogPage(couchbaseService.listBucketsPaged(connectionId, page, size, sort, order));
                 case "mysql" -> toCatalogPage(mySqlMetadataService.listDatabasesPaged(connectionId, page, size, sort, order), "database");
                 case "sqlserver" -> toCatalogPage(mssqlMetadataService.listDatabasesPaged(connectionId, page, size, sort, order), "database");
                 case "clickhouse" -> toCatalogPage(clickHouseMetadataService.listDatabasesPaged(connectionId, page, size, sort, order), "database");
@@ -110,6 +113,7 @@ public class MetadataFacadeService {
                         kubernetesService.listNamespacesPaged(connectionId, page, size, sort, order));
                 case "s3" -> toS3BucketCatalogPage(s3Service.listBuckets(connectionId));
                 case "prometheus" -> toPromJobCatalogPage(prometheusService.listJobs(connectionId));
+                case "rabbitmq" -> toRabbitVhostCatalogPage(rabbitMqService.listQueues(connectionId), resolveDefaultCatalog(connOpt.get()), page, size);
                 default -> errorResult("Unsupported dbType: " + type);
             };
         } catch (Exception e) {
@@ -139,7 +143,7 @@ public class MetadataFacadeService {
                 }
                 case "sqlserver" -> toNamespacePage(mssqlMetadataService.listSchemasPaged(connectionId, catalog != null ? catalog : "", page, size, sort, order), false);
                 case "oracle" -> toNamespacePage(oracleMetadataService.listSchemasPaged(connectionId, page, size, sort, order), true);
-                case "mysql", "clickhouse", "mongodb", "cassandra", "kafka", "redis", "elasticsearch", "kubernetes", "s3", "prometheus" -> notApplicableResult();
+                case "mysql", "clickhouse", "mongodb", "cassandra", "kafka", "redis", "elasticsearch", "kubernetes", "s3", "prometheus", "rabbitmq" -> notApplicableResult();
                 default -> errorResult("Unsupported dbType: " + type);
             };
         } catch (Exception e) {
@@ -194,6 +198,7 @@ public class MetadataFacadeService {
                         ? errorResult("kubernetes.namespaceRequired")
                         : toKubernetesPodEntityPage(kubernetesService.listPodsPaged(connectionId, cat, page, size, sort, order), cat);
                 case "redis", "elasticsearch" -> notApplicableResult();
+                case "rabbitmq" -> toRabbitQueueEntityPage(rabbitMqService.listQueues(connectionId), cat, page, size, sort, order);
                 case "s3" -> {
                     String bucket = cat;
                     String prefix = ns.isBlank() ? "" : ns;
@@ -322,6 +327,15 @@ public class MetadataFacadeService {
                     }
                     yield r.isOk() ? Optional.of(r.getPayload()) : Optional.of(QueryResult.error(r.getMessageKey()));
                 }
+                case "rabbitmq" -> {
+                    if (entity == null || entity.isBlank()) {
+                        yield Optional.of(QueryResult.error("rabbitmq.queueRequired"));
+                    }
+                    String vhost = cat != null && !cat.isBlank() ? cat : resolveDefaultCatalog(connOpt.get());
+                    int count = parseRabbitMessageCount(query, limit);
+                    List<RabbitMqMessage> messages = rabbitMqService.peekMessages(connectionId, vhost, entity, count);
+                    yield Optional.of(rabbitMessagesToQueryResult(messages, offset, count));
+                }
                 default -> Optional.empty();
             };
         } catch (Exception e) {
@@ -397,6 +411,7 @@ public class MetadataFacadeService {
                 List<String> nss = KubernetesNamespaceCsv.parse(conn.getDbName());
                 yield nss.isEmpty() ? "" : nss.get(0);
             }
+            case "rabbitmq" -> conn.getDbName() != null && !conn.getDbName().isBlank() ? conn.getDbName() : "/";
             case "s3", "prometheus", "couchbase" -> conn.getDbName() != null ? conn.getDbName() : "";
             default -> conn.getDbName() != null ? conn.getDbName() : "";
         };
@@ -423,6 +438,20 @@ public class MetadataFacadeService {
             m.put("kind", "keyspace");
             m.put("durableWrites", ks.getDurableWrites());
             m.put("replicationFormatted", ks.getReplicationFormatted());
+            items.add(m);
+        }
+        return successCatalogPage(items, page);
+    }
+
+    private Map<String, Object> toCouchbaseBucketCatalogPage(Page<CouchbaseBucketInfo> page) {
+        List<Map<String, Object>> items = new ArrayList<>();
+        for (CouchbaseBucketInfo bucket : page.getItems()) {
+            Map<String, Object> m = new HashMap<>();
+            m.put("name", bucket.getName());
+            m.put("kind", "bucket");
+            m.put("bucketType", bucket.getBucketType());
+            m.put("ramQuotaMb", bucket.getRamQuotaMb());
+            m.put("replicaCount", bucket.getReplicaCount());
             items.add(m);
         }
         return successCatalogPage(items, page);
@@ -655,6 +684,47 @@ public class MetadataFacadeService {
         return out;
     }
 
+    private Map<String, Object> toRabbitVhostCatalogPage(List<RabbitMqQueueInfo> queues, String defaultVhost, int page, int size) {
+        Map<String, long[]> statsByVhost = new HashMap<>();
+        for (RabbitMqQueueInfo queue : queues) {
+            String vhost = queue.getVhost() != null && !queue.getVhost().isBlank() ? queue.getVhost() : "/";
+            long[] stats = statsByVhost.computeIfAbsent(vhost, k -> new long[4]);
+            stats[0]++;
+            stats[1] += queue.getMessages() != null ? queue.getMessages() : 0L;
+            stats[2] += queue.getMessagesReady() != null ? queue.getMessagesReady() : 0L;
+            stats[3] += queue.getMessagesUnacknowledged() != null ? queue.getMessagesUnacknowledged() : 0L;
+        }
+        if (statsByVhost.isEmpty()) {
+            statsByVhost.put(defaultVhost != null && !defaultVhost.isBlank() ? defaultVhost : "/", new long[4]);
+        }
+        List<String> vhosts = new ArrayList<>(statsByVhost.keySet());
+        vhosts.sort(String.CASE_INSENSITIVE_ORDER);
+        int limit = Math.min(Math.max(1, size), 100);
+        int offset = Math.max(0, (page - 1) * limit);
+        List<Map<String, Object>> items = new ArrayList<>();
+        for (int i = offset; i < Math.min(offset + limit, vhosts.size()); i++) {
+            String vhost = vhosts.get(i);
+            long[] stats = statsByVhost.get(vhost);
+            Map<String, Object> m = new HashMap<>();
+            m.put("name", vhost);
+            m.put("kind", "vhost");
+            m.put("queueCount", stats[0]);
+            m.put("messages", stats[1]);
+            m.put("messagesReady", stats[2]);
+            m.put("messagesUnacknowledged", stats[3]);
+            items.add(m);
+        }
+        Map<String, Object> out = new HashMap<>();
+        out.put("items", items);
+        out.put("pagination", Map.of(
+                "page", page,
+                "size", limit,
+                "hasMore", offset + items.size() < vhosts.size(),
+                "fromRow", vhosts.isEmpty() ? 0 : offset + 1,
+                "toRow", offset + items.size()));
+        return out;
+    }
+
     private Map<String, Object> toS3ObjectEntityPage(Page<S3ObjectInfo> page, String bucket) {
         List<Map<String, Object>> items = new ArrayList<>();
         for (S3ObjectInfo obj : page.getItems()) {
@@ -672,6 +742,34 @@ public class MetadataFacadeService {
         return out;
     }
 
+    private Map<String, Object> toRabbitQueueEntityPage(List<RabbitMqQueueInfo> queues, String vhost, int page, int size, String sort, String order) {
+        List<RabbitMqQueueInfo> filtered = queues.stream()
+                .filter(q -> vhost == null || vhost.isBlank() || vhost.equals(q.getVhost()))
+                .sorted(rabbitQueueComparator(sort, order))
+                .toList();
+        Page<RabbitMqQueueInfo> pageResult = Page.of(filtered, page, size, sort != null ? sort : "name", order != null ? order : "asc");
+        List<Map<String, Object>> items = new ArrayList<>();
+        for (RabbitMqQueueInfo queue : pageResult.getItems()) {
+            Map<String, Object> m = new HashMap<>();
+            m.put("name", queue.getName());
+            m.put("kind", "queue");
+            m.put("vhost", queue.getVhost());
+            m.put("messages", queue.getMessages());
+            m.put("messagesReady", queue.getMessagesReady());
+            m.put("messagesUnacknowledged", queue.getMessagesUnacknowledged());
+            m.put("consumers", queue.getConsumers());
+            items.add(m);
+        }
+        Map<String, Object> out = new HashMap<>();
+        out.put("items", items);
+        out.put("scope", Map.of("catalog", vhost != null ? vhost : "", "namespace", ""));
+        out.put("pagination", Map.of(
+                "page", pageResult.getPage(),
+                "size", pageResult.getSize(),
+                "hasMore", pageResult.isHasMore()));
+        return out;
+    }
+
     private Map<String, Object> toPromMetricEntityPage(Page<com.panopticum.prometheus.model.PromMetricInfo> page, String job) {
         List<Map<String, Object>> items = new ArrayList<>();
         for (com.panopticum.prometheus.model.PromMetricInfo m : page.getItems()) {
@@ -686,6 +784,52 @@ public class MetadataFacadeService {
         out.put("scope", Map.of("catalog", job != null ? job : "", "namespace", ""));
         out.put("pagination", Map.of("page", page.getPage(), "size", page.getSize(), "hasMore", page.isHasMore()));
         return out;
+    }
+
+    private static QueryResult rabbitMessagesToQueryResult(List<RabbitMqMessage> messages, int offset, int limit) {
+        List<String> columns = List.of("index", "routingKey", "payloadBytes", "payload", "properties");
+        List<String> types = List.of("integer", "string", "long", "string", "json");
+        List<List<Object>> rows = new ArrayList<>();
+        for (int i = 0; i < messages.size(); i++) {
+            RabbitMqMessage message = messages.get(i);
+            rows.add(List.of(
+                    offset + i,
+                    message.getRoutingKey() != null ? message.getRoutingKey() : "",
+                    message.getPayloadBytes() != null ? message.getPayloadBytes() : 0L,
+                    message.getPayload() != null ? message.getPayload() : "",
+                    message.getProperties() != null ? message.getProperties() : Map.of()));
+        }
+        return new QueryResult(columns, types, rows, null, null, offset, limit, messages.size() >= limit);
+    }
+
+    private static int parseRabbitMessageCount(String query, int defaultCount) {
+        if (query == null || query.isBlank()) {
+            return Math.min(Math.max(1, defaultCount), 50);
+        }
+        String trimmed = query.trim();
+        try {
+            return Math.min(Math.max(1, Integer.parseInt(trimmed)), 50);
+        } catch (NumberFormatException ignored) {
+            try {
+                com.fasterxml.jackson.databind.JsonNode node = new com.fasterxml.jackson.databind.ObjectMapper().readTree(trimmed);
+                return Math.min(Math.max(1, node.path("count").asInt(defaultCount)), 50);
+            } catch (Exception ignoredJson) {
+                return Math.min(Math.max(1, defaultCount), 50);
+            }
+        }
+    }
+
+    private static java.util.Comparator<RabbitMqQueueInfo> rabbitQueueComparator(String sort, String order) {
+        boolean desc = "desc".equalsIgnoreCase(order);
+        java.util.Comparator<RabbitMqQueueInfo> comparator = switch (sort != null ? sort : "name") {
+            case "vhost" -> java.util.Comparator.comparing(q -> q.getVhost() != null ? q.getVhost() : "");
+            case "messages" -> java.util.Comparator.comparing(q -> q.getMessages() != null ? q.getMessages() : 0L);
+            case "messagesReady" -> java.util.Comparator.comparing(q -> q.getMessagesReady() != null ? q.getMessagesReady() : 0L);
+            case "messagesUnacknowledged" -> java.util.Comparator.comparing(q -> q.getMessagesUnacknowledged() != null ? q.getMessagesUnacknowledged() : 0L);
+            case "consumers" -> java.util.Comparator.comparing(q -> q.getConsumers() != null ? q.getConsumers() : 0);
+            default -> java.util.Comparator.comparing(q -> q.getName() != null ? q.getName() : "", String.CASE_INSENSITIVE_ORDER);
+        };
+        return desc ? comparator.reversed() : comparator;
     }
 
     private Map<String, Object> toKubernetesPodEntityPage(Page<KubernetesPodInfo> page, String namespace) {

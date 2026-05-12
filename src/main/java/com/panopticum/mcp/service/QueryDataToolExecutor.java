@@ -90,6 +90,9 @@ public class QueryDataToolExecutor implements McpToolExecutor {
             case "redis" -> "pattern";
             case "elasticsearch" -> "json";
             case "couchbase" -> "n1ql";
+            case "s3" -> "object-peek";
+            case "prometheus" -> "promql";
+            case "rabbitmq" -> "message-peek";
             default -> "sql";
         };
     }

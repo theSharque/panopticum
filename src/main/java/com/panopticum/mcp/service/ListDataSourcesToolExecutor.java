@@ -79,6 +79,9 @@ public class ListDataSourcesToolExecutor implements McpToolExecutor {
             case "kubernetes" -> "tail";
             case "redis" -> "pattern";
             case "couchbase" -> "n1ql";
+            case "s3" -> "object-peek";
+            case "prometheus" -> "promql";
+            case "rabbitmq" -> "message-peek";
             default -> "sql";
         };
     }
@@ -94,6 +97,7 @@ public class ListDataSourcesToolExecutor implements McpToolExecutor {
             case "h2", "hsqldb", "derby" -> "catalog.namespace.entity";
             case "kafka" -> "catalog.entity";
             case "kubernetes" -> "catalog.entity";
+            case "s3", "prometheus", "rabbitmq" -> "catalog.entity";
             case "redis" -> "catalog";
             case "elasticsearch" -> "catalog";
             default -> "catalog.entity";
