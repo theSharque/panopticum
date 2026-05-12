@@ -21,10 +21,12 @@
                     <tr>
                         <th class="query-th query-th-detail"></th>
                         <th class="query-th query-th-sortable">
-                            <a th:href="@{/couchbase/{id}/buckets(id=${connectionId}, page=1, size=${size}, sort='name', order=${orderName})}" class="query-th-link"><span th:text="${msg['common.name']}">Name</span></a>
+                            <a th:href="@{/couchbase/{id}/buckets(id=${connectionId}, page=1, size=${size}, sort='name', order=${orderName})}" class="query-th-link"><span th:text="${msg['common.name']}">Name</span> <span th:if="${sort == 'name' and order == 'asc'}" class="query-sort-ind"><svg class="icon icon--sm" aria-hidden="true"><use href="#icon-sort-asc"/></svg></span><span th:if="${sort == 'name' and order == 'desc'}" class="query-sort-ind"><svg class="icon icon--sm" aria-hidden="true"><use href="#icon-sort-desc"/></svg></span></a>
                         </th>
-                        <th th:text="${msg['common.type']}">Type</th>
-                        <th th:text="${msg['couchbase.ramQuota']}">RAM MB</th>
+                        <th class="query-th" th:text="${msg['common.type']}">Type</th>
+                        <th class="query-th query-th-sortable">
+                            <a th:href="@{/couchbase/{id}/buckets(id=${connectionId}, page=1, size=${size}, sort='size', order=${orderSize})}" class="query-th-link"><span th:text="${msg['couchbase.ramQuota']}">RAM MB</span> <span th:if="${sort == 'size' and order == 'asc'}" class="query-sort-ind"><svg class="icon icon--sm" aria-hidden="true"><use href="#icon-sort-asc"/></svg></span><span th:if="${sort == 'size' and order == 'desc'}" class="query-sort-ind"><svg class="icon icon--sm" aria-hidden="true"><use href="#icon-sort-desc"/></svg></span></a>
+                        </th>
                     </tr>
                 </thead>
                 <tbody>

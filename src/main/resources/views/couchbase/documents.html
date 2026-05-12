@@ -5,34 +5,38 @@
 <main th:fragment="main" class="main-content">
     <div th:replace="~{fragments/page-heading :: pageHeading(items=${breadcrumbs})}"></div>
     <h1 th:text="${msg['couchbase.documentsTitle']}">Documents</h1>
-    <div class="query-pagination-info" th:if="${columns != null and !columns.isEmpty()}">
-        <span class="query-pagination-nav">
-            <a th:if="${hasPrev}" th:href="@{/couchbase/{id}/{bucket}/{scope}/{collection}(id=${connectionId}, bucket=${bucket}, scope=${scope}, collection=${collection}, offset=${prevOffset}, limit=${limit})}" th:text="${msg['common.prev']}">Back</a>
-            <span th:if="${hasMore}">
-                <a th:href="@{/couchbase/{id}/{bucket}/{scope}/{collection}(id=${connectionId}, bucket=${bucket}, scope=${scope}, collection=${collection}, offset=${nextOffset}, limit=${limit})}" th:text="${msg['common.next']}">Next</a>
+    <div th:if="${columns != null and !columns.isEmpty()}" class="query-result-data">
+        <div class="query-pagination-info" th:if="${rows != null and !rows.isEmpty()}">
+            <span class="query-pagination-nav">
+                <th:block th:with="prevUrl=@{/couchbase/{id}/{bucket}/{scope}/{collection}(id=${connectionId}, bucket=${bucket}, scope=${scope}, collection=${collection}, offset=${prevOffset}, limit=${limit})}, nextUrl=@{/couchbase/{id}/{bucket}/{scope}/{collection}(id=${connectionId}, bucket=${bucket}, scope=${scope}, collection=${collection}, offset=${nextOffset}, limit=${limit})}, prevLabel=${msg['common.prev']}, nextLabel=${msg['common.next']}">
+                    <th:block th:replace="~{fragments/pagination-list-nav :: arrows(hasPrev=${hasPrev}, prevUrl=${prevUrl}, hasMore=${hasMore}, nextUrl=${nextUrl}, prevLabel=${prevLabel}, nextLabel=${nextLabel})}" />
+                </th:block>
             </span>
-        </span>
-        <span class="query-pagination-range" th:text="${msg['common.rowsRange'] + fromRow + '–' + toRow}"></span>
-    </div>
-    <div th:if="${columns != null and !columns.isEmpty()}" class="query-table-wrapper">
-        <table class="query-table">
-            <thead>
-                <tr>
-                    <th th:each="col : ${columns}" th:text="${col}">col</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr th:each="row, iter : ${rows}">
-                    <td th:each="cell, cstat : ${row}" th:text="${cell}">cell</td>
-                    <td>
-                        <a th:if="${columns[0] == 'documentId'}"
-                           th:href="@{/couchbase/{id}/{bucket}/{scope}/{collection}/detail(id=${connectionId}, bucket=${bucket}, scope=${scope}, collection=${collection}, documentId=${row[0]})}"
-                           th:text="${msg['common.open']}">Open</a>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+            <span class="query-pagination-range" th:text="${msg['common.rowsRange'] + fromRow + '–' + toRow}"></span>
+        </div>
+        <div class="query-table-wrapper">
+            <table class="query-table">
+                <thead>
+                    <tr>
+                        <th class="query-th query-th-detail"></th>
+                        <th th:each="col : ${columns}" class="query-th" th:text="${col}">col</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="row : ${rows}" class="query-data-row">
+                        <td class="query-detail-cell">
+                            <a th:if="${columns[0] == 'documentId'}"
+                               th:href="@{/couchbase/{id}/{bucket}/{scope}/{collection}/detail(id=${connectionId}, bucket=${bucket}, scope=${scope}, collection=${collection}, documentId=${row[0]})}"
+                               class="btn btn--icon btn--ghost" th:attr="aria-label=${msg['common.open']}, title=${msg['common.open']}">
+                                <svg class="icon" aria-hidden="true"><use href="#icon-link"/></svg>
+                            </a>
+                            <span th:unless="${columns[0] == 'documentId'}" class="text-dim">—</span>
+                        </td>
+                        <td th:each="cell : ${row}" th:text="${cell}" class="query-cell-mono">cell</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
     </div>
     <p th:if="${columns == null or columns.isEmpty()}" class="text-dim" th:text="${msg['common.noData']}">No data.</p>
 </main>

@@ -23,7 +23,9 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -305,8 +307,12 @@ public class PgMetadataService {
                 ? pgMetadataRepository.getColumnTypes(connectionId, dbName, schemaName, tableName)
                 : Map.of();
 
+        boolean greenplum = isGreenplum(connMeta.get().getType());
+        String rowLocatorSelect = greenplum
+                ? qualified + ".ctid, " + qualified + ".gp_segment_id"
+                : qualified + ".ctid";
         String modifiedSql = sql.strip().replaceFirst(";+\\s*$", "")
-                .replaceFirst("(?i)SELECT\\s+\\*", "SELECT *, " + qualified + ".ctid");
+                .replaceFirst("(?i)SELECT\\s+\\*", "SELECT *, " + rowLocatorSelect);
         String pagedSql = wrapWithLimitOffset(modifiedSql, 1, rowNum, sortBy, sortOrder);
         Optional<Map<String, Object>> rowOpt = pgMetadataRepository.executeQuerySingleRow(connectionId, dbName, pagedSql);
 
@@ -323,9 +329,14 @@ public class PgMetadataService {
 
         List<Map<String, String>> detailRows = new ArrayList<>();
         String rowCtid = null;
+        String rowGpSegmentId = null;
         for (Map.Entry<String, Object> e : row.entrySet()) {
             if ("ctid".equalsIgnoreCase(e.getKey())) {
                 rowCtid = e.getValue() != null ? e.getValue().toString() : null;
+                continue;
+            }
+            if ("gp_segment_id".equalsIgnoreCase(e.getKey())) {
+                rowGpSegmentId = e.getValue() != null ? e.getValue().toString() : null;
                 continue;
             }
             Map<String, String> entry = new LinkedHashMap<>();
@@ -337,12 +348,14 @@ public class PgMetadataService {
 
         out.put("detailRows", detailRows);
         out.put("rowCtid", rowCtid != null ? rowCtid : "");
+        out.put("rowGpSegmentId", rowGpSegmentId != null ? rowGpSegmentId : "");
 
         return out;
     }
 
     public Optional<String> executeUpdateByCtid(Long connectionId, String dbName, String qualifiedTable,
-                                                String ctid, Map<String, String> columnValues) {
+                                                String ctid, String gpSegmentId, Map<String, String> columnValues,
+                                                Map<String, String> originalColumnValues) {
         if (ctid == null || ctid.isBlank() || qualifiedTable == null || qualifiedTable.isBlank()) {
             return Optional.of("Missing ctid or table.");
         }
@@ -350,6 +363,10 @@ public class PgMetadataService {
         Optional<DbConnection> connMeta = dbConnectionService.findById(connectionId);
         if (connMeta.isEmpty() || !PostgresWireCompat.supportsCtidUpdates(connMeta.get().getType())) {
             return Optional.of("pg.ctidUnsupported");
+        }
+        boolean greenplum = isGreenplum(connMeta.get().getType());
+        if (greenplum && (gpSegmentId == null || gpSegmentId.isBlank())) {
+            return Optional.of("Missing gp_segment_id for Greenplum row update.");
         }
 
         if (columnValues == null || columnValues.isEmpty()) {
@@ -374,17 +391,25 @@ public class PgMetadataService {
                 ? pgMetadataRepository.getColumnTypes(connectionId, dbName, schemaName, tableName)
                 : Map.of();
         List<String> setParts = new ArrayList<>();
-        List<String> values = new ArrayList<>();
+        List<Object> values = new ArrayList<>();
         for (Map.Entry<String, String> e : columnValues.entrySet()) {
-            if ("ctid".equalsIgnoreCase(e.getKey())) {
+            if ("ctid".equalsIgnoreCase(e.getKey()) || "gp_segment_id".equalsIgnoreCase(e.getKey())) {
+                continue;
+            }
+            String raw = e.getValue();
+            if (originalColumnValues != null && originalColumnValues.containsKey(e.getKey())
+                    && Objects.equals(raw, originalColumnValues.get(e.getKey()))) {
                 continue;
             }
             String quoted = "\"" + e.getKey().replace("\"", "\"\"") + "\"";
             String dataType = columnTypes.get(e.getKey());
             String cast = sqlCastForDataType(dataType);
             setParts.add(quoted + " = " + cast);
-            String raw = e.getValue();
-            values.add((raw == null || raw.isBlank()) && isScalarDataType(dataType) ? null : (raw != null ? raw : ""));
+            try {
+                values.add(jdbcValueForDataType(e.getKey(), dataType, raw));
+            } catch (IllegalArgumentException ex) {
+                return Optional.of(ex.getMessage());
+            }
         }
 
         if (setParts.isEmpty()) {
@@ -403,9 +428,22 @@ public class PgMetadataService {
         String qualified = (schemaName != null && !schemaName.isBlank())
                 ? "\"" + schemaName.replace("\"", "\"\"") + "\".\"" + tableName.replace("\"", "\"\"") + "\""
                 : "\"" + tableName.replace("\"", "\"\"") + "\"";
-        String updateSql = "UPDATE " + qualified + " SET " + String.join(", ", setParts) + " WHERE ctid = '" + trimmedCtid + "'::tid";
+        String where = " WHERE ctid = '" + trimmedCtid + "'::tid";
+        if (greenplum) {
+            String trimmedGpSegmentId = gpSegmentId.trim();
+            if (!trimmedGpSegmentId.matches("-?\\d+")) {
+                return Optional.of("Invalid gp_segment_id format.");
+            }
+            where += " AND gp_segment_id = ?";
+            values.add(Integer.valueOf(trimmedGpSegmentId));
+        }
+        String updateSql = "UPDATE " + qualified + " SET " + String.join(", ", setParts) + where;
 
         return pgMetadataRepository.executeUpdate(connectionId, dbName, updateSql, values);
+    }
+
+    private static boolean isGreenplum(String type) {
+        return "greenplum".equalsIgnoreCase(type);
     }
 
     private static String sqlCastForDataType(String dataType) {
@@ -423,6 +461,30 @@ public class PgMetadataService {
             case "time with time zone" -> "?::timetz";
             case "boolean" -> "?::boolean";
             default -> "?";
+        };
+    }
+
+    private static Object jdbcValueForDataType(String columnName, String dataType, String raw) {
+        if ((raw == null || raw.isBlank()) && isScalarDataType(dataType)) {
+            return null;
+        }
+        if ("boolean".equals(dataType)) {
+            return parseBoolean(raw)
+                    .orElseThrow(() -> new IllegalArgumentException("Invalid boolean value for " + columnName + "."));
+        }
+
+        return raw != null ? raw : "";
+    }
+
+    private static Optional<Boolean> parseBoolean(String raw) {
+        if (raw == null) {
+            return Optional.empty();
+        }
+
+        return switch (raw.trim().toLowerCase(Locale.ROOT)) {
+            case "true", "t", "1", "yes", "y", "on" -> Optional.of(true);
+            case "false", "f", "0", "no", "n", "off" -> Optional.of(false);
+            default -> Optional.empty();
         };
     }
 

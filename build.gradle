@@ -66,6 +66,10 @@ configurations.all {
                 details.useVersion("4.2.13.Final")
                 details.because("CVE-2026-42577, CVE-2026-42583, CVE-2026-42587 and related 2026 Netty codec/transport fixes")
             }
+            if (details.requested.group == "dnsjava" && details.requested.name == "dnsjava") {
+                details.useVersion("3.5.3")
+                details.because("dnsjava 3.6.x publishes a Java 18 InetAddressResolverProvider service that breaks Java 17 shadow jars")
+            }
             if (details.requested.group == "commons-beanutils" && details.requested.name == "commons-beanutils") {
                 details.useVersion("1.11.0")
                 details.because("CVE-2025-48734")

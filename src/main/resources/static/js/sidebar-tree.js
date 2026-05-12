@@ -148,7 +148,8 @@
                         body = { message: raw };
                     }
                 }
-                var key = body.message || (body._embedded && body._embedded.errors && body._embedded.errors[0] && body._embedded.errors[0].message) || '';
+                var embeddedMessage = body._embedded && body._embedded.errors && body._embedded.errors[0] && body._embedded.errors[0].message;
+                var key = embeddedMessage || body.message || '';
                 if (key === 'connection.nameTrailingSlash') {
                     text = msgEl.dataset.nameTrailingSlash || key;
                 } else if (key === 'connection.nameDuplicate') {

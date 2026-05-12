@@ -386,6 +386,7 @@ public class PgController {
 
         List<Map<String, String>> detailRows = new ArrayList<>();
         String rowCtid = null;
+        String rowGpSegmentId = null;
         if (sql != null && !sql.isBlank() && rowNum != null && rowNum >= 0) {
             var result = pgMetadataService.getDetailRowWithCtid(id, dbName, schemaClean, sql, Math.max(0, rowNum), sort, order);
             if (result.containsKey("error")) {
@@ -398,11 +399,13 @@ public class PgController {
                     detailRows = rows;
                 }
                 rowCtid = (String) result.get("rowCtid");
+                rowGpSegmentId = (String) result.get("rowGpSegmentId");
             }
         }
 
         model.put("detailRows", detailRows);
         model.put("rowCtid", rowCtid != null ? rowCtid : "");
+        model.put("rowGpSegmentId", rowGpSegmentId != null ? rowGpSegmentId : "");
         model.put("readOnly", readOnly);
 
         if (!detailRows.isEmpty()) {
@@ -457,11 +460,15 @@ public class PgController {
         String sort = form != null ? form.get("sort") : null;
         String order = form != null ? form.get("order") : null;
         String ctid = form != null ? form.get("ctid") : null;
+        String gpSegmentId = form != null ? form.get("gpSegmentId") : null;
         Map<String, String> columnValues = new LinkedHashMap<>();
+        Map<String, String> originalColumnValues = new LinkedHashMap<>();
         if (form != null) {
             for (Map.Entry<String, String> e : form.entrySet()) {
                 if (e.getKey() != null && e.getKey().startsWith("field_")) {
                     columnValues.put(e.getKey().substring(6), e.getValue() != null ? e.getValue() : "");
+                } else if (e.getKey() != null && e.getKey().startsWith("original_")) {
+                    originalColumnValues.put(e.getKey().substring(9), e.getValue() != null ? e.getValue() : "");
                 }
             }
         }
@@ -475,7 +482,8 @@ public class PgController {
             return new ModelAndView<>("pg/detail", model);
         }
 
-        Optional<String> err = pgMetadataService.executeUpdateByCtid(id, dbName, qualifiedTable.get(), ctid, columnValues);
+        Optional<String> err = pgMetadataService.executeUpdateByCtid(id, dbName, qualifiedTable.get(), ctid,
+                gpSegmentId, columnValues, originalColumnValues);
         if (err.isPresent()) {
             Map<String, Object> model = rowDetail(id, dbName, schema, sql, rowNum, sort, order, searchParam, tableParam);
             AppAlerts.fromControllerMessage(model, err.get());

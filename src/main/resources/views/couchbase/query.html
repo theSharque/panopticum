@@ -15,17 +15,45 @@
             </button>
         </form>
     </section>
-    <div th:if="${columns != null and !columns.isEmpty()}" class="query-table-wrapper">
-        <table class="query-table">
-            <thead>
-                <tr><th th:each="col : ${columns}" th:text="${col}">col</th></tr>
-            </thead>
-            <tbody>
-                <tr th:each="row : ${rows}">
-                    <td th:each="cell : ${row}" th:text="${cell}">cell</td>
-                </tr>
-            </tbody>
-        </table>
+    <div class="query-result">
+        <div th:if="${columns != null and !columns.isEmpty()}" class="query-result-data">
+            <div class="query-pagination-info" th:if="${rows != null and !rows.isEmpty()}">
+                <span class="query-pagination-nav">
+                    <form class="query-pagination-form"
+                          th:action="@{/couchbase/{id}/query(id=${connectionId})}"
+                          method="post">
+                        <input type="hidden" name="statement" th:value="${statement}"/>
+                        <input type="hidden" name="limit" th:value="${limit}"/>
+                        <input type="hidden" name="offset" th:value="${prevOffset}"/>
+                        <button type="submit" class="btn btn--icon" th:classappend="${!hasPrev} ? ' btn--disabled' : ''" th:disabled="${!hasPrev}" th:aria-label="${msg['common.prev']}" th:title="${msg['common.prev']}"><svg th:replace="~{fragments/pagination-arrows :: arrowPrev}"></svg></button>
+                    </form>
+                    <form class="query-pagination-form"
+                          th:action="@{/couchbase/{id}/query(id=${connectionId})}"
+                          method="post">
+                        <input type="hidden" name="statement" th:value="${statement}"/>
+                        <input type="hidden" name="limit" th:value="${limit}"/>
+                        <input type="hidden" name="offset" th:value="${nextOffset}"/>
+                        <button type="submit" class="btn btn--icon" th:classappend="${!hasMore} ? ' btn--disabled' : ''" th:disabled="${!hasMore}" th:aria-label="${msg['common.next']}" th:title="${msg['common.next']}"><svg th:replace="~{fragments/pagination-arrows :: arrowNext}"></svg></button>
+                    </form>
+                </span>
+                <span class="query-pagination-range" th:text="${msg['common.rowsRange'] + fromRow + '–' + toRow}"></span>
+            </div>
+            <div class="query-table-wrapper">
+                <table class="query-table">
+                    <thead>
+                        <tr>
+                            <th th:each="col : ${columns}" class="query-th" th:text="${col}">col</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="row : ${rows}" class="query-data-row">
+                            <td th:each="cell : ${row}" th:text="${cell}" class="query-cell-mono">cell</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <p th:if="${statement != null and !statement.isBlank() and (rows == null or rows.isEmpty())}" class="text-dim" th:text="${msg['common.noData']}">No data.</p>
     </div>
 </main>
 </body>

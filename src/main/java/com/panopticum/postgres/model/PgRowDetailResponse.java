@@ -25,12 +25,16 @@ public class PgRowDetailResponse {
     @Schema(description = "CTID of the row")
     private String rowCtid;
 
+    @Schema(description = "Greenplum gp_segment_id companion for CTID")
+    private String rowGpSegmentId;
+
     public static PgRowDetailResponse fromCtidRowMap(Map<String, Object> result) {
         String error = (String) result.get("error");
         @SuppressWarnings("unchecked")
         List<Map<String, String>> detailRows = (List<Map<String, String>>) result.get("detailRows");
         String rowCtid = (String) result.get("rowCtid");
+        String rowGpSegmentId = (String) result.get("rowGpSegmentId");
         return new PgRowDetailResponse(error, detailRows != null ? detailRows : List.of(),
-                rowCtid != null ? rowCtid : "");
+                rowCtid != null ? rowCtid : "", rowGpSegmentId != null ? rowGpSegmentId : "");
     }
 }

@@ -166,20 +166,24 @@ public class PgApiController extends AbstractConnectionApiController {
         assertNotReadOnly();
         ensureConnectionExists(id);
         String schemaClean = unquotePgIdentifier(schema);
+
         Optional<String> qualifiedTable = pgMetadataService.parseTableFromSql(request.getSql());
         if (qualifiedTable.isEmpty()) {
-            return new PgRowDetailResponse("Could not determine table from SQL.", List.of(), "");
+            return new PgRowDetailResponse("Could not determine table from SQL.", List.of(), "", "");
         }
+
         Map<String, String> columnValues = request.getColumnValues() != null ? request.getColumnValues() : Map.of();
         Optional<String> err = pgMetadataService.executeUpdateByCtid(id, dbName, qualifiedTable.get(),
-                request.getCtid(), columnValues);
+                request.getCtid(), request.getGpSegmentId(), columnValues, request.getOriginalColumnValues());
         if (err.isPresent()) {
-            return new PgRowDetailResponse(err.get(), List.of(), "");
+            return new PgRowDetailResponse(err.get(), List.of(), "", "");
         }
+
         Map<String, Object> result = pgMetadataService.getDetailRowWithCtid(id, dbName, schemaClean,
                 request.getSql(), request.getRowNum(),
                 request.getSort() != null ? request.getSort() : "",
                 request.getOrder() != null ? request.getOrder() : "");
+
         return PgRowDetailResponse.fromCtidRowMap(result);
     }
 
@@ -187,13 +191,16 @@ public class PgApiController extends AbstractConnectionApiController {
         if (s == null || s.isBlank()) {
             return s != null ? s : "";
         }
+
         String t = s.trim();
         if (!t.isEmpty() && t.charAt(0) == '"') {
             t = t.substring(1);
         }
+
         if (!t.isEmpty() && t.charAt(t.length() - 1) == '"') {
             t = t.substring(0, t.length() - 1);
         }
+
         return t.replace("\"\"", "\"");
     }
 }

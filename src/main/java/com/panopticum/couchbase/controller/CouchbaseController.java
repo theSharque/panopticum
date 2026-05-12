@@ -13,6 +13,7 @@ import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.core.ui.AppAlerts;
 import com.panopticum.core.util.ControllerModelHelper;
 import io.micronaut.core.annotation.Nullable;
+import io.micronaut.http.HttpResponse;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.Consumes;
 import io.micronaut.http.annotation.Controller;
@@ -25,9 +26,13 @@ import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.annotation.ExecuteOn;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
+import io.micronaut.views.ModelAndView;
 import io.micronaut.views.View;
 import lombok.RequiredArgsConstructor;
 
+import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -140,9 +145,36 @@ public class CouchbaseController {
     public Map<String, Object> documentDetail(@PathVariable Long id, @PathVariable String bucket,
                                               @PathVariable String scope, @PathVariable String collection,
                                               @QueryValue String documentId) {
+        return documentDetailModel(id, bucket, scope, collection, documentId, null);
+    }
+
+    @Post("/{id}/{bucket}/{scope}/{collection}/detail")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @Produces(MediaType.TEXT_HTML)
+    public Object saveDocument(@PathVariable Long id, @PathVariable String bucket, @PathVariable String scope,
+                               @PathVariable String collection, String documentId, String body) {
+        Optional<String> err = couchbaseService.replaceDocument(id, bucket, scope, collection, documentId, body);
+
+        if (err.isPresent()) {
+            Map<String, Object> model = documentDetailModel(id, bucket, scope, collection, documentId, body);
+            AppAlerts.fromControllerMessage(model, err.get());
+
+            return new ModelAndView<>("couchbase/document-detail", model);
+        }
+
+        String q = documentId != null && !documentId.isBlank()
+                ? "?documentId=" + URLEncoder.encode(documentId, StandardCharsets.UTF_8)
+                : "";
+        return HttpResponse.redirect(URI.create("/couchbase/" + id + "/" + bucket + "/" + scope + "/" + collection + "/detail" + q));
+    }
+
+    private Map<String, Object> documentDetailModel(Long id, String bucket, String scope, String collection,
+                                                    String documentId, String fallbackBody) {
         Map<String, Object> model = ControllerModelHelper.baseModel(id, dbConnectionService);
         Optional<DbConnection> conn = dbConnectionService.findById(id);
         if (conn.isEmpty()) {
+            model.put("prettyJson", fallbackBody != null ? fallbackBody : "{}");
+
             return model;
         }
 
@@ -158,17 +190,44 @@ public class CouchbaseController {
         model.put("collection", collection);
         model.put("documentId", documentId);
 
-        couchbaseService.getDocument(id, bucket, scope, collection, documentId).ifPresentOrElse(
-                doc -> {
-                    try {
-                        model.put("documentJson", objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(doc));
-                    } catch (JsonProcessingException e) {
-                        model.put("documentJson", String.valueOf(doc));
-                    }
-                },
-                () -> AppAlerts.raw(model, "Document not found"));
+        Optional<Map<String, Object>> document = fallbackBody == null
+                ? couchbaseService.getDocument(id, bucket, scope, collection, documentId)
+                : Optional.empty();
+        String json = fallbackBody != null ? fallbackBody : document.map(this::documentToPrettyJson).orElse("{}");
+        model.put("prettyJson", json);
+        addDataDiffPayload(model, conn.get(), id, bucket, scope, collection, documentId, json);
+        if (fallbackBody == null && document.isEmpty()) {
+            AppAlerts.raw(model, "Document not found");
+        }
 
         return model;
+    }
+
+    private String documentToPrettyJson(Map<String, Object> doc) {
+        try {
+            return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(doc);
+        } catch (JsonProcessingException e) {
+            return String.valueOf(doc);
+        }
+    }
+
+    private void addDataDiffPayload(Map<String, Object> model, DbConnection conn, Long id, String bucket,
+                                    String scope, String collection, String documentId, String json) {
+        String label = conn.getName() + " / " + bucket + " / " + scope + " / " + collection + " / "
+                + (documentId != null ? documentId : "");
+        try {
+            Map<String, Object> payload = Map.of(
+                    "source", "couchbase",
+                    "connectionId", id,
+                    "connectionName", conn.getName(),
+                    "label", label,
+                    "data", json,
+                    "dataFormat", "json"
+            );
+            model.put("dataDiffPayload", objectMapper.writeValueAsString(payload));
+        } catch (JsonProcessingException e) {
+            model.put("dataDiffPayload", (String) null);
+        }
     }
 
     @Produces(MediaType.TEXT_HTML)

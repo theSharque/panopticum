@@ -307,6 +307,27 @@ public class CouchbaseService {
         }
     }
 
+    public Optional<String> replaceDocument(Long connectionId, String bucket, String scope, String collection,
+                                            String documentId, String jsonString) {
+        if (documentId == null || documentId.isBlank() || bucket == null || bucket.isBlank()
+                || scope == null || scope.isBlank() || collection == null || collection.isBlank()
+                || jsonString == null) {
+            return Optional.of("error.specifyCollection");
+        }
+        DbConnection c = requireConn(connectionId);
+        try (Cluster cluster = connect(c)) {
+            cluster.waitUntilReady(READY);
+            Collection coll = cluster.bucket(bucket).scope(scope).collection(collection);
+            coll.replace(documentId, JsonObject.fromJson(jsonString));
+            return Optional.empty();
+        } catch (DocumentNotFoundException e) {
+            return Optional.of("Document not found");
+        } catch (Exception e) {
+            log.warn("replaceDocument failed: {}", e.getMessage());
+            return Optional.of(e.getMessage() != null ? e.getMessage() : "error.queryExecutionFailed");
+        }
+    }
+
     public Optional<EntityDescription> describeCollection(Long connectionId, String bucket, String scope, String collection) {
         DbConnection c = requireConn(connectionId);
         String bq = bt(bucket);

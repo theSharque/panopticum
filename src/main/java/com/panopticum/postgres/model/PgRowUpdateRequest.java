@@ -25,6 +25,9 @@ public class PgRowUpdateRequest {
     @Schema(description = "CTID of the row", requiredMode = Schema.RequiredMode.REQUIRED)
     private String ctid;
 
+    @Schema(description = "Greenplum gp_segment_id companion for CTID")
+    private String gpSegmentId;
+
     @Schema(description = "Sort column")
     private String sort;
 
@@ -36,4 +39,7 @@ public class PgRowUpdateRequest {
 
     @Schema(description = "Column names to values for update", requiredMode = Schema.RequiredMode.REQUIRED)
     private Map<String, String> columnValues;
+
+    @Schema(description = "Original column names to values for changed-field updates")
+    private Map<String, String> originalColumnValues;
 }

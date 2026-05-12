@@ -371,7 +371,7 @@ public class PgMetadataRepository {
         }
     }
 
-    public Optional<String> executeUpdate(Long connectionId, String dbName, String updateSql, List<String> params) {
+    public Optional<String> executeUpdate(Long connectionId, String dbName, String updateSql, List<Object> params) {
         if (params == null) {
             return Optional.of("Missing params");
         }
@@ -379,7 +379,12 @@ public class PgMetadataRepository {
         try (Connection conn = ConnectionSupport.require(getConnection(connectionId, dbName))) {
             try (PreparedStatement ps = conn.prepareStatement(updateSql)) {
                 for (int i = 0; i < params.size(); i++) {
-                    ps.setObject(i + 1, params.get(i));
+                    Object param = params.get(i);
+                    if (param instanceof Boolean value) {
+                        ps.setBoolean(i + 1, value);
+                    } else {
+                        ps.setObject(i + 1, param);
+                    }
                 }
 
                 int updated = ps.executeUpdate();

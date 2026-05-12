@@ -5,15 +5,31 @@
 <main th:fragment="main" class="main-content">
     <div th:replace="~{fragments/page-heading :: pageHeading(items=${breadcrumbs})}"></div>
     <h1 th:text="${msg['couchbase.collectionsTitle']}">Scopes and collections</h1>
-    <div th:if="${scopes != null and !scopes.isEmpty()}">
-        <div th:each="sc : ${scopes}" class="query-result-data" style="margin-bottom: 2rem;">
-            <h2 th:text="${sc.scopeName}">scope</h2>
-            <ul class="sidebar-nav" style="list-style: none; padding-left: 0;">
-                <li th:each="cname : ${sc.collectionNames}">
-                    <a th:href="@{/couchbase/{id}/{bucket}/{scope}/{collection}(id=${connectionId}, bucket=${bucket}, scope=${sc.scopeName}, collection=${cname})}"
-                       th:text="${cname}">collection</a>
-                </li>
-            </ul>
+    <div th:if="${scopes != null and !scopes.isEmpty()}" class="query-result-data">
+        <div class="query-table-wrapper">
+            <table class="query-table">
+                <thead>
+                    <tr>
+                        <th class="query-th query-th-detail"></th>
+                        <th class="query-th" th:text="${msg['couchbase.collection']}">Collection</th>
+                        <th class="query-th" th:text="${msg['couchbase.scope']}">Scope</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <th:block th:each="sc : ${scopes}">
+                        <tr th:each="cname : ${sc.collectionNames}" class="query-data-row">
+                            <td class="query-detail-cell">
+                                <a th:href="@{/couchbase/{id}/{bucket}/{scope}/{collection}(id=${connectionId}, bucket=${bucket}, scope=${sc.scopeName}, collection=${cname})}"
+                                   class="btn btn--icon btn--ghost" th:attr="aria-label=${msg['common.open']}, title=${msg['common.open']}">
+                                    <svg class="icon" aria-hidden="true"><use href="#icon-link"/></svg>
+                                </a>
+                            </td>
+                            <td th:text="${cname}"></td>
+                            <td th:text="${sc.scopeName}" class="query-cell-mono"></td>
+                        </tr>
+                    </th:block>
+                </tbody>
+            </table>
         </div>
     </div>
     <p th:if="${scopes == null or scopes.isEmpty()}" class="text-dim" th:text="${msg['couchbase.noCollections']}">No collections.</p>
