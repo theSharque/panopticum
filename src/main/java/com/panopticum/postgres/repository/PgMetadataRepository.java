@@ -9,6 +9,7 @@ import com.panopticum.core.error.ConnectionSupport;
 import com.panopticum.core.error.MetadataAccessException;
 import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.core.util.SizeFormatter;
+import com.panopticum.postgres.PostgresJdbcDrivers;
 import com.panopticum.postgres.PostgresWireCompat;
 import com.panopticum.mcp.model.ColumnInfo;
 import com.panopticum.mcp.model.EntityDescription;
@@ -82,6 +83,7 @@ public class PgMetadataRepository {
 
         String url = POSTGRESQL_PREFIX + conn.getHost() + ":" + conn.getPort() + "/" + db;
 
+        PostgresJdbcDrivers.ensureLoaded();
         try {
             return Optional.of(DriverManager.getConnection(url, conn.getUsername(), conn.getPassword() != null ? conn.getPassword() : ""));
         } catch (SQLException e) {
@@ -101,6 +103,7 @@ public class PgMetadataRepository {
         }
 
         String url = POSTGRESQL_PREFIX + conn.getHost() + ":" + conn.getPort() + "/" + db;
+        PostgresJdbcDrivers.ensureLoaded();
         try {
             return Optional.of(DriverManager.getConnection(url, conn.getUsername(), conn.getPassword() != null ? conn.getPassword() : ""));
         } catch (SQLException e) {

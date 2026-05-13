@@ -10,6 +10,7 @@ import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.core.util.StringUtils;
 import com.panopticum.mcp.model.EntityDescription;
+import com.panopticum.postgres.PostgresJdbcDrivers;
 import com.panopticum.postgres.PostgresWireCompat;
 import com.panopticum.postgres.repository.PgMetadataRepository;
 import io.micronaut.context.annotation.Value;
@@ -58,6 +59,7 @@ public class PgMetadataService {
         if (host == null || host.isBlank() || dbName == null || dbName.isBlank() || username == null || username.isBlank()) {
             return Optional.of("error.specifyHostDbUser");
         }
+        PostgresJdbcDrivers.ensureLoaded();
         String url = POSTGRESQL_PREFIX + host.trim() + ":" + port + "/" + dbName.trim();
         try (Connection c = DriverManager.getConnection(url, username.trim(), password != null ? password : "")) {
             return Optional.empty();

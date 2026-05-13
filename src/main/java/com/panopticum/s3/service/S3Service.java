@@ -100,7 +100,8 @@ public class S3Service {
 
     public AccessResult<String> peekObject(Long connectionId, String bucket, String key, int headBytes, String format) {
         return withClient(connectionId, client -> {
-            int safeBytes = Math.min(Math.max(1, headBytes), MAX_PEEK_BYTES);
+            int requested = headBytes > 0 ? headBytes : DEFAULT_PEEK_BYTES;
+            int safeBytes = Math.min(requested, MAX_PEEK_BYTES);
             try (InputStream in = client.getObject(GetObjectArgs.builder()
                     .bucket(bucket)
                     .object(key)

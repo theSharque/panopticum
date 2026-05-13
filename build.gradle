@@ -3,7 +3,7 @@ plugins {
     id("io.micronaut.application") version "4.6.2"
 }
 
-version = "8.2.2"
+version = "8.2.3"
 group = "com.panopticum"
 
 repositories {
@@ -114,7 +114,7 @@ dependencies {
     runtimeOnly("org.hsqldb:hsqldb:2.7.3")
     runtimeOnly("org.apache.derby:derbyclient:10.17.1.0")
     implementation("com.couchbase.client:java-client:3.11.1")
-    runtimeOnly("org.postgresql:postgresql:42.7.4")
+    implementation("org.postgresql:postgresql:42.7.4")
     runtimeOnly("com.mysql:mysql-connector-j:9.1.0")
     runtimeOnly("com.microsoft.sqlserver:mssql-jdbc:13.4.0.jre11")
     runtimeOnly("com.oracle.database.jdbc:ojdbc11:21.18.0.0")
