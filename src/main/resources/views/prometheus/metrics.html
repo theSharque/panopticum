@@ -44,7 +44,7 @@
                     <tr th:each="m : ${metrics}" class="query-data-row">
                         <td class="query-detail-cell">
                             <a th:href="@{/prometheus/{id}/query(id=${connectionId},promql=${m.name})}"
-                               class="btn btn--icon btn--ghost">
+                               class="btn btn--icon btn--ghost" th:attr="aria-label=${msg['common.open']}, title=${msg['common.open']}">
                                 <svg class="icon" aria-hidden="true"><use href="#icon-link"/></svg>
                             </a>
                         </td>

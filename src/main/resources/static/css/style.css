@@ -1328,6 +1328,14 @@ body {
     padding: 0;
 }
 
+.main-content .query-detail-cell .btn.btn--icon.btn--ghost {
+    color: var(--accent);
+}
+
+.main-content .query-detail-cell .btn.btn--icon.btn--ghost:hover {
+    color: var(--accent-hover);
+}
+
 
 .detail-block {
     margin-top: var(--space-lg);

@@ -72,7 +72,7 @@
 
         <div class="detail-actions">
             <a th:href="@{/kubernetes/{id}/namespaces/{ns}/pods/{p}/logs(id=${connectionId}, ns=${namespace}, p=${podName})}+?tail=500"
-               class="btn" th:text="${msg['kubernetes.logsTitle']}">Logs</a>
+               class="btn btn--primary" th:text="${msg['kubernetes.logsTitle']}">Logs</a>
         </div>
     </th:block>
 </main>
