@@ -1,9 +1,9 @@
 plugins {
-    id("com.github.johnrengelman.shadow") version "8.1.1"
+    id("com.gradleup.shadow") version "8.3.10"
     id("io.micronaut.application") version "4.6.2"
 }
 
-version = "8.2.4"
+version = "8.2.5"
 group = "com.panopticum"
 
 repositories {
@@ -73,6 +73,10 @@ configurations.all {
             if (details.requested.group == "commons-beanutils" && details.requested.name == "commons-beanutils") {
                 details.useVersion("1.11.0")
                 details.because("CVE-2025-48734")
+            }
+            if (details.requested.group == "org.apache.commons" && details.requested.name == "commons-configuration2") {
+                details.useVersion("2.15.0")
+                details.because("CVE-2026-45205")
             }
             if (details.requested.group == "com.couchbase.client" && details.requested.name == "java-client") {
                 details.useVersion("3.11.1")

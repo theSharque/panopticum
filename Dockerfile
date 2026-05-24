@@ -1,4 +1,4 @@
-FROM eclipse-temurin:17-jdk-noble AS builder
+FROM eclipse-temurin:17-jdk-alpine AS builder
 
 WORKDIR /app
 
@@ -8,18 +8,14 @@ COPY src src/
 
 RUN ./gradlew shadowJar --no-daemon
 
-FROM eclipse-temurin:17-jre-noble
+FROM eclipse-temurin:17-jre-alpine
 
 ARG APP_VERSION=dev
 ENV APP_VERSION=$APP_VERSION
 
-RUN apt-get update \
-    && DEBIAN_FRONTEND=noninteractive apt-get upgrade -y \
-    && DEBIAN_FRONTEND=noninteractive apt-get purge -y --auto-remove wget \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-
-RUN groupadd -g 1001 app && useradd -u 1001 -g app -s /bin/false app
+RUN apk add --no-cache bash \
+    && addgroup -g 1001 app \
+    && adduser -u 1001 -G app -s /sbin/nologin -D app
 
 WORKDIR /app
 
