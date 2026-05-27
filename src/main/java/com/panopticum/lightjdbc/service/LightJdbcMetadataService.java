@@ -8,6 +8,8 @@ import com.panopticum.core.model.SchemaInfo;
 import com.panopticum.core.model.TableInfo;
 import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.service.DbConnectionService;
+import com.panopticum.core.sql.SqlQuerySupport;
+import com.panopticum.core.sql.SqlStatementClassifier;
 import com.panopticum.core.util.StringUtils;
 import com.panopticum.lightjdbc.repository.LightJdbcMetadataRepository;
 import com.panopticum.mcp.model.EntityDescription;
@@ -123,17 +125,24 @@ public class LightJdbcMetadataService {
         if (search != null && !search.isBlank()) {
             return executeQueryWithSearch(connectionId, sql, offset, limit, sortBy, sortOrder, search.trim());
         }
+        return SqlQuerySupport.run(() -> executeQueryUnchecked(connectionId, sql, offset, limit));
+    }
+
+    private Optional<QueryResult> executeQueryUnchecked(Long connectionId, String sql, int offset, int limit) {
         if (lightJdbcMetadataRepository.getConnection(connectionId).isEmpty()) {
             return Optional.of(QueryResult.error("error.connectionNotAvailable"));
         }
         int lim = Math.min(limit > 0 ? limit : 100, queryRowsLimit);
         int off = Math.max(0, offset);
-        Optional<QueryResultData> dataOpt = lightJdbcMetadataRepository.executeQueryWindow(connectionId, sql.strip().replaceFirst(";+\\s*$", ""), off, lim);
+        String normalized = sql.strip().replaceFirst(";+\\s*$", "");
+        Optional<QueryResultData> dataOpt = SqlStatementClassifier.isSelect(normalized)
+                ? lightJdbcMetadataRepository.executeQueryWindow(connectionId, normalized, off, lim)
+                : lightJdbcMetadataRepository.executeQuery(connectionId, normalized);
         if (dataOpt.isEmpty()) {
             return Optional.of(QueryResult.error("error.queryExecutionFailed"));
         }
         QueryResultData data = dataOpt.get();
-        boolean hasMore = data.getRows().size() == lim;
+        boolean hasMore = SqlStatementClassifier.isSelect(normalized) && data.getRows().size() == lim;
         List<List<Object>> rows = new ArrayList<>();
         for (List<Object> row : data.getRows()) {
             List<Object> t = new ArrayList<>();
@@ -142,6 +151,7 @@ public class LightJdbcMetadataService {
             }
             rows.add(t);
         }
+
         return Optional.of(new QueryResult(data.getColumns(), data.getColumnTypes(), rows, null, null, off, lim, hasMore));
     }
 

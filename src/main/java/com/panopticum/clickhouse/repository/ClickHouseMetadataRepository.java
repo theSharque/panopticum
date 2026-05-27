@@ -2,6 +2,7 @@ package com.panopticum.clickhouse.repository;
 
 import com.panopticum.core.error.ConnectionSupport;
 import com.panopticum.core.error.MetadataAccessException;
+import com.panopticum.core.sql.JdbcSqlExecutor;
 import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.core.util.SizeFormatter;
@@ -131,27 +132,9 @@ public class ClickHouseMetadataRepository {
     }
 
     public Optional<QueryResultData> executeQuery(Long connectionId, String dbName, String sql) {
-        try (Connection conn = ConnectionSupport.require(getConnection(connectionId, dbName))) {
-            try (Statement stmt = conn.createStatement();
-                 ResultSet rs = stmt.executeQuery(sql)) {
-                var meta = rs.getMetaData();
-                int colCount = meta.getColumnCount();
-                List<String> columns = new ArrayList<>();
-                List<String> columnTypes = new ArrayList<>();
-                for (int i = 1; i <= colCount; i++) {
-                    columns.add(meta.getColumnLabel(i));
-                    columnTypes.add(meta.getColumnTypeName(i));
-                }
-                List<List<Object>> rows = new ArrayList<>();
-                while (rs.next()) {
-                    List<Object> row = new ArrayList<>();
-                    for (int i = 1; i <= colCount; i++) {
-                        row.add(rs.getObject(i));
-                    }
-                    rows.add(row);
-                }
-                return Optional.of(new QueryResultData(columns, columnTypes, rows));
-            }
+        try (Connection conn = ConnectionSupport.require(getConnection(connectionId, dbName));
+             Statement stmt = conn.createStatement()) {
+            return Optional.of(JdbcSqlExecutor.execute(stmt, sql));
         } catch (SQLException e) {
             log.warn("executeQuery failed: {}", e.getMessage());
             throw new MetadataAccessException(e.getMessage(), e);
@@ -162,31 +145,13 @@ public class ClickHouseMetadataRepository {
         if (params == null || params.isEmpty()) {
             return executeQuery(connectionId, dbName, sql);
         }
-        try (Connection conn = ConnectionSupport.require(getConnection(connectionId, dbName))) {
-            try (PreparedStatement ps = conn.prepareStatement(sql)) {
-                for (int i = 0; i < params.size(); i++) {
-                    ps.setObject(i + 1, params.get(i));
-                }
-                try (ResultSet rs = ps.executeQuery()) {
-                    ResultSetMetaData meta = rs.getMetaData();
-                    int colCount = meta.getColumnCount();
-                    List<String> columns = new ArrayList<>();
-                    List<String> columnTypes = new ArrayList<>();
-                    for (int i = 1; i <= colCount; i++) {
-                        columns.add(meta.getColumnLabel(i));
-                        columnTypes.add(meta.getColumnTypeName(i));
-                    }
-                    List<List<Object>> rows = new ArrayList<>();
-                    while (rs.next()) {
-                        List<Object> row = new ArrayList<>();
-                        for (int i = 1; i <= colCount; i++) {
-                            row.add(rs.getObject(i));
-                        }
-                        rows.add(row);
-                    }
-                    return Optional.of(new QueryResultData(columns, columnTypes, rows));
-                }
+        try (Connection conn = ConnectionSupport.require(getConnection(connectionId, dbName));
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            for (int i = 0; i < params.size(); i++) {
+                ps.setObject(i + 1, params.get(i));
             }
+
+            return Optional.of(JdbcSqlExecutor.execute(ps, sql));
         } catch (SQLException e) {
             log.warn("executeQuery with params failed: {}", e.getMessage());
             throw new MetadataAccessException(e.getMessage(), e);

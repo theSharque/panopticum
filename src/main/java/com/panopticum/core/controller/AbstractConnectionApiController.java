@@ -1,6 +1,7 @@
 package com.panopticum.core.controller;
 
 import com.panopticum.core.service.DbConnectionService;
+import com.panopticum.core.sql.SqlStatementClassifier;
 import io.micronaut.context.annotation.Value;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.exceptions.HttpStatusException;
@@ -24,6 +25,12 @@ public abstract class AbstractConnectionApiController {
 
     protected void assertNotReadOnly() {
         if (readOnly) {
+            throw new HttpStatusException(HttpStatus.FORBIDDEN, "read.only.enabled");
+        }
+    }
+
+    protected void assertNotReadOnlyForSqlMutation(String sql) {
+        if (readOnly && sql != null && SqlStatementClassifier.isMutation(sql)) {
             throw new HttpStatusException(HttpStatus.FORBIDDEN, "read.only.enabled");
         }
     }

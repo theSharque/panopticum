@@ -3,6 +3,7 @@ package com.panopticum.cassandra.service;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.panopticum.core.model.Page;
 import com.panopticum.core.model.QueryResult;
+import com.panopticum.core.sql.SqlQuerySupport;
 import com.panopticum.core.util.StringUtils;
 import com.panopticum.cassandra.model.CassandraKeyspaceInfo;
 import com.panopticum.core.model.QueryResultData;
@@ -199,6 +200,10 @@ public class CassandraMetadataService {
     }
 
     public Optional<QueryResult> executeQuery(Long connectionId, String keyspaceName, String cql, int offset, int limit, boolean truncateCells) {
+        return SqlQuerySupport.run(() -> executeQueryUnchecked(connectionId, keyspaceName, cql, offset, limit, truncateCells));
+    }
+
+    private Optional<QueryResult> executeQueryUnchecked(Long connectionId, String keyspaceName, String cql, int offset, int limit, boolean truncateCells) {
         int lim = Math.min(limit > 0 ? limit : 100, queryRowsLimit);
         QueryResultData data = cassandraMetadataRepository.executeCql(connectionId, keyspaceName, cql, lim).orElseThrow();
         boolean hasMore = data.getRows() != null && data.getRows().size() == lim;

@@ -7,6 +7,9 @@ import com.panopticum.core.model.QueryResult;
 import com.panopticum.core.model.SchemaInfo;
 import com.panopticum.core.model.TableInfo;
 import com.panopticum.core.service.DbConnectionService;
+import com.panopticum.core.sql.SqlQuerySupport;
+import com.panopticum.core.sql.SqlStatementClassifier;
+import io.micronaut.context.annotation.Value;
 import com.panopticum.cassandra.model.CassandraKeyspaceInfo;
 import com.panopticum.cassandra.model.CassandraTableInfo;
 import com.panopticum.cassandra.service.CassandraMetadataService;
@@ -76,6 +79,9 @@ public class MetadataFacadeService {
     private final PrometheusService prometheusService;
     private final LightJdbcMetadataService lightJdbcMetadataService;
     private final CouchbaseService couchbaseService;
+
+    @Value("${panopticum.read-only:false}")
+    private boolean readOnly;
 
     public Optional<DbConnection> getConnection(Long connectionId) {
         return dbConnectionService.findById(connectionId);
@@ -230,6 +236,13 @@ public class MetadataFacadeService {
         String type = normalizeDbType(connOpt.get().getType());
         String cat = catalog != null && !catalog.isBlank() ? catalog : resolveDefaultCatalog(connOpt.get());
         String ns = namespace != null && !namespace.isBlank() ? namespace : "";
+
+        if (isSqlDbType(type)) {
+            Optional<QueryResult> blocked = SqlQuerySupport.readOnlyBlock(readOnly, query);
+            if (blocked.isPresent()) {
+                return blocked;
+            }
+        }
 
         try {
             return switch (type) {
@@ -403,6 +416,15 @@ public class MetadataFacadeService {
             return "";
         }
         return "mssql".equalsIgnoreCase(type) ? "sqlserver" : type.toLowerCase();
+    }
+
+    private static boolean isSqlDbType(String type) {
+        return switch (type) {
+            case "postgresql", "greenplum", "yugabytedb", "cockroachdb",
+                    "mysql", "sqlserver", "oracle", "clickhouse",
+                    "h2", "hsqldb", "derby", "cassandra" -> true;
+            default -> false;
+        };
     }
 
     private static String resolveDefaultCatalog(DbConnection conn) {

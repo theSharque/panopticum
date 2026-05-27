@@ -8,6 +8,8 @@ import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.panopticum.core.error.ConnectionSupport;
 import com.panopticum.core.error.MetadataAccessException;
+import com.panopticum.core.sql.JdbcSqlExecutor;
+import com.panopticum.core.sql.SqlStatementClassifier;
 import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.cassandra.model.CassandraKeyspaceInfo;
@@ -99,7 +101,9 @@ public class CassandraMetadataRepository {
             ResultSet rs = session.execute(stmt);
             var defs = rs.getColumnDefinitions();
             if (defs == null || defs.size() == 0) {
-                return Optional.of(new QueryResultData(List.of(), List.of(), List.of()));
+                int affected = SqlStatementClassifier.isMutation(trimmed) && rs.wasApplied() ? 1 : 0;
+
+                return Optional.of(JdbcSqlExecutor.rowsAffected(affected));
             }
             int colCount = defs.size();
             List<String> columns = new ArrayList<>();

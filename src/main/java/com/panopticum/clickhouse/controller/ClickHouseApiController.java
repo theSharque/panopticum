@@ -90,6 +90,7 @@ public class ClickHouseApiController extends AbstractConnectionApiController {
         if (request.getSql() == null || request.getSql().isBlank()) {
             return QueryResult.error("Empty query");
         }
+        assertNotReadOnlyForSqlMutation(request.getSql());
         int offset = ApiQueryParams.normalizedOffset(request.getOffset());
         int limit = ApiQueryParams.normalizedLimit(request.getLimit());
         String search = ApiQueryParams.trimmedSearchOrEmpty(request.getSearch());

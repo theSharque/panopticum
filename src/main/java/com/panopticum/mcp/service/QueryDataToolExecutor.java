@@ -66,6 +66,10 @@ public class QueryDataToolExecutor implements McpToolExecutor {
         }
 
         QueryResult qr = qrOpt.get();
+        if (qr.hasError()) {
+            return error(qr.getError());
+        }
+
         UnifiedQueryEnvelope envelope = UnifiedQueryEnvelope.fromQueryResult(
                 qr, connectionId, dbType, queryFormat, catalog, namespace, entity, query);
 

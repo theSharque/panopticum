@@ -2,6 +2,7 @@ package com.panopticum.lightjdbc.repository;
 
 import com.panopticum.core.error.ConnectionSupport;
 import com.panopticum.core.error.MetadataAccessException;
+import com.panopticum.core.sql.JdbcSqlExecutor;
 import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.model.QueryResultData;
 import com.panopticum.core.model.SchemaInfo;
@@ -154,11 +155,9 @@ public class LightJdbcMetadataRepository {
     }
 
     public Optional<QueryResultData> executeQuery(Long connectionId, String sql) {
-        try (Connection conn = ConnectionSupport.require(getConnection(connectionId))) {
-            try (Statement stmt = conn.createStatement();
-                 ResultSet rs = stmt.executeQuery(sql)) {
-                return Optional.of(readResultSet(rs));
-            }
+        try (Connection conn = ConnectionSupport.require(getConnection(connectionId));
+             Statement stmt = conn.createStatement()) {
+            return Optional.of(JdbcSqlExecutor.execute(stmt, sql));
         } catch (SQLException e) {
             log.warn("executeQuery failed: {}", e.getMessage());
             throw new MetadataAccessException(e.getMessage(), e);
@@ -347,30 +346,6 @@ public class LightJdbcMetadataRepository {
             }
         }
         return out;
-    }
-
-    private static QueryResultData readResultSet(ResultSet rs) throws SQLException {
-        ResultSetMetaData meta = rs.getMetaData();
-        int colCount = meta.getColumnCount();
-        List<String> columns = new ArrayList<>();
-        List<String> columnTypes = new ArrayList<>();
-        for (int i = 1; i <= colCount; i++) {
-            columns.add(meta.getColumnLabel(i));
-            String typeName = meta.getColumnTypeName(i);
-            int nullable = meta.isNullable(i);
-            String nullability = nullable == ResultSetMetaData.columnNoNulls ? " NOT NULL"
-                    : (nullable == ResultSetMetaData.columnNullable ? " NULL" : "");
-            columnTypes.add(typeName + nullability);
-        }
-        List<List<Object>> rows = new ArrayList<>();
-        while (rs.next()) {
-            List<Object> row = new ArrayList<>();
-            for (int i = 1; i <= colCount; i++) {
-                row.add(rs.getObject(i));
-            }
-            rows.add(row);
-        }
-        return new QueryResultData(columns, columnTypes, rows);
     }
 
     private static QueryResultData readResultSetLimited(ResultSet rs, int limit) throws SQLException {

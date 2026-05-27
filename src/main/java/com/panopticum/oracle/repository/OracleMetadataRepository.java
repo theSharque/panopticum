@@ -6,6 +6,7 @@ import com.panopticum.core.model.SchemaInfo;
 import com.panopticum.core.model.TableInfo;
 import com.panopticum.core.error.ConnectionSupport;
 import com.panopticum.core.error.MetadataAccessException;
+import com.panopticum.core.sql.JdbcSqlExecutor;
 import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.core.util.SizeFormatter;
 import com.panopticum.mcp.model.ColumnInfo;
@@ -181,31 +182,9 @@ public class OracleMetadataRepository {
     }
 
     public Optional<QueryResultData> executeQuery(Long connectionId, String schema, String sql) {
-        try (Connection conn = ConnectionSupport.require(getConnection(connectionId, schema))) {
-            try (Statement stmt = conn.createStatement();
-                 ResultSet rs = stmt.executeQuery(sql)) {
-                ResultSetMetaData meta = rs.getMetaData();
-                int colCount = meta.getColumnCount();
-                List<String> columns = new ArrayList<>();
-                List<String> columnTypes = new ArrayList<>();
-                for (int i = 1; i <= colCount; i++) {
-                    columns.add(meta.getColumnLabel(i));
-                    String typeName = meta.getColumnTypeName(i);
-                    int nullable = meta.isNullable(i);
-                    String nullability = nullable == ResultSetMetaData.columnNoNulls ? " NOT NULL"
-                            : (nullable == ResultSetMetaData.columnNullable ? " NULL" : "");
-                    columnTypes.add(typeName + nullability);
-                }
-                List<List<Object>> rows = new ArrayList<>();
-                while (rs.next()) {
-                    List<Object> row = new ArrayList<>();
-                    for (int i = 1; i <= colCount; i++) {
-                        row.add(rs.getObject(i));
-                    }
-                    rows.add(row);
-                }
-                return Optional.of(new QueryResultData(columns, columnTypes, rows));
-            }
+        try (Connection conn = ConnectionSupport.require(getConnection(connectionId, schema));
+             Statement stmt = conn.createStatement()) {
+            return Optional.of(JdbcSqlExecutor.execute(stmt, sql));
         } catch (SQLException e) {
             log.warn("executeQuery failed: {}", firstLineOf(e.getMessage()));
             throw new MetadataAccessException("Query failed: " + firstLineOf(e.getMessage()), e);
@@ -216,35 +195,13 @@ public class OracleMetadataRepository {
         if (params == null || params.isEmpty()) {
             return executeQuery(connectionId, schema, sql);
         }
-        try (Connection conn = ConnectionSupport.require(getConnection(connectionId, schema))) {
-            try (PreparedStatement ps = conn.prepareStatement(sql)) {
-                for (int i = 0; i < params.size(); i++) {
-                    ps.setObject(i + 1, params.get(i));
-                }
-                try (ResultSet rs = ps.executeQuery()) {
-                    ResultSetMetaData meta = rs.getMetaData();
-                    int colCount = meta.getColumnCount();
-                    List<String> columns = new ArrayList<>();
-                    List<String> columnTypes = new ArrayList<>();
-                    for (int i = 1; i <= colCount; i++) {
-                        columns.add(meta.getColumnLabel(i));
-                        String typeName = meta.getColumnTypeName(i);
-                        int nullable = meta.isNullable(i);
-                        String nullability = nullable == ResultSetMetaData.columnNoNulls ? " NOT NULL"
-                                : (nullable == ResultSetMetaData.columnNullable ? " NULL" : "");
-                        columnTypes.add(typeName + nullability);
-                    }
-                    List<List<Object>> rows = new ArrayList<>();
-                    while (rs.next()) {
-                        List<Object> row = new ArrayList<>();
-                        for (int i = 1; i <= colCount; i++) {
-                            row.add(rs.getObject(i));
-                        }
-                        rows.add(row);
-                    }
-                    return Optional.of(new QueryResultData(columns, columnTypes, rows));
-                }
+        try (Connection conn = ConnectionSupport.require(getConnection(connectionId, schema));
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            for (int i = 0; i < params.size(); i++) {
+                ps.setObject(i + 1, params.get(i));
             }
+
+            return Optional.of(JdbcSqlExecutor.execute(ps, sql));
         } catch (SQLException e) {
             log.warn("executeQuery with params failed: {}", firstLineOf(e.getMessage()));
             throw new MetadataAccessException("Query failed: " + firstLineOf(e.getMessage()), e);

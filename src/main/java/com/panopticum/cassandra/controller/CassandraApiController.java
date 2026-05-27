@@ -92,6 +92,7 @@ public class CassandraApiController extends AbstractConnectionApiController {
         if (cql == null || cql.isBlank()) {
             return QueryResult.error("Empty query");
         }
+        assertNotReadOnlyForSqlMutation(cql);
         int offset = ApiQueryParams.normalizedOffset(request.getOffset());
         int limit = ApiQueryParams.normalizedLimit(request.getLimit());
         return cassandraMetadataService.executeQuery(id, keyspaceName, cql, offset, limit)

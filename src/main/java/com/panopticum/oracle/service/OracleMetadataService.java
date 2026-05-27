@@ -5,6 +5,7 @@ import com.panopticum.core.model.QueryResult;
 import com.panopticum.core.model.QueryResultData;
 import com.panopticum.core.model.SchemaInfo;
 import com.panopticum.core.model.TableInfo;
+import com.panopticum.core.sql.SqlQuerySupport;
 import com.panopticum.core.util.StringUtils;
 import com.panopticum.mcp.model.EntityDescription;
 import com.panopticum.oracle.repository.OracleMetadataRepository;
@@ -123,16 +124,16 @@ public class OracleMetadataService {
 
     public Optional<QueryResult> executeQuery(Long connectionId, String schema, String sql, int offset, int limit,
                                              String sortBy, String sortOrder, boolean truncateCells) {
+        return SqlQuerySupport.run(() -> executeQueryUnchecked(connectionId, schema, sql, offset, limit, sortBy, sortOrder, truncateCells));
+    }
+
+    private Optional<QueryResult> executeQueryUnchecked(Long connectionId, String schema, String sql, int offset, int limit,
+                                                        String sortBy, String sortOrder, boolean truncateCells) {
         if (oracleMetadataRepository.getConnection(connectionId, schema).isEmpty()) {
             return Optional.of(QueryResult.error("Connection not available"));
         }
         String pagedSql = wrapWithLimitOffset(sql.trim(), limit, offset, sortBy, sortOrder);
-        Optional<QueryResultData> dataOpt;
-        try {
-            dataOpt = oracleMetadataRepository.executeQuery(connectionId, schema, pagedSql);
-        } catch (RuntimeException e) {
-            return Optional.of(QueryResult.error(e.getCause() != null ? e.getCause().getMessage() : e.getMessage()));
-        }
+        Optional<QueryResultData> dataOpt = oracleMetadataRepository.executeQuery(connectionId, schema, pagedSql);
         if (dataOpt.isEmpty()) {
             return Optional.of(QueryResult.error("Connection not available"));
         }
@@ -150,6 +151,7 @@ public class OracleMetadataService {
             }
             rows = truncated;
         }
+
         return Optional.of(new QueryResult(data.getColumns(), data.getColumnTypes(), rows, null, null, offset, limit, hasMore));
     }
 

@@ -5,6 +5,7 @@ import com.panopticum.core.model.Page;
 import com.panopticum.core.model.QueryResult;
 import com.panopticum.core.model.QueryResultData;
 import com.panopticum.core.model.TableInfo;
+import com.panopticum.core.sql.SqlQuerySupport;
 import com.panopticum.core.util.StringUtils;
 import com.panopticum.mcp.model.EntityDescription;
 import com.panopticum.mysql.repository.MySqlMetadataRepository;
@@ -113,6 +114,11 @@ public class MySqlMetadataService {
 
     public Optional<@NonNull QueryResult> executeQuery(Long connectionId, String dbName, String sql, int offset, int limit,
                                                        String sortBy, String sortOrder, boolean truncateCells) {
+        return SqlQuerySupport.run(() -> executeQueryUnchecked(connectionId, dbName, sql, offset, limit, sortBy, sortOrder, truncateCells));
+    }
+
+    private Optional<QueryResult> executeQueryUnchecked(Long connectionId, String dbName, String sql, int offset, int limit,
+                                                        String sortBy, String sortOrder, boolean truncateCells) {
         if (mySqlMetadataRepository.getConnection(connectionId, dbName).isEmpty()) {
             return Optional.of(QueryResult.error("Connection not available"));
         }
@@ -135,6 +141,7 @@ public class MySqlMetadataService {
             }
             rows = truncated;
         }
+
         return Optional.of(new QueryResult(data.getColumns(), data.getColumnTypes(), rows, null, null, offset, limit, hasMore));
     }
 
