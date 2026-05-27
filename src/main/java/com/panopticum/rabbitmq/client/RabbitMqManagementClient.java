@@ -109,7 +109,7 @@ public class RabbitMqManagementClient {
     public boolean publishMessage(String baseUrl, String vhost, String queue, String payload,
                                   String username, String password) {
         RabbitMqPublishRequest body = new RabbitMqPublishRequest(
-                "{}",
+                Map.of(),
                 queue,
                 payload,
                 "string"
