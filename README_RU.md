@@ -82,7 +82,7 @@ helm install my-panopticum panopticum/panopticum
 | **Redis / Dragonfly / Valkey / KeyDB** | Просмотр ключей; просмотр/редактирование значений |
 | **ClickHouse** | Просмотр; SQL |
 | **Cassandra / ScyllaDB** | Просмотр; CQL; редактирование (с PK) |
-| **RabbitMQ** | Просмотр очередей; peek сообщений |
+| **RabbitMQ** | Просмотр очередей; peek сообщений; публикация в очередь |
 | **Kafka** | Просмотр топиков; peek записей |
 | **Elasticsearch / OpenSearch** | Просмотр индексов; Query DSL; редактирование по _id |
 | **Kubernetes** | URL API-сервера + bearer-токен; namespace через запятую; просмотр pod-ов, Deployment, StatefulSet, Service, Ingress, ConfigMap, Secret; tail логов; describe pod (контейнеры, образы, ресурсы, пробы, условия, события); события namespace; раскрытие секрета по запросу с аудитом (содержимое не попадает в логи). Мягкая обработка "нет доступа" — 401/403/404 как алерт, без краша |
@@ -124,6 +124,7 @@ MCP-совместимый endpoint `POST /mcp` для Cursor, Claude Desktop и
 Для **Kubernetes**: `list-catalogs` → namespaces; `list-entities` → pod-ы; `query-data` → tail логов.
 Для **S3**: `list-catalogs` → бакеты; `list-entities` → объекты; `query-data` → peek содержимого.
 Для **Couchbase**: `list-catalogs` → бакеты; `list-namespaces` → области (catalog = bucket); `list-entities` → коллекции (namespace = scope); `query-data` → N1QL; `get-record-detail` → KV по `documentId`.
+Для **RabbitMQ**: `list-catalogs` → vhost-ы; `list-entities` → очереди (catalog = vhost); `query-data` → peek (`20` или `{"count":20}`) или publish (`{"publish":["hello",{"id":1}]}`); REST `POST /api/rabbitmq/connections/{id}/queues/{vhost}/{queue}/publish` с телом JSON-массива.
 
 ### Локальная проверка в Docker (по желанию)
 

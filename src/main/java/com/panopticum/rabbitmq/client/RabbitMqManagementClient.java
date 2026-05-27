@@ -3,6 +3,7 @@ package com.panopticum.rabbitmq.client;
 import com.panopticum.core.error.MetadataAccessException;
 import com.panopticum.rabbitmq.model.RabbitMqGetMessagesRequest;
 import com.panopticum.rabbitmq.model.RabbitMqMessage;
+import com.panopticum.rabbitmq.model.RabbitMqPublishRequest;
 import com.panopticum.rabbitmq.model.RabbitMqQueueInfo;
 import io.micronaut.core.type.Argument;
 import io.micronaut.http.HttpRequest;
@@ -98,6 +99,39 @@ public class RabbitMqManagementClient {
             return response.getBody().orElse(Collections.emptyList());
         } catch (HttpClientResponseException | ReadTimeoutException e) {
             log.debug("RabbitMQ getMessages failed for {}: {}", url, e.getMessage());
+            throw new MetadataAccessException(e.getMessage(), e);
+        } catch (HttpClientException e) {
+            log.warn("Failed to connect to RabbitMQ {}: {}", url, e.getMessage());
+            throw new MetadataAccessException(e.getMessage(), e);
+        }
+    }
+
+    public boolean publishMessage(String baseUrl, String vhost, String queue, String payload,
+                                  String username, String password) {
+        RabbitMqPublishRequest body = new RabbitMqPublishRequest(
+                "{}",
+                queue,
+                payload,
+                "string"
+        );
+        BlockingHttpClient client = httpClient.toBlocking();
+        String url = baseUrl + "/api/exchanges/" + encodePathSegment(vhost) + "/amq.default/publish";
+        MutableHttpRequest<RabbitMqPublishRequest> request = HttpRequest.POST(url, body)
+                .contentType(MediaType.APPLICATION_JSON_TYPE)
+                .accept(MediaType.APPLICATION_JSON_TYPE)
+                .basicAuth(username, password);
+        try {
+            HttpResponse<Map> response = client.exchange(
+                    request,
+                    Argument.of(Map.class)
+            );
+            if (response.getBody().isEmpty()) {
+                return false;
+            }
+            Object routed = response.getBody().get().get("routed");
+            return Boolean.TRUE.equals(routed);
+        } catch (HttpClientResponseException | ReadTimeoutException e) {
+            log.debug("RabbitMQ publishMessage failed for {}: {}", url, e.getMessage());
             throw new MetadataAccessException(e.getMessage(), e);
         } catch (HttpClientException e) {
             log.warn("Failed to connect to RabbitMQ {}: {}", url, e.getMessage());

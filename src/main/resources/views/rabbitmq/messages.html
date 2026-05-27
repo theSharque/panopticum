@@ -18,6 +18,20 @@
             <svg class="icon icon--lg" aria-hidden="true"><use href="#icon-refresh"/></svg>
         </a>
     </div>
+    <section th:if="${!readOnly}" class="detail-block publish-block">
+        <h2 th:text="${msg['rabbitmq.publishTitle']}">Publish messages</h2>
+        <p class="text-dim" th:text="${msg['rabbitmq.publishHint']}">JSON array hint</p>
+        <form th:action="@{/rabbitmq/{id}/queues/{vhost}/{q}/publish(id=${connectionId}, vhost=${vhostForUrl}, q=${queue}, count=${peekCount}, sort=${sort}, order=${order})}"
+              method="post" class="detail-form">
+            <textarea name="payloads" class="detail-json detail-json-textarea" rows="6"
+                      th:attr="placeholder=${msg['rabbitmq.publishHint']}"
+                      th:text="${publishDraft}"></textarea>
+            <div class="detail-actions">
+                <button type="submit" class="btn btn--primary" th:text="${msg['rabbitmq.publishSubmit']}">Publish</button>
+            </div>
+        </form>
+    </section>
+    <p th:if="${readOnly}" class="text-dim" th:text="${msg['rabbitmq.readOnlyPublish']}">Read-only</p>
     <div class="query-result-data">
         <div class="query-table-wrapper">
             <table class="query-table">

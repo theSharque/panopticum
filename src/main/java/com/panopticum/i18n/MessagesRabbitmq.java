@@ -23,6 +23,12 @@ public class MessagesRabbitmq {
             Map.entry("rabbitmq.routingKey", "Routing key"),
             Map.entry("rabbitmq.payload", "Payload"),
             Map.entry("rabbitmq.properties", "Properties"),
+            Map.entry("rabbitmq.publishTitle", "Publish messages"),
+            Map.entry("rabbitmq.publishHint", "JSON array of strings or objects, e.g. [\"hello\",{\"id\":1}]"),
+            Map.entry("rabbitmq.publishSubmit", "Publish"),
+            Map.entry("rabbitmq.publishRequired", "Enter at least one message."),
+            Map.entry("rabbitmq.publishFailed", "Publish failed."),
+            Map.entry("rabbitmq.readOnlyPublish", "Publishing is disabled in read-only mode."),
             Map.entry("connectionTest.failed", "Connection failed.")
     );
 
@@ -42,6 +48,12 @@ public class MessagesRabbitmq {
             Map.entry("rabbitmq.routingKey", "Routing key"),
             Map.entry("rabbitmq.payload", "Тело"),
             Map.entry("rabbitmq.properties", "Свойства"),
+            Map.entry("rabbitmq.publishTitle", "Опубликовать сообщения"),
+            Map.entry("rabbitmq.publishHint", "JSON-массив строк или объектов, например [\"hello\",{\"id\":1}]"),
+            Map.entry("rabbitmq.publishSubmit", "Опубликовать"),
+            Map.entry("rabbitmq.publishRequired", "Укажите хотя бы одно сообщение."),
+            Map.entry("rabbitmq.publishFailed", "Не удалось опубликовать."),
+            Map.entry("rabbitmq.readOnlyPublish", "Публикация отключена в режиме только чтение."),
             Map.entry("connectionTest.failed", "Подключение не удалось.")
     );
 }

@@ -101,6 +101,31 @@ public class RabbitMqService {
                 conn.getPassword() != null ? conn.getPassword() : "");
     }
 
+    public int publishMessages(Long connectionId, String vhost, String queue, List<String> payloads) {
+        if (payloads == null || payloads.isEmpty()) {
+            return 0;
+        }
+
+        DbConnection conn = requireRabbitConnection(connectionId);
+        String baseUrl = managementBaseUrl(conn.getHost(), conn.getPort());
+        String user = conn.getUsername() != null ? conn.getUsername() : "";
+        String pass = conn.getPassword() != null ? conn.getPassword() : "";
+        int published = 0;
+
+        for (String payload : payloads) {
+            if (payload == null || payload.isBlank()) {
+                continue;
+            }
+
+            boolean routed = managementClient.publishMessage(baseUrl, vhost, queue, payload, user, pass);
+            if (routed) {
+                published++;
+            }
+        }
+
+        return published;
+    }
+
     private DbConnection requireRabbitConnection(Long connectionId) {
         return ConnectionSupport.require(
                 dbConnectionService.findById(connectionId).filter(c -> "rabbitmq".equalsIgnoreCase(c.getType())));

@@ -82,7 +82,7 @@ For Helm: use a Secret with `valueFrom.secretKeyRef` if the JSON contains passwo
 | **Redis / Dragonfly / Valkey / KeyDB** | Browse keys; view/edit values |
 | **ClickHouse** | Browse; SQL |
 | **Cassandra / ScyllaDB** | Browse; CQL; edit (with PK) |
-| **RabbitMQ** | Browse queues; peek messages |
+| **RabbitMQ** | Browse queues; peek messages; publish to queue |
 | **Kafka** | Browse topics; peek records |
 | **Elasticsearch / OpenSearch** | Browse indices; Query DSL; edit by _id |
 | **Kubernetes** | API server URL + bearer token; namespaces (comma-separated); browse pods, Deployments, StatefulSets, Services, Ingresses, ConfigMaps, Secrets; tail logs; describe pod (containers, images, resources, probes, conditions, events); namespace events; secret reveal on demand with audit log (payload not logged). Graceful "no access" — 401/403/404 as soft alert |
@@ -124,6 +124,7 @@ Replace `YWRtaW46YWRtaW4=` with Base64 of `username:password` (`echo -n "admin:c
 For **Kubernetes**: `list-catalogs` → namespaces; `list-entities` → pods; `query-data` → tail logs.
 For **S3**: `list-catalogs` → buckets; `list-entities` → objects; `query-data` → peek content.
 For **Couchbase**: `list-catalogs` → buckets; `list-namespaces` → scopes (catalog = bucket); `list-entities` → collections (namespace = scope); `query-data` → N1QL; `get-record-detail` → KV get by `documentId`.
+For **RabbitMQ**: `list-catalogs` → vhosts; `list-entities` → queues (catalog = vhost); `query-data` → peek (`20` or `{"count":20}`) or publish (`{"publish":["hello",{"id":1}]}`); REST `POST /api/rabbitmq/connections/{id}/queues/{vhost}/{queue}/publish` with JSON array body.
 
 ### Docker smoke (optional)
 

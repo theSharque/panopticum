@@ -332,6 +332,10 @@ public class MetadataFacadeService {
                         yield Optional.of(QueryResult.error("rabbitmq.queueRequired"));
                     }
                     String vhost = cat != null && !cat.isBlank() ? cat : resolveDefaultCatalog(connOpt.get());
+                    Optional<QueryResult> publishResult = tryPublishRabbitMessages(connectionId, vhost, entity, query);
+                    if (publishResult.isPresent()) {
+                        yield publishResult;
+                    }
                     int count = parseRabbitMessageCount(query, limit);
                     List<RabbitMqMessage> messages = rabbitMqService.peekMessages(connectionId, vhost, entity, count);
                     yield Optional.of(rabbitMessagesToQueryResult(messages, offset, count));
@@ -800,6 +804,39 @@ public class MetadataFacadeService {
                     message.getProperties() != null ? message.getProperties() : Map.of()));
         }
         return new QueryResult(columns, types, rows, null, null, offset, limit, messages.size() >= limit);
+    }
+
+    private Optional<QueryResult> tryPublishRabbitMessages(Long connectionId, String vhost, String queue, String query) {
+        if (query == null || query.isBlank()) {
+            return Optional.empty();
+        }
+
+        try {
+            com.fasterxml.jackson.databind.JsonNode node = new com.fasterxml.jackson.databind.ObjectMapper().readTree(query.trim());
+            if (!node.has("publish")) {
+                return Optional.empty();
+            }
+
+            com.fasterxml.jackson.databind.JsonNode publishNode = node.get("publish");
+            if (!publishNode.isArray() || publishNode.isEmpty()) {
+                return Optional.of(QueryResult.error("rabbitmq.publishRequired"));
+            }
+
+            List<String> payloads = new ArrayList<>();
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            for (com.fasterxml.jackson.databind.JsonNode item : publishNode) {
+                payloads.add(mapper.writeValueAsString(item));
+            }
+
+            int published = rabbitMqService.publishMessages(connectionId, vhost, queue, payloads);
+            List<String> columns = List.of("published", "requested", "queue", "vhost");
+            List<String> types = List.of("integer", "integer", "string", "string");
+            List<List<Object>> rows = List.of(List.of(published, payloads.size(), queue, vhost));
+
+            return Optional.of(new QueryResult(columns, types, rows, null, null, 0, rows.size(), false));
+        } catch (Exception e) {
+            return Optional.of(QueryResult.error(e.getMessage() != null ? e.getMessage() : "rabbitmq.publishFailed"));
+        }
     }
 
     private static int parseRabbitMessageCount(String query, int defaultCount) {

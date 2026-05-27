@@ -92,7 +92,7 @@ public class QueryDataToolExecutor implements McpToolExecutor {
             case "couchbase" -> "n1ql";
             case "s3" -> "object-peek";
             case "prometheus" -> "promql";
-            case "rabbitmq" -> "message-peek";
+            case "rabbitmq" -> "message-peek-or-publish";
             default -> "sql";
         };
     }
