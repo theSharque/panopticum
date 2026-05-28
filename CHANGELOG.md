@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [8.2.8] - 2026-05-28
+
+### Fixed
+
+- ClickHouse, MySQL, MSSQL, and Oracle JDBC connections on Java 17 — Derby downgraded from `10.17.1.0` (Java 21+) to `10.16.1.1`, which had broken `ServiceLoader` driver registration in the fat JAR
+- ClickHouse driver explicitly registered before `DriverManager` use (same pattern as PostgreSQL)
+
+### Added
+
+- Spotless Gradle plugin: removes unused imports and trailing whitespace; runs automatically before Java compilation
+
 ## [8.0.3] - 2026-05-04
 
 ### Security
