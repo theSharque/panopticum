@@ -17,4 +17,3 @@ public class RabbitMqGetMessagesRequest {
 
     private int truncate;
 }
-

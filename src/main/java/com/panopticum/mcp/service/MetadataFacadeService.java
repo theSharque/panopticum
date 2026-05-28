@@ -8,7 +8,6 @@ import com.panopticum.core.model.SchemaInfo;
 import com.panopticum.core.model.TableInfo;
 import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.core.sql.SqlQuerySupport;
-import com.panopticum.core.sql.SqlStatementClassifier;
 import io.micronaut.context.annotation.Value;
 import com.panopticum.cassandra.model.CassandraKeyspaceInfo;
 import com.panopticum.cassandra.model.CassandraTableInfo;

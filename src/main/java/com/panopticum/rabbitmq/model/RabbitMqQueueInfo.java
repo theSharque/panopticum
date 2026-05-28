@@ -34,4 +34,3 @@ public class RabbitMqQueueInfo {
         return vhost.replace("/", "_");
     }
 }
-

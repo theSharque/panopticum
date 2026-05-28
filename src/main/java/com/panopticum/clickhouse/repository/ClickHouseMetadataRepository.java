@@ -1,5 +1,6 @@
 package com.panopticum.clickhouse.repository;
 
+import com.panopticum.clickhouse.ClickHouseJdbcDrivers;
 import com.panopticum.core.error.ConnectionSupport;
 import com.panopticum.core.error.MetadataAccessException;
 import com.panopticum.core.sql.JdbcSqlExecutor;
@@ -19,7 +20,6 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
@@ -58,6 +58,7 @@ public class ClickHouseMetadataRepository {
             db = "default";
         }
         String url = buildUrl(conn.getHost(), conn.getPort(), db);
+        ClickHouseJdbcDrivers.ensureLoaded();
         try {
             Properties props = new Properties();
             if (conn.getUsername() != null && !conn.getUsername().isBlank()) {

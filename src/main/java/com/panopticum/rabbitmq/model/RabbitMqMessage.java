@@ -20,4 +20,3 @@ public class RabbitMqMessage {
     @JsonProperty("routing_key")
     private String routingKey;
 }
-

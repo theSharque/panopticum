@@ -164,4 +164,3 @@ public class RabbitMqManagementClient {
         return URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 }
-

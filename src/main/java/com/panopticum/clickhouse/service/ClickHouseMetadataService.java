@@ -8,6 +8,7 @@ import com.panopticum.core.model.DatabaseInfo;
 import com.panopticum.core.model.QueryResultData;
 import com.panopticum.core.model.TableInfo;
 import com.panopticum.mcp.model.EntityDescription;
+import com.panopticum.clickhouse.ClickHouseJdbcDrivers;
 import com.panopticum.clickhouse.repository.ClickHouseMetadataRepository;
 import io.micronaut.core.annotation.NonNull;
 import io.micronaut.context.annotation.Value;
@@ -47,6 +48,7 @@ public class ClickHouseMetadataService {
         }
         String db = database != null && !database.isBlank() ? database : "default";
         String url = ClickHouseMetadataRepository.buildUrl(host.trim(), port, db);
+        ClickHouseJdbcDrivers.ensureLoaded();
         try {
             Properties props = new Properties();
             if (username != null && !username.isBlank()) {

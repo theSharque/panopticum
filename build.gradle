@@ -1,6 +1,7 @@
 plugins {
     id("com.gradleup.shadow") version "8.3.10"
     id("io.micronaut.application") version "4.6.2"
+    id("com.diffplug.spotless") version "8.5.1"
 }
 
 version = "8.2.7"
@@ -116,7 +117,7 @@ dependencies {
     runtimeOnly("ch.qos.logback:logback-core")
     runtimeOnly("com.h2database:h2:2.3.232")
     runtimeOnly("org.hsqldb:hsqldb:2.7.3")
-    runtimeOnly("org.apache.derby:derbyclient:10.17.1.0")
+    runtimeOnly("org.apache.derby:derbyclient:10.16.1.1")
     implementation("com.couchbase.client:java-client:3.11.1")
     implementation("org.postgresql:postgresql:42.7.4")
     runtimeOnly("com.mysql:mysql-connector-j:9.1.0")
@@ -156,6 +157,16 @@ java {
 
 tasks.withType(JavaCompile).configureEach {
     options.compilerArgs = ["-parameters"]
+    dependsOn("spotlessApply")
+}
+
+spotless {
+    java {
+        target("src/main/java/**/*.java", "src/test/java/**/*.java")
+        removeUnusedImports()
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
 }
 
 shadowJar {
