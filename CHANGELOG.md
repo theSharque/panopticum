@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [8.2.9] - 2026-05-29
+
+### Changed
+
+- Architecture consistency: `ConnectionType` registry in `core.model` centralizes type ids, ports, UI/API paths, query formats, and hierarchy models
+- Shared entity models (`EntityDescription`, `ColumnInfo`, `IndexInfo`, `ForeignKeyInfo`) moved from `mcp.model` to `core.model`
+- App config classes consolidated under `com.panopticum.core.config`
+- Browser services renamed to `*MetadataService` (Couchbase, Elasticsearch, RabbitMQ)
+- PostgreSQL UI/API paths: `/pg/*` → `/postgres/*`; classes `Pg*` → `Postgres*`
+- SQL Server package and paths: `mssql` → `sqlserver`; classes `Mssql*` → `SqlServer*`
+- S3 and Prometheus connection tests routed through unified `ConnectionTestService` with HTTPS override
+- RabbitMQ MCP `query-data`: optional `publish` argument replaces JSON-in-query hack (legacy path kept with deprecation log)
+
+### Added
+
+- Flyway `V003`: normalize legacy `db_connections.type = 'mssql'` to `sqlserver`
+
 ## [8.2.8] - 2026-05-28
 
 ### Fixed
