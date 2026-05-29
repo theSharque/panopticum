@@ -12,7 +12,7 @@ import com.panopticum.core.sql.SqlQuerySupport;
 import com.panopticum.core.sql.SqlStatementClassifier;
 import com.panopticum.core.util.StringUtils;
 import com.panopticum.lightjdbc.repository.LightJdbcMetadataRepository;
-import com.panopticum.mcp.model.EntityDescription;
+import com.panopticum.core.model.EntityDescription;
 import io.micronaut.context.annotation.Value;
 import jakarta.inject.Singleton;
 import lombok.RequiredArgsConstructor;

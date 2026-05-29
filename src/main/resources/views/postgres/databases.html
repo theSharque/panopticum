@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(~{::main})}">
+<head></head>
+<body>
+<main th:fragment="main" class="main-content">
+    <div th:replace="~{fragments/page-heading :: pageHeading(items=${breadcrumbs})}"></div>
+    <h1 th:text="${msg['databases.title']}">Databases</h1>
+    <div th:if="${items != null and !items.isEmpty()}" class="query-result-data">
+        <div class="query-pagination-info">
+            <span class="query-pagination-nav">
+                <th:block th:with="prevUrl=@{/postgres/{id}(id=${connectionId}, page=${page - 1}, size=${size}, sort=${sort}, order=${order})}, nextUrl=@{/postgres/{id}(id=${connectionId}, page=${page + 1}, size=${size}, sort=${sort}, order=${order})}, prevLabel=${msg['common.prev']}, nextLabel=${msg['common.next']}">
+                    <th:block th:replace="~{fragments/pagination-list-nav :: arrows(hasPrev=${hasPrev}, prevUrl=${prevUrl}, hasMore=${hasMore}, nextUrl=${nextUrl}, prevLabel=${prevLabel}, nextLabel=${nextLabel})}" />
+                </th:block>
+            </span>
+            <span class="query-pagination-range" th:text="${msg['common.rowsRange'] + fromRow + '–' + toRow}"></span>
+        </div>
+        <div class="query-table-wrapper">
+            <table class="query-table">
+                <thead>
+                    <tr>
+                        <th class="query-th query-th-detail"></th>
+                        <th class="query-th query-th-sortable">
+                            <a th:href="@{/postgres/{id}(id=${connectionId}, page=1, size=${size}, sort='name', order=${orderName})}" class="query-th-link"><span th:text="${msg['common.name']}">Name</span> <span th:if="${sort == 'name' and order == 'asc'}" class="query-sort-ind"><svg class="icon icon--sm" aria-hidden="true"><use href="#icon-sort-asc"/></svg></span><span th:if="${sort == 'name' and order == 'desc'}" class="query-sort-ind"><svg class="icon icon--sm" aria-hidden="true"><use href="#icon-sort-desc"/></svg></span></a>
+                        </th>
+                        <th class="query-th query-th-sortable">
+                            <a th:href="@{/postgres/{id}(id=${connectionId}, page=1, size=${size}, sort='size', order=${orderSize})}" class="query-th-link"><span th:text="${msg['common.size']}">Size</span> <span th:if="${sort == 'size' and order == 'asc'}" class="query-sort-ind"><svg class="icon icon--sm" aria-hidden="true"><use href="#icon-sort-asc"/></svg></span><span th:if="${sort == 'size' and order == 'desc'}" class="query-sort-ind"><svg class="icon icon--sm" aria-hidden="true"><use href="#icon-sort-desc"/></svg></span></a>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="item : ${items}" class="query-data-row">
+                        <td class="query-detail-cell">
+                            <a th:href="${itemUrlPrefix + item.name}" class="btn btn--icon btn--ghost" th:attr="aria-label=${msg['common.open']}, title=${msg['common.open']}">
+                                <svg class="icon" aria-hidden="true"><use href="#icon-link"/></svg>
+                            </a>
+                        </td>
+                        <td th:text="${item.name}"></td>
+                        <td th:text="${item.sizeOnDiskFormatted}" class="query-cell-mono"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <p th:if="${items == null or items.isEmpty()}" class="text-dim" th:text="${msg['common.noDatabasesOrError']}">No databases available or connection error.</p>
+</main>
+</body>
+</html>

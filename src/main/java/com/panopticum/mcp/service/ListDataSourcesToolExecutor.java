@@ -2,6 +2,7 @@ package com.panopticum.mcp.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.panopticum.core.model.ConnectionType;
 import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.mcp.model.McpToolContent;
@@ -38,9 +39,9 @@ public class ListDataSourcesToolExecutor implements McpToolExecutor {
             Map<String, Object> m = new HashMap<>();
             m.put("connectionId", conn.getId());
             m.put("name", conn.getName());
-            m.put("dbType", normalizeDbType(conn.getType()));
-            m.put("queryFormat", queryFormatFor(conn.getType()));
-            m.put("hierarchyModel", hierarchyModelFor(conn.getType()));
+            m.put("dbType", ConnectionType.normalizeTypeId(conn.getType()));
+            m.put("queryFormat", ConnectionType.queryFormatFor(conn.getType()));
+            m.put("hierarchyModel", ConnectionType.hierarchyModelFor(conn.getType()));
             items.add(m);
         }
 
@@ -59,48 +60,5 @@ public class ListDataSourcesToolExecutor implements McpToolExecutor {
                     .error("Failed to serialize result: " + e.getMessage())
                     .build();
         }
-    }
-
-    private static String normalizeDbType(String type) {
-        if (type == null || type.isBlank()) {
-            return "";
-        }
-        return "mssql".equalsIgnoreCase(type) ? "sqlserver" : type.toLowerCase();
-    }
-
-    private static String queryFormatFor(String type) {
-        if (type == null || type.isBlank()) {
-            return "sql";
-        }
-        return switch (type.toLowerCase()) {
-            case "mongodb", "elasticsearch" -> "json";
-            case "cassandra" -> "cql";
-            case "kafka" -> "json";
-            case "kubernetes" -> "tail";
-            case "redis" -> "pattern";
-            case "couchbase" -> "n1ql";
-            case "s3" -> "object-peek";
-            case "prometheus" -> "promql";
-            case "rabbitmq" -> "message-peek-or-publish";
-            default -> "sql";
-        };
-    }
-
-    private static String hierarchyModelFor(String type) {
-        if (type == null || type.isBlank()) {
-            return "catalog.entity";
-        }
-        return switch (type.toLowerCase()) {
-            case "postgresql", "greenplum", "yugabytedb", "cockroachdb", "sqlserver" -> "catalog.namespace.entity";
-            case "oracle" -> "namespace.entity";
-            case "couchbase" -> "catalog.namespace.entity";
-            case "h2", "hsqldb", "derby" -> "catalog.namespace.entity";
-            case "kafka" -> "catalog.entity";
-            case "kubernetes" -> "catalog.entity";
-            case "s3", "prometheus", "rabbitmq" -> "catalog.entity";
-            case "redis" -> "catalog";
-            case "elasticsearch" -> "catalog";
-            default -> "catalog.entity";
-        };
     }
 }

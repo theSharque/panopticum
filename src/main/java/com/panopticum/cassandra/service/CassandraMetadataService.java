@@ -8,7 +8,7 @@ import com.panopticum.core.util.StringUtils;
 import com.panopticum.cassandra.model.CassandraKeyspaceInfo;
 import com.panopticum.core.model.QueryResultData;
 import com.panopticum.cassandra.model.CassandraTableInfo;
-import com.panopticum.mcp.model.EntityDescription;
+import com.panopticum.core.model.EntityDescription;
 import com.panopticum.cassandra.repository.CassandraMetadataRepository;
 import io.micronaut.context.annotation.Value;
 import jakarta.inject.Singleton;

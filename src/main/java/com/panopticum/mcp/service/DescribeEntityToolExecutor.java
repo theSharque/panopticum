@@ -2,7 +2,7 @@ package com.panopticum.mcp.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.panopticum.mcp.model.EntityDescription;
+import com.panopticum.core.model.EntityDescription;
 import com.panopticum.mcp.model.McpToolContent;
 import com.panopticum.mcp.model.McpToolRequest;
 import com.panopticum.mcp.model.McpToolResponse;

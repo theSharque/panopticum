@@ -89,8 +89,8 @@ public class McpToolRegistry {
                 "Return tables/collections/partitions/objects/queues from which records are read. Required: connectionId (number). Optional: catalog, namespace, page, size, sort, order. " +
                         "SQL/Cassandra: tables/views. Mongo: collections. Couchbase: collections (catalog=bucket, namespace=scope). Kafka: partitions (catalog=topic). Kubernetes: pods (catalog=namespace). S3: objects (catalog=bucket, namespace=prefix). Prometheus: metrics (catalog=job). RabbitMQ: queues (catalog=vhost). Redis/Elasticsearch: notApplicable.";
             case "query-data" ->
-                "Execute a query and return a unified JSON envelope. Required: connectionId (number), query (string). Optional: catalog, namespace, entity, offset, limit (hard max 100). " +
-                        "SQL/CQL: SELECT returns rows; DML (INSERT/UPDATE/DELETE) returns rows_affected column; SQL with RETURNING returns rows. N1QL: N1QL text (Couchbase). Mongo/Elasticsearch: JSON (MQL/DSL). Kafka: JSON {\"partition\",\"fromOffset\",\"count\",\"fromEnd\"}, catalog=topic. Redis: glob pattern (e.g. user:*), catalog=dbIndex. S3: JSON {\"headBytes\",\"format\"}, catalog=bucket, entity=key. Prometheus: PromQL or JSON range query. RabbitMQ: peek — count or JSON {\"count\"}; publish — JSON {\"publish\":[\"msg\",{\"k\":\"v\"}]}, catalog=vhost, entity=queue.";
+                "Execute a query and return a unified JSON envelope. Required: connectionId (number), query (string) unless publish is set. Optional: catalog, namespace, entity, offset, limit (hard max 100), publish (array of message payloads for RabbitMQ). " +
+                        "SQL/CQL: SELECT returns rows; DML (INSERT/UPDATE/DELETE) returns rows_affected column; SQL with RETURNING returns rows. N1QL: N1QL text (Couchbase). Mongo/Elasticsearch: JSON (MQL/DSL). Kafka: JSON {\"partition\",\"fromOffset\",\"count\",\"fromEnd\"}, catalog=topic. Redis: glob pattern (e.g. user:*), catalog=dbIndex. S3: JSON {\"headBytes\",\"format\"}, catalog=bucket, entity=key. Prometheus: PromQL or JSON range query. RabbitMQ peek: count or JSON {\"count\"}, catalog=vhost, entity=queue; publish: publish array, catalog=vhost, entity=queue.";
             case "get-record-detail" ->
                 "Get full detail of a single record/document for point comparison between sources. " +
                         "Required: connectionId (number), entity (string), and an identifier. DocumentId is implemented for Mongo/Couchbase; primaryKey and locator are reserved for engine-specific point lookup. " +
@@ -146,7 +146,8 @@ public class McpToolRegistry {
             case "query-data" -> {
                 schema.put("properties", Map.of(
                         "connectionId", Map.of("type", "number", "description", "Connection ID"),
-                        "query", Map.of("type", "string", "description", "SQL/CQL/N1QL/MQL JSON/ES DSL per dbType; Kafka: JSON opts; Redis: glob pattern; S3/RabbitMQ: JSON opts; Prometheus: PromQL"),
+                        "query", Map.of("type", "string", "description", "SQL/CQL/N1QL/MQL JSON/ES DSL per dbType; Kafka: JSON opts; Redis: glob pattern; S3: JSON opts; Prometheus: PromQL; RabbitMQ peek: count or JSON count"),
+                        "publish", Map.of("type", "array", "items", Map.of("type", "string"), "description", "RabbitMQ: message payloads to publish (catalog=vhost, entity=queue)"),
                         "catalog", Map.of("type", "string", "description", "Database/keyspace/bucket/topic/vhost/job"),
                         "namespace", Map.of("type", "string", "description", "Schema/scope/prefix if applicable"),
                         "entity", Map.of("type", "string", "description", "Table/collection/index/object key/queue"),
@@ -154,7 +155,7 @@ public class McpToolRegistry {
                         "limit", Map.of("type", "number", "description", "Limit, default 100, hard max 100"),
                         "sort", Map.of("type", "string", "description", "Sort column/field"),
                         "order", Map.of("type", "string", "description", "asc or desc")));
-                schema.put("required", List.of("connectionId", "query"));
+                schema.put("required", List.of("connectionId"));
             }
             case "get-record-detail" -> {
                 schema.put("properties", Map.of(

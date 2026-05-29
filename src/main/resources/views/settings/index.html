@@ -46,7 +46,7 @@
         <div th:replace="~{settings/fragments/form-redis :: form-redis}"></div>
         <div th:replace="~{settings/fragments/form-clickhouse :: form-clickhouse}"></div>
         <div th:replace="~{settings/fragments/form-mysql :: form-mysql}"></div>
-        <div th:replace="~{settings/fragments/form-mssql :: form-mssql}"></div>
+        <div th:replace="~{settings/fragments/form-sqlserver :: form-sqlserver}"></div>
         <div th:replace="~{settings/fragments/form-oracle :: form-oracle}"></div>
         <div th:replace="~{settings/fragments/form-cassandra :: form-cassandra}"></div>
         <div th:replace="~{settings/fragments/form-rabbitmq :: form-rabbitmq}"></div>
@@ -77,7 +77,7 @@
                     document.getElementById('form-redis').hidden = type !== 'redis';
                     document.getElementById('form-clickhouse').hidden = type !== 'clickhouse';
                     document.getElementById('form-mysql').hidden = type !== 'mysql';
-                    document.getElementById('form-mssql').hidden = type !== 'sqlserver';
+                    document.getElementById('form-sqlserver').hidden = type !== 'sqlserver';
                     document.getElementById('form-oracle').hidden = type !== 'oracle';
                     document.getElementById('form-cassandra').hidden = type !== 'cassandra';
                     document.getElementById('form-rabbitmq').hidden = type !== 'rabbitmq';

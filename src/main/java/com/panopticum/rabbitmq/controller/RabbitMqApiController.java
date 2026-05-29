@@ -5,7 +5,7 @@ import com.panopticum.core.controller.AbstractConnectionApiController;
 import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.rabbitmq.model.RabbitMqMessage;
 import com.panopticum.rabbitmq.model.RabbitMqQueueInfo;
-import com.panopticum.rabbitmq.service.RabbitMqService;
+import com.panopticum.rabbitmq.service.RabbitMqMetadataService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micronaut.http.annotation.Body;
@@ -41,13 +41,13 @@ import java.util.stream.Collectors;
 @Tag(name = "RabbitMQ", description = "RabbitMQ queues and messages API")
 public class RabbitMqApiController extends AbstractConnectionApiController {
 
-    private final RabbitMqService rabbitMqService;
+    private final RabbitMqMetadataService rabbitMqMetadataService;
     private final ObjectMapper objectMapper;
 
-    public RabbitMqApiController(DbConnectionService dbConnectionService, RabbitMqService rabbitMqService,
+    public RabbitMqApiController(DbConnectionService dbConnectionService, RabbitMqMetadataService rabbitMqMetadataService,
                                  ObjectMapper objectMapper) {
         super(dbConnectionService);
-        this.rabbitMqService = rabbitMqService;
+        this.rabbitMqMetadataService = rabbitMqMetadataService;
         this.objectMapper = objectMapper;
     }
 
@@ -65,7 +65,7 @@ public class RabbitMqApiController extends AbstractConnectionApiController {
             @QueryValue(value = "sort", defaultValue = "name") String sort,
             @QueryValue(value = "order", defaultValue = "asc") String order) {
         ensureConnectionExists(id);
-        return rabbitMqService.listQueuesPaged(id, page, size, sort, order);
+        return rabbitMqMetadataService.listQueuesPaged(id, page, size, sort, order);
     }
 
     @Get("/{id}/queues/{vhost}/{queue}/messages")
@@ -86,9 +86,9 @@ public class RabbitMqApiController extends AbstractConnectionApiController {
         String vhostDecoded = decodeVhost(vhost);
         String queueName = queue != null ? queue : "";
         int peekCount = count > 0 ? Math.min(count, 50) : 20;
-        List<RabbitMqMessage> messages = rabbitMqService.peekMessages(id, vhostDecoded, queueName, peekCount);
-        List<RabbitMqMessage> sorted = rabbitMqService.sortMessages(messages, sort != null ? sort : "index", order != null ? order : "asc");
-        return rabbitMqService.truncatePayloadsForList(sorted);
+        List<RabbitMqMessage> messages = rabbitMqMetadataService.peekMessages(id, vhostDecoded, queueName, peekCount);
+        List<RabbitMqMessage> sorted = rabbitMqMetadataService.sortMessages(messages, sort != null ? sort : "index", order != null ? order : "asc");
+        return rabbitMqMetadataService.truncatePayloadsForList(sorted);
     }
 
     @Get("/{id}/queues/{vhost}/{queue}/messages/{index}")
@@ -106,7 +106,7 @@ public class RabbitMqApiController extends AbstractConnectionApiController {
         ensureConnectionExists(id);
         String vhostDecoded = decodeVhost(vhost);
         String queueName = queue != null ? queue : "";
-        return rabbitMqService.peekOneByIndex(id, vhostDecoded, queueName, index).orElse(null);
+        return rabbitMqMetadataService.peekOneByIndex(id, vhostDecoded, queueName, index).orElse(null);
     }
 
     @Post("/{id}/queues/{vhost}/{queue}/publish")
@@ -143,7 +143,7 @@ public class RabbitMqApiController extends AbstractConnectionApiController {
         List<String> payloads = messages.stream()
                 .map(this::toJsonPayload)
                 .collect(Collectors.toList());
-        int published = rabbitMqService.publishMessages(id, vhostDecoded, queueName, payloads);
+        int published = rabbitMqMetadataService.publishMessages(id, vhostDecoded, queueName, payloads);
 
         return Map.of(
                 "published", published,

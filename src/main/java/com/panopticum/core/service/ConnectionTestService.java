@@ -2,20 +2,21 @@ package com.panopticum.core.service;
 
 import com.panopticum.cassandra.service.CassandraMetadataService;
 import com.panopticum.clickhouse.service.ClickHouseMetadataService;
-import com.panopticum.couchbase.service.CouchbaseService;
+import com.panopticum.couchbase.service.CouchbaseMetadataService;
 import com.panopticum.lightjdbc.service.LightJdbcMetadataService;
 import com.panopticum.mongo.service.MongoMetadataService;
-import com.panopticum.mssql.service.MssqlMetadataService;
+import com.panopticum.sqlserver.service.SqlServerMetadataService;
 import com.panopticum.oracle.service.OracleMetadataService;
 import com.panopticum.mysql.service.MySqlMetadataService;
-import com.panopticum.postgres.service.PgMetadataService;
-import com.panopticum.elasticsearch.service.ElasticsearchService;
+import com.panopticum.postgres.service.PostgresMetadataService;
+import com.panopticum.elasticsearch.service.ElasticsearchMetadataService;
 import com.panopticum.kafka.service.KafkaService;
 import com.panopticum.kubernetes.service.KubernetesService;
 import com.panopticum.prometheus.service.PrometheusService;
-import com.panopticum.rabbitmq.service.RabbitMqService;
+import com.panopticum.rabbitmq.service.RabbitMqMetadataService;
 import com.panopticum.redis.service.RedisMetadataService;
 import com.panopticum.s3.service.S3Service;
+import com.panopticum.core.model.ConnectionType;
 import com.panopticum.core.model.DbConnection;
 
 import jakarta.inject.Singleton;
@@ -29,42 +30,48 @@ import java.util.Optional;
 @Slf4j
 public class ConnectionTestService {
 
-    private final PgMetadataService pgMetadataService;
+    private final PostgresMetadataService postgresMetadataService;
     private final MongoMetadataService mongoMetadataService;
     private final RedisMetadataService redisMetadataService;
     private final ClickHouseMetadataService clickHouseMetadataService;
     private final MySqlMetadataService mySqlMetadataService;
-    private final MssqlMetadataService mssqlMetadataService;
+    private final SqlServerMetadataService sqlServerMetadataService;
     private final OracleMetadataService oracleMetadataService;
     private final CassandraMetadataService cassandraMetadataService;
-    private final RabbitMqService rabbitMqService;
+    private final RabbitMqMetadataService rabbitMqMetadataService;
     private final KafkaService kafkaService;
-    private final ElasticsearchService elasticsearchService;
+    private final ElasticsearchMetadataService elasticsearchMetadataService;
     private final KubernetesService kubernetesService;
     private final S3Service s3Service;
     private final PrometheusService prometheusService;
     private final LightJdbcMetadataService lightJdbcMetadataService;
-    private final CouchbaseService couchbaseService;
+    private final CouchbaseMetadataService couchbaseMetadataService;
     private final DbConnectionService dbConnectionService;
 
     public Optional<String> test(String type, String host, Integer port, String database,
                                 String username, String password, Optional<Long> connectionId) {
-        return test(type, host, port, database, username, password, connectionId, null);
+        return test(type, host, port, database, username, password, connectionId, null, null);
     }
 
     public Optional<String> test(String type, String host, Integer port, String database,
                                 String username, String password, Optional<Long> connectionId, Boolean couchbaseTlsOverride) {
+        return test(type, host, port, database, username, password, connectionId, couchbaseTlsOverride, null);
+    }
+
+    public Optional<String> test(String type, String host, Integer port, String database,
+                                String username, String password, Optional<Long> connectionId,
+                                Boolean couchbaseTlsOverride, Boolean useHttpsOverride) {
         if (type == null || type.isBlank()) {
             return Optional.of("error.specifyHostDbUser");
         }
-        int p = port != null ? port : defaultPort(type);
+        int p = port != null ? port : ConnectionType.defaultPortFor(type);
         String h = host != null ? host : "";
         String db = database != null ? database : "";
         String user = username != null ? username : "";
         String pass = password != null ? password : "";
 
         return switch (type.toLowerCase()) {
-            case "postgresql", "greenplum", "yugabytedb", "cockroachdb" -> pgMetadataService.testConnection(h, p, db, user, pass);
+            case "postgresql", "greenplum", "yugabytedb", "cockroachdb" -> postgresMetadataService.testConnection(h, p, db, user, pass);
             case "mongodb" -> mongoMetadataService.testConnection(h, p, db, user, pass);
             case "redis" -> {
                 int dbIndex = 0;
@@ -80,10 +87,10 @@ public class ConnectionTestService {
             case "clickhouse" -> clickHouseMetadataService.testConnection(h, p,
                     db.isBlank() ? "default" : db, user, pass);
             case "mysql" -> mySqlMetadataService.testConnection(h, p, db, user, pass);
-            case "sqlserver" -> mssqlMetadataService.testConnection(h, p, db, user, pass);
+            case "sqlserver" -> sqlServerMetadataService.testConnection(h, p, db, user, pass);
             case "oracle" -> oracleMetadataService.testConnection(h, p, db, user, pass);
             case "cassandra" -> cassandraMetadataService.testConnection(h, p, db, user, pass);
-            case "rabbitmq" -> rabbitMqService.testConnection(h, p, db, user, pass);
+            case "rabbitmq" -> rabbitMqMetadataService.testConnection(h, p, db, user, pass);
             case "kafka" -> {
                 log.info("Testing Kafka connection: host={}, port={}", h, p);
                 Optional<String> err = kafkaService.testConnection(h, p, db, user, pass);
@@ -94,46 +101,24 @@ public class ConnectionTestService {
                 }
                 yield err;
             }
-            case "elasticsearch" -> elasticsearchService.testConnection(connectionId, h, p, user, pass);
+            case "elasticsearch" -> elasticsearchMetadataService.testConnection(connectionId, h, p, user, pass);
             case "kubernetes" -> kubernetesService.testConnection(h, p, db, pass);
-            case "s3" -> s3Service.testConnection(h, p, db, user, pass, false);
-            case "prometheus" -> prometheusService.testConnection(h, p, user, pass, false);
+            case "s3" -> s3Service.testConnection(h, p, db, user, pass, resolveHttps(connectionId, useHttpsOverride));
+            case "prometheus" -> prometheusService.testConnection(h, p, user, pass, resolveHttps(connectionId, useHttpsOverride));
             case "h2", "hsqldb", "derby" -> lightJdbcMetadataService.testConnection(h, p, db, user, pass, type.toLowerCase());
-            case "couchbase" -> couchbaseService.testProbe(h, p, db, user, pass, couchbaseTls(connectionId, couchbaseTlsOverride));
+            case "couchbase" -> couchbaseMetadataService.testProbe(h, p, db, user, pass, couchbaseTls(connectionId, couchbaseTlsOverride));
             default -> Optional.of("error.specifyHostDbUser");
         };
     }
 
-    private static int defaultPort(String type) {
-        if (type == null) {
-            return 5432;
+    private boolean couchbaseTls(Optional<Long> connectionId, Boolean override) {
+        if (override != null) {
+            return override;
         }
-        return switch (type.toLowerCase()) {
-            case "postgresql", "greenplum" -> 5432;
-            case "yugabytedb" -> 5433;
-            case "cockroachdb" -> 26257;
-            case "h2" -> 9092;
-            case "hsqldb" -> 9001;
-            case "derby" -> 1527;
-            case "couchbase" -> 11210;
-            case "mongodb" -> 27017;
-            case "redis" -> 6379;
-            case "clickhouse" -> 8123;
-            case "mysql" -> 3306;
-            case "sqlserver" -> 1433;
-            case "oracle" -> 1521;
-            case "cassandra" -> 9042;
-            case "rabbitmq" -> 15672;
-            case "kafka" -> 9092;
-            case "elasticsearch" -> 9200;
-            case "kubernetes" -> 443;
-            case "s3" -> 443;
-            case "prometheus" -> 9090;
-            default -> 5432;
-        };
+        return connectionId.flatMap(dbConnectionService::findById).map(DbConnection::isUseHttps).orElse(false);
     }
 
-    private boolean couchbaseTls(Optional<Long> connectionId, Boolean override) {
+    private boolean resolveHttps(Optional<Long> connectionId, Boolean override) {
         if (override != null) {
             return override;
         }

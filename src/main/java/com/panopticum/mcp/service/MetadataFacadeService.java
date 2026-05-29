@@ -1,6 +1,7 @@
 package com.panopticum.mcp.service;
 
 import com.panopticum.core.error.AccessResult;
+import com.panopticum.core.model.ConnectionType;
 import com.panopticum.core.model.DatabaseInfo;
 import com.panopticum.core.model.Page;
 import com.panopticum.core.model.QueryResult;
@@ -14,10 +15,10 @@ import com.panopticum.cassandra.model.CassandraTableInfo;
 import com.panopticum.cassandra.service.CassandraMetadataService;
 import com.panopticum.clickhouse.service.ClickHouseMetadataService;
 import com.panopticum.couchbase.model.CouchbaseBucketInfo;
-import com.panopticum.couchbase.service.CouchbaseService;
+import com.panopticum.couchbase.service.CouchbaseMetadataService;
 import com.panopticum.core.model.DbConnection;
 import com.panopticum.elasticsearch.model.ElasticsearchIndexInfo;
-import com.panopticum.elasticsearch.service.ElasticsearchService;
+import com.panopticum.elasticsearch.service.ElasticsearchMetadataService;
 import com.panopticum.kafka.model.KafkaPartitionInfo;
 import com.panopticum.kafka.model.KafkaTopicInfo;
 import com.panopticum.kafka.service.KafkaService;
@@ -26,17 +27,17 @@ import com.panopticum.kubernetes.model.KubernetesPodDescription;
 import com.panopticum.kubernetes.model.KubernetesPodInfo;
 import com.panopticum.kubernetes.service.KubernetesService;
 import com.panopticum.kubernetes.util.KubernetesNamespaceCsv;
-import com.panopticum.mcp.model.ColumnInfo;
-import com.panopticum.mcp.model.EntityDescription;
+import com.panopticum.core.model.ColumnInfo;
+import com.panopticum.core.model.EntityDescription;
 import com.panopticum.mongo.model.MongoCollectionInfo;
 import com.panopticum.mongo.service.MongoMetadataService;
-import com.panopticum.mssql.service.MssqlMetadataService;
+import com.panopticum.sqlserver.service.SqlServerMetadataService;
 import com.panopticum.mysql.service.MySqlMetadataService;
 import com.panopticum.oracle.service.OracleMetadataService;
 import com.panopticum.postgres.PostgresWireCompat;
-import com.panopticum.postgres.service.PgMetadataService;
+import com.panopticum.postgres.service.PostgresMetadataService;
 import com.panopticum.prometheus.service.PrometheusService;
-import com.panopticum.rabbitmq.service.RabbitMqService;
+import com.panopticum.rabbitmq.service.RabbitMqMetadataService;
 import com.panopticum.rabbitmq.model.RabbitMqMessage;
 import com.panopticum.rabbitmq.model.RabbitMqQueueInfo;
 import com.panopticum.redis.model.RedisDbInfo;
@@ -44,6 +45,8 @@ import com.panopticum.redis.service.RedisMetadataService;
 import com.panopticum.s3.model.S3BucketInfo;
 import com.panopticum.s3.model.S3ObjectInfo;
 import com.panopticum.s3.service.S3Service;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.inject.Singleton;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -62,22 +65,23 @@ public class MetadataFacadeService {
     private static final int MCP_QUERY_HARD_LIMIT = 100;
 
     private final DbConnectionService dbConnectionService;
-    private final PgMetadataService pgMetadataService;
+    private final PostgresMetadataService postgresMetadataService;
     private final MySqlMetadataService mySqlMetadataService;
-    private final MssqlMetadataService mssqlMetadataService;
+    private final SqlServerMetadataService sqlServerMetadataService;
     private final OracleMetadataService oracleMetadataService;
     private final ClickHouseMetadataService clickHouseMetadataService;
     private final MongoMetadataService mongoMetadataService;
     private final CassandraMetadataService cassandraMetadataService;
     private final KafkaService kafkaService;
     private final RedisMetadataService redisMetadataService;
-    private final ElasticsearchService elasticsearchService;
+    private final ElasticsearchMetadataService elasticsearchMetadataService;
     private final KubernetesService kubernetesService;
-    private final RabbitMqService rabbitMqService;
+    private final RabbitMqMetadataService rabbitMqMetadataService;
     private final S3Service s3Service;
     private final PrometheusService prometheusService;
     private final LightJdbcMetadataService lightJdbcMetadataService;
-    private final CouchbaseService couchbaseService;
+    private final CouchbaseMetadataService couchbaseMetadataService;
+    private final ObjectMapper objectMapper;
 
     @Value("${panopticum.read-only:false}")
     private boolean readOnly;
@@ -88,7 +92,7 @@ public class MetadataFacadeService {
 
     public String getDbType(Long connectionId) {
         return dbConnectionService.findById(connectionId)
-                .map(c -> normalizeDbType(c.getType()))
+                .map(c -> ConnectionType.normalizeTypeId(c.getType()))
                 .orElse(null);
     }
 
@@ -98,27 +102,27 @@ public class MetadataFacadeService {
             return errorResult("connection.notFound");
         }
 
-        String type = normalizeDbType(connOpt.get().getType());
+        String type = ConnectionType.normalizeTypeId(connOpt.get().getType());
 
         try {
             return switch (type) {
-                case "postgresql", "greenplum", "yugabytedb", "cockroachdb" -> toCatalogPage(pgMetadataService.listDatabasesPaged(connectionId, page, size, sort, order), "database");
+                case "postgresql", "greenplum", "yugabytedb", "cockroachdb" -> toCatalogPage(postgresMetadataService.listDatabasesPaged(connectionId, page, size, sort, order), "database");
                 case "h2", "hsqldb", "derby" -> toCatalogPage(lightJdbcMetadataService.listDatabasesPaged(connectionId, page, size, sort, order), "database");
-                case "couchbase" -> toCouchbaseBucketCatalogPage(couchbaseService.listBucketsPaged(connectionId, page, size, sort, order));
+                case "couchbase" -> toCouchbaseBucketCatalogPage(couchbaseMetadataService.listBucketsPaged(connectionId, page, size, sort, order));
                 case "mysql" -> toCatalogPage(mySqlMetadataService.listDatabasesPaged(connectionId, page, size, sort, order), "database");
-                case "sqlserver" -> toCatalogPage(mssqlMetadataService.listDatabasesPaged(connectionId, page, size, sort, order), "database");
+                case "sqlserver" -> toCatalogPage(sqlServerMetadataService.listDatabasesPaged(connectionId, page, size, sort, order), "database");
                 case "clickhouse" -> toCatalogPage(clickHouseMetadataService.listDatabasesPaged(connectionId, page, size, sort, order), "database");
                 case "mongodb" -> toCatalogPage(mongoMetadataService.listDatabasesPaged(connectionId, page, size, sort, order), "database");
                 case "cassandra" -> toKeyspaceCatalogPage(cassandraMetadataService.listKeyspacesPaged(connectionId, page, size, sort, order));
                 case "oracle" -> oraclePseudoCatalog();
                 case "kafka" -> toKafkaTopicCatalogPage(kafkaService.listTopicsPaged(connectionId, page, size, sort, order));
                 case "redis" -> toRedisDbCatalogPage(redisMetadataService.listDatabasesSorted(connectionId, sort != null ? sort : "dbIndex", order != null ? order : "asc"), page, size);
-                case "elasticsearch" -> toElasticsearchIndexCatalogPage(elasticsearchService.listIndicesPaged(connectionId, page, size, sort, order));
+                case "elasticsearch" -> toElasticsearchIndexCatalogPage(elasticsearchMetadataService.listIndicesPaged(connectionId, page, size, sort, order));
                 case "kubernetes" -> toKubernetesNamespaceCatalogPage(
                         kubernetesService.listNamespacesPaged(connectionId, page, size, sort, order));
                 case "s3" -> toS3BucketCatalogPage(s3Service.listBuckets(connectionId));
                 case "prometheus" -> toPromJobCatalogPage(prometheusService.listJobs(connectionId));
-                case "rabbitmq" -> toRabbitVhostCatalogPage(rabbitMqService.listQueues(connectionId), resolveDefaultCatalog(connOpt.get()), page, size);
+                case "rabbitmq" -> toRabbitVhostCatalogPage(rabbitMqMetadataService.listQueues(connectionId), resolveDefaultCatalog(connOpt.get()), page, size);
                 default -> errorResult("Unsupported dbType: " + type);
             };
         } catch (Exception e) {
@@ -133,20 +137,20 @@ public class MetadataFacadeService {
             return errorResult("connection.notFound");
         }
 
-        String type = normalizeDbType(connOpt.get().getType());
+        String type = ConnectionType.normalizeTypeId(connOpt.get().getType());
 
         try {
             return switch (type) {
-                case "postgresql", "greenplum", "yugabytedb", "cockroachdb" -> toNamespacePage(pgMetadataService.listSchemasPaged(connectionId, catalog != null ? catalog : "", page, size, sort, order), false);
+                case "postgresql", "greenplum", "yugabytedb", "cockroachdb" -> toNamespacePage(postgresMetadataService.listSchemasPaged(connectionId, catalog != null ? catalog : "", page, size, sort, order), false);
                 case "h2", "hsqldb", "derby" -> toNamespacePage(lightJdbcMetadataService.listSchemasPaged(connectionId, page, size, sort, order), false);
                 case "couchbase" -> {
                     String bucket = catalog != null && !catalog.isBlank() ? catalog : resolveDefaultCatalog(connOpt.get());
                     if (bucket.isBlank()) {
                         yield errorResult("error.specifyDatabase");
                     }
-                    yield toNamespacePage(couchbaseService.listScopesPaged(connectionId, bucket, page, size, sort, order), false);
+                    yield toNamespacePage(couchbaseMetadataService.listScopesPaged(connectionId, bucket, page, size, sort, order), false);
                 }
-                case "sqlserver" -> toNamespacePage(mssqlMetadataService.listSchemasPaged(connectionId, catalog != null ? catalog : "", page, size, sort, order), false);
+                case "sqlserver" -> toNamespacePage(sqlServerMetadataService.listSchemasPaged(connectionId, catalog != null ? catalog : "", page, size, sort, order), false);
                 case "oracle" -> toNamespacePage(oracleMetadataService.listSchemasPaged(connectionId, page, size, sort, order), true);
                 case "mysql", "clickhouse", "mongodb", "cassandra", "kafka", "redis", "elasticsearch", "kubernetes", "s3", "prometheus", "rabbitmq" -> notApplicableResult();
                 default -> errorResult("Unsupported dbType: " + type);
@@ -163,13 +167,13 @@ public class MetadataFacadeService {
             return errorResult("connection.notFound");
         }
 
-        String type = normalizeDbType(connOpt.get().getType());
+        String type = ConnectionType.normalizeTypeId(connOpt.get().getType());
         String cat = catalog != null && !catalog.isBlank() ? catalog : resolveDefaultCatalog(connOpt.get());
         String ns = namespace != null && !namespace.isBlank() ? namespace : "";
 
         try {
             return switch (type) {
-                case "postgresql", "greenplum", "yugabytedb", "cockroachdb" -> toEntityPage(pgMetadataService.listTablesPaged(connectionId, cat, ns, page, size, sort, order), cat, ns);
+                case "postgresql", "greenplum", "yugabytedb", "cockroachdb" -> toEntityPage(postgresMetadataService.listTablesPaged(connectionId, cat, ns, page, size, sort, order), cat, ns);
                 case "h2", "hsqldb", "derby" -> {
                     if (ns.isBlank()) {
                         yield errorResult("error.specifyCollection");
@@ -184,10 +188,10 @@ public class MetadataFacadeService {
                     if (ns.isBlank()) {
                         yield errorResult("error.specifyCollection");
                     }
-                    yield toEntityPage(couchbaseService.listCollectionsAsTablesPaged(connectionId, cat, ns, page, size, sort, order), cat, ns);
+                    yield toEntityPage(couchbaseMetadataService.listCollectionsAsTablesPaged(connectionId, cat, ns, page, size, sort, order), cat, ns);
                 }
                 case "mysql" -> toEntityPage(mySqlMetadataService.listTablesPaged(connectionId, cat, page, size, sort, order), cat, null);
-                case "sqlserver" -> toEntityPage(mssqlMetadataService.listTablesPaged(connectionId, cat, ns, page, size, sort, order), cat, ns);
+                case "sqlserver" -> toEntityPage(sqlServerMetadataService.listTablesPaged(connectionId, cat, ns, page, size, sort, order), cat, ns);
                 case "oracle" -> {
                     String schema = ns.isEmpty() ? (("default".equals(cat) ? "" : cat)) : ns;
                     if (schema.isEmpty()) {
@@ -203,7 +207,7 @@ public class MetadataFacadeService {
                         ? errorResult("kubernetes.namespaceRequired")
                         : toKubernetesPodEntityPage(kubernetesService.listPodsPaged(connectionId, cat, page, size, sort, order), cat);
                 case "redis", "elasticsearch" -> notApplicableResult();
-                case "rabbitmq" -> toRabbitQueueEntityPage(rabbitMqService.listQueues(connectionId), cat, page, size, sort, order);
+                case "rabbitmq" -> toRabbitQueueEntityPage(rabbitMqMetadataService.listQueues(connectionId), cat, page, size, sort, order);
                 case "s3" -> {
                     String bucket = cat;
                     String prefix = ns.isBlank() ? "" : ns;
@@ -225,6 +229,12 @@ public class MetadataFacadeService {
 
     public Optional<QueryResult> executeQuery(Long connectionId, String catalog, String namespace, String entity,
                                               String query, int offset, int effectiveLimit, String sort, String order) {
+        return executeQuery(connectionId, catalog, namespace, entity, query, offset, effectiveLimit, sort, order, List.of());
+    }
+
+    public Optional<QueryResult> executeQuery(Long connectionId, String catalog, String namespace, String entity,
+                                              String query, int offset, int effectiveLimit, String sort, String order,
+                                              List<String> publishPayloads) {
         int limit = Math.min(effectiveLimit, MCP_QUERY_HARD_LIMIT);
 
         Optional<DbConnection> connOpt = dbConnectionService.findById(connectionId);
@@ -232,11 +242,11 @@ public class MetadataFacadeService {
             return Optional.empty();
         }
 
-        String type = normalizeDbType(connOpt.get().getType());
+        String type = ConnectionType.normalizeTypeId(connOpt.get().getType());
         String cat = catalog != null && !catalog.isBlank() ? catalog : resolveDefaultCatalog(connOpt.get());
         String ns = namespace != null && !namespace.isBlank() ? namespace : "";
 
-        if (isSqlDbType(type)) {
+        if (ConnectionType.isSqlType(type)) {
             Optional<QueryResult> blocked = SqlQuerySupport.readOnlyBlock(readOnly, query);
             if (blocked.isPresent()) {
                 return blocked;
@@ -245,11 +255,11 @@ public class MetadataFacadeService {
 
         try {
             return switch (type) {
-                case "postgresql", "greenplum", "yugabytedb", "cockroachdb" -> pgMetadataService.executeQuery(connectionId, cat, query, offset, limit, sort != null ? sort : "", order != null ? order : "");
+                case "postgresql", "greenplum", "yugabytedb", "cockroachdb" -> postgresMetadataService.executeQuery(connectionId, cat, query, offset, limit, sort != null ? sort : "", order != null ? order : "");
                 case "h2", "hsqldb", "derby" -> lightJdbcMetadataService.executeQuery(connectionId, query, offset, limit, sort != null ? sort : "", order != null ? order : "");
-                case "couchbase" -> Optional.of(couchbaseService.executeN1ql(connectionId, query, offset, limit));
+                case "couchbase" -> Optional.of(couchbaseMetadataService.executeN1ql(connectionId, query, offset, limit));
                 case "mysql" -> mySqlMetadataService.executeQuery(connectionId, cat, query, offset, limit, sort != null ? sort : "", order != null ? order : "");
-                case "sqlserver" -> mssqlMetadataService.executeQuery(connectionId, cat, query, offset, limit, sort != null ? sort : "", order != null ? order : "");
+                case "sqlserver" -> sqlServerMetadataService.executeQuery(connectionId, cat, query, offset, limit, sort != null ? sort : "", order != null ? order : "");
                 case "oracle" -> {
                     String schema = ns.isEmpty() ? ("default".equals(cat) ? resolveDefaultCatalog(connOpt.get()) : cat) : ns;
                     yield oracleMetadataService.executeQuery(connectionId, schema, query, offset, limit, sort != null ? sort : "", order != null ? order : "");
@@ -265,7 +275,7 @@ public class MetadataFacadeService {
                         yield Optional.of(QueryResult.error("catalog or entity (index name) is required for Elasticsearch"));
                     }
                     String dsl = (query != null && !query.isBlank()) ? query.trim() : "{\"query\":{\"match_all\":{}}}";
-                    yield elasticsearchService.executeQuery(connectionId, index, dsl, offset, limit);
+                    yield elasticsearchMetadataService.executeQuery(connectionId, index, dsl, offset, limit);
                 }
                 case "kubernetes" -> {
                     if (cat == null || cat.isBlank()) {
@@ -344,12 +354,15 @@ public class MetadataFacadeService {
                         yield Optional.of(QueryResult.error("rabbitmq.queueRequired"));
                     }
                     String vhost = cat != null && !cat.isBlank() ? cat : resolveDefaultCatalog(connOpt.get());
-                    Optional<QueryResult> publishResult = tryPublishRabbitMessages(connectionId, vhost, entity, query);
-                    if (publishResult.isPresent()) {
-                        yield publishResult;
+                    if (publishPayloads != null && !publishPayloads.isEmpty()) {
+                        yield publishRabbitMessages(connectionId, vhost, entity, publishPayloads);
+                    }
+                    Optional<QueryResult> legacyPublish = tryLegacyPublishFromQuery(connectionId, vhost, entity, query);
+                    if (legacyPublish.isPresent()) {
+                        yield legacyPublish;
                     }
                     int count = parseRabbitMessageCount(query, limit);
-                    List<RabbitMqMessage> messages = rabbitMqService.peekMessages(connectionId, vhost, entity, count);
+                    List<RabbitMqMessage> messages = rabbitMqMetadataService.peekMessages(connectionId, vhost, entity, count);
                     yield Optional.of(rabbitMessagesToQueryResult(messages, offset, count));
                 }
                 default -> Optional.empty();
@@ -367,7 +380,7 @@ public class MetadataFacadeService {
             return Optional.empty();
         }
 
-        String type = normalizeDbType(connOpt.get().getType());
+        String type = ConnectionType.normalizeTypeId(connOpt.get().getType());
         String cat = catalog != null && !catalog.isBlank() ? catalog : resolveDefaultCatalog(connOpt.get());
         String ns = namespace != null && !namespace.isBlank() ? namespace : "";
 
@@ -382,7 +395,7 @@ public class MetadataFacadeService {
         }
 
         if (documentId != null && !documentId.isBlank() && "couchbase".equals(type)) {
-            return couchbaseService.getDocument(connectionId, cat, ns, entity, documentId)
+            return couchbaseMetadataService.getDocument(connectionId, cat, ns, entity, documentId)
                     .map(doc -> {
                         Map<String, Object> out = new HashMap<>();
                         out.put("record", doc);
@@ -408,22 +421,6 @@ public class MetadataFacadeService {
 
     private Optional<Map<String, Object>> getPgRecordByCtid(Long connectionId, String catalog, String namespace, String ctid) {
         return Optional.empty();
-    }
-
-    private static String normalizeDbType(String type) {
-        if (type == null || type.isBlank()) {
-            return "";
-        }
-        return "mssql".equalsIgnoreCase(type) ? "sqlserver" : type.toLowerCase();
-    }
-
-    private static boolean isSqlDbType(String type) {
-        return switch (type) {
-            case "postgresql", "greenplum", "yugabytedb", "cockroachdb",
-                    "mysql", "sqlserver", "oracle", "clickhouse",
-                    "h2", "hsqldb", "derby", "cassandra" -> true;
-            default -> false;
-        };
     }
 
     private static String resolveDefaultCatalog(DbConnection conn) {
@@ -827,40 +824,46 @@ public class MetadataFacadeService {
         return new QueryResult(columns, types, rows, null, null, offset, limit, messages.size() >= limit);
     }
 
-    private Optional<QueryResult> tryPublishRabbitMessages(Long connectionId, String vhost, String queue, String query) {
-        if (query == null || query.isBlank()) {
-            return Optional.empty();
+    private Optional<QueryResult> publishRabbitMessages(Long connectionId, String vhost, String queue, List<String> payloads) {
+        if (payloads == null || payloads.isEmpty()) {
+            return Optional.of(QueryResult.error("rabbitmq.publishRequired"));
         }
-
         try {
-            com.fasterxml.jackson.databind.JsonNode node = new com.fasterxml.jackson.databind.ObjectMapper().readTree(query.trim());
-            if (!node.has("publish")) {
-                return Optional.empty();
-            }
-
-            com.fasterxml.jackson.databind.JsonNode publishNode = node.get("publish");
-            if (!publishNode.isArray() || publishNode.isEmpty()) {
-                return Optional.of(QueryResult.error("rabbitmq.publishRequired"));
-            }
-
-            List<String> payloads = new ArrayList<>();
-            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-            for (com.fasterxml.jackson.databind.JsonNode item : publishNode) {
-                payloads.add(mapper.writeValueAsString(item));
-            }
-
-            int published = rabbitMqService.publishMessages(connectionId, vhost, queue, payloads);
+            int published = rabbitMqMetadataService.publishMessages(connectionId, vhost, queue, payloads);
             List<String> columns = List.of("published", "requested", "queue", "vhost");
             List<String> types = List.of("integer", "integer", "string", "string");
             List<List<Object>> rows = List.of(List.of(published, payloads.size(), queue, vhost));
-
             return Optional.of(new QueryResult(columns, types, rows, null, null, 0, rows.size(), false));
         } catch (Exception e) {
             return Optional.of(QueryResult.error(e.getMessage() != null ? e.getMessage() : "rabbitmq.publishFailed"));
         }
     }
 
-    private static int parseRabbitMessageCount(String query, int defaultCount) {
+    private Optional<QueryResult> tryLegacyPublishFromQuery(Long connectionId, String vhost, String queue, String query) {
+        if (query == null || query.isBlank()) {
+            return Optional.empty();
+        }
+        try {
+            JsonNode node = objectMapper.readTree(query.trim());
+            if (!node.has("publish")) {
+                return Optional.empty();
+            }
+            log.warn("RabbitMQ publish via query JSON is deprecated; use the publish argument in query-data");
+            JsonNode publishNode = node.get("publish");
+            if (!publishNode.isArray() || publishNode.isEmpty()) {
+                return Optional.of(QueryResult.error("rabbitmq.publishRequired"));
+            }
+            List<String> payloads = new ArrayList<>();
+            for (JsonNode item : publishNode) {
+                payloads.add(objectMapper.writeValueAsString(item));
+            }
+            return publishRabbitMessages(connectionId, vhost, queue, payloads);
+        } catch (Exception e) {
+            return Optional.of(QueryResult.error(e.getMessage() != null ? e.getMessage() : "rabbitmq.publishFailed"));
+        }
+    }
+
+    private int parseRabbitMessageCount(String query, int defaultCount) {
         if (query == null || query.isBlank()) {
             return Math.min(Math.max(1, defaultCount), 50);
         }
@@ -869,7 +872,7 @@ public class MetadataFacadeService {
             return Math.min(Math.max(1, Integer.parseInt(trimmed)), 50);
         } catch (NumberFormatException ignored) {
             try {
-                com.fasterxml.jackson.databind.JsonNode node = new com.fasterxml.jackson.databind.ObjectMapper().readTree(trimmed);
+                JsonNode node = objectMapper.readTree(trimmed);
                 return Math.min(Math.max(1, node.path("count").asInt(defaultCount)), 50);
             } catch (Exception ignoredJson) {
                 return Math.min(Math.max(1, defaultCount), 50);
@@ -995,21 +998,21 @@ public class MetadataFacadeService {
             return Optional.empty();
         }
 
-        String type = normalizeDbType(connOpt.get().getType());
+        String type = ConnectionType.normalizeTypeId(connOpt.get().getType());
         String cat = catalog != null && !catalog.isBlank() ? catalog : resolveDefaultCatalog(connOpt.get());
         String ns = namespace != null && !namespace.isBlank() ? namespace : "";
 
         try {
             return switch (type) {
-                case "postgresql", "greenplum", "yugabytedb", "cockroachdb" -> pgMetadataService.describeEntity(connectionId, cat, ns, entity)
+                case "postgresql", "greenplum", "yugabytedb", "cockroachdb" -> postgresMetadataService.describeEntity(connectionId, cat, ns, entity)
                         .map(d -> withConnectionId(d, connectionId, type));
                 case "h2", "hsqldb", "derby" -> lightJdbcMetadataService.describeEntity(connectionId, cat, ns, entity)
                         .map(d -> withConnectionId(d, connectionId, type));
-                case "couchbase" -> couchbaseService.describeCollection(connectionId, cat, ns, entity)
+                case "couchbase" -> couchbaseMetadataService.describeCollection(connectionId, cat, ns, entity)
                         .map(d -> withConnectionId(d, connectionId, type));
                 case "mysql" -> mySqlMetadataService.describeEntity(connectionId, cat, entity)
                         .map(d -> withConnectionId(d, connectionId, type));
-                case "sqlserver" -> mssqlMetadataService.describeEntity(connectionId, cat, ns, entity)
+                case "sqlserver" -> sqlServerMetadataService.describeEntity(connectionId, cat, ns, entity)
                         .map(d -> withConnectionId(d, connectionId, type));
                 case "oracle" -> {
                     String schema = ns.isEmpty() ? ("default".equals(cat) ? resolveDefaultCatalog(connOpt.get()) : cat) : ns;
@@ -1022,7 +1025,7 @@ public class MetadataFacadeService {
                         .map(d -> withConnectionId(d, connectionId, type));
                 case "cassandra" -> cassandraMetadataService.describeEntity(connectionId, cat, entity)
                         .map(d -> withConnectionId(d, connectionId, type));
-                case "elasticsearch" -> elasticsearchService.describeIndex(connectionId, entity)
+                case "elasticsearch" -> elasticsearchMetadataService.describeIndex(connectionId, entity)
                         .map(d -> withConnectionId(d, connectionId, type));
                 case "redis" -> {
                     int dbIndex = 0;
@@ -1032,7 +1035,7 @@ public class MetadataFacadeService {
                 }
                 case "kafka" -> kafkaService.describeEntity(connectionId, entity)
                         .map(d -> withConnectionId(d, connectionId, type));
-                case "rabbitmq" -> rabbitMqService.describeQueue(connectionId, cat, entity)
+                case "rabbitmq" -> rabbitMqMetadataService.describeQueue(connectionId, cat, entity)
                         .map(d -> withConnectionId(d, connectionId, type));
                 case "kubernetes" -> {
                     if (cat == null || cat.isBlank() || entity == null || entity.isBlank()) {

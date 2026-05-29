@@ -10,7 +10,7 @@ import com.panopticum.core.util.ControllerModelHelper;
 import com.panopticum.elasticsearch.model.ElasticsearchIndexInfo;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.panopticum.elasticsearch.service.ElasticsearchService;
+import com.panopticum.elasticsearch.service.ElasticsearchMetadataService;
 import io.micronaut.context.annotation.Value;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.http.HttpResponse;
@@ -51,7 +51,7 @@ public class ElasticsearchController {
     private static final int DEFAULT_SIZE = 100;
 
     private final DbConnectionService dbConnectionService;
-    private final ElasticsearchService elasticsearchService;
+    private final ElasticsearchMetadataService elasticsearchMetadataService;
     private final ObjectMapper objectMapper;
 
     @Value("${panopticum.read-only:false}")
@@ -81,7 +81,7 @@ public class ElasticsearchController {
         ControllerModelHelper.addBreadcrumbs(model, breadcrumbs);
         model.put("connectionId", id);
 
-        Page<ElasticsearchIndexInfo> paged = elasticsearchService.listIndicesPaged(id, page, size, sort, order);
+        Page<ElasticsearchIndexInfo> paged = elasticsearchMetadataService.listIndicesPaged(id, page, size, sort, order);
         ControllerModelHelper.addPagination(model, paged, "items");
         ControllerModelHelper.addOrderToggles(model, paged.getSort(), paged.getOrder(),
                 Map.of("index", "orderIndex", "docsCount", "orderDocsCount", "storeSize", "orderStoreSize"));
@@ -143,7 +143,7 @@ public class ElasticsearchController {
             model.put("fromRow", 0);
             model.put("toRow", 0);
         } else {
-            var result = elasticsearchService.executeQuery(id, indexName, query, off, lim)
+            var result = elasticsearchMetadataService.executeQuery(id, indexName, query, off, lim)
                     .orElse(QueryResult.error("error.queryExecutionFailed"));
             AppAlerts.fromControllerMessage(model, result.hasError() ? result.getError() : null);
             model.put("columns", result.getColumns());
@@ -187,7 +187,7 @@ public class ElasticsearchController {
         model.put("docIdEncoded", docId != null ? encodePath(docId) : "");
         model.put("readOnly", readOnly);
 
-        String json = elasticsearchService.getDocument(id, indexName, docId).orElse("{}");
+        String json = elasticsearchMetadataService.getDocument(id, indexName, docId).orElse("{}");
         model.put("prettyJson", json);
         AppAlerts.clear(model);
 
@@ -215,7 +215,7 @@ public class ElasticsearchController {
     public Object saveDocument(@PathVariable Long id, @PathVariable String indexName, @PathVariable String docId,
                               String body) {
         assertNotReadOnly();
-        Optional<String> err = elasticsearchService.updateDocument(id, indexName, docId, body);
+        Optional<String> err = elasticsearchMetadataService.updateDocument(id, indexName, docId, body);
 
         if (err.isPresent()) {
             Map<String, Object> model = ControllerModelHelper.baseModel(id, dbConnectionService);
@@ -297,7 +297,7 @@ public class ElasticsearchController {
             return new ModelAndView<>("partials/elasticsearch-search-result", model);
         }
 
-        var result = elasticsearchService.executeQuery(id, indexName, query, off, lim)
+        var result = elasticsearchMetadataService.executeQuery(id, indexName, query, off, lim)
                 .orElse(QueryResult.error("error.queryExecutionFailed"));
 
         AppAlerts.fromControllerMessage(model, result.hasError() ? result.getError() : null);

@@ -7,7 +7,7 @@ import com.panopticum.core.model.SchemaInfo;
 import com.panopticum.core.model.TableInfo;
 import com.panopticum.core.sql.SqlQuerySupport;
 import com.panopticum.core.util.StringUtils;
-import com.panopticum.mcp.model.EntityDescription;
+import com.panopticum.core.model.EntityDescription;
 import com.panopticum.oracle.repository.OracleMetadataRepository;
 import io.micronaut.context.annotation.Value;
 import jakarta.inject.Singleton;

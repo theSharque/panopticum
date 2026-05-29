@@ -2,8 +2,8 @@ package com.panopticum.redis.service;
 
 import com.panopticum.core.model.QueryResult;
 import com.panopticum.core.util.StringUtils;
-import com.panopticum.mcp.model.ColumnInfo;
-import com.panopticum.mcp.model.EntityDescription;
+import com.panopticum.core.model.ColumnInfo;
+import com.panopticum.core.model.EntityDescription;
 import com.panopticum.redis.model.RedisDbInfo;
 import com.panopticum.redis.model.RedisKeyDetail;
 import com.panopticum.redis.model.RedisKeyInfo;

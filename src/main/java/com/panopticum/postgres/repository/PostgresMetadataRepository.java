@@ -1,0 +1,475 @@
+package com.panopticum.postgres.repository;
+
+import com.panopticum.core.model.DatabaseInfo;
+import com.panopticum.core.model.DbConnection;
+import com.panopticum.core.model.QueryResultData;
+import com.panopticum.core.model.SchemaInfo;
+import com.panopticum.core.model.TableInfo;
+import com.panopticum.core.error.ConnectionSupport;
+import com.panopticum.core.error.MetadataAccessException;
+import com.panopticum.core.sql.JdbcSqlExecutor;
+import com.panopticum.core.service.DbConnectionService;
+import com.panopticum.core.util.SizeFormatter;
+import com.panopticum.postgres.PostgresJdbcDrivers;
+import com.panopticum.postgres.PostgresWireCompat;
+import com.panopticum.core.model.ColumnInfo;
+import com.panopticum.core.model.EntityDescription;
+import com.panopticum.core.model.ForeignKeyInfo;
+import com.panopticum.core.model.IndexInfo;
+import jakarta.inject.Singleton;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+@Singleton
+@Slf4j
+@RequiredArgsConstructor
+public class PostgresMetadataRepository {
+
+    private static final String POSTGRESQL_PREFIX = "jdbc:postgresql://";
+
+    private static final String LIST_DATABASES_SQL_WITH_SIZE =
+            "SELECT datname, pg_database_size(datname)::bigint AS size FROM pg_catalog.pg_database WHERE datistemplate = false";
+
+    private static final String LIST_DATABASES_SQL_NO_SIZE =
+            "SELECT datname, 0::bigint AS size FROM pg_catalog.pg_database WHERE datistemplate = false";
+
+    private static final String LIST_SCHEMAS_SQL =
+            "SELECT s.schema_name, s.schema_owner, (SELECT count(*) FROM information_schema.tables t WHERE t.table_schema = s.schema_name AND t.table_type IN ('BASE TABLE', 'VIEW'))::int AS table_count "
+                    + "FROM information_schema.schemata s WHERE s.schema_name NOT IN ('information_schema', 'pg_catalog') AND s.schema_name NOT LIKE 'pg_toast%'";
+
+    private static final String LIST_TABLES_SQL_PG_STATS =
+            "SELECT c.relname, CASE c.relkind WHEN 'r' THEN 'table' WHEN 'v' THEN 'view' END AS reltype, "
+                    + "COALESCE(c.reltuples::bigint, 0) AS row_estimate, COALESCE(pg_total_relation_size(c.oid), 0)::bigint AS size "
+                    + "FROM pg_class c JOIN pg_namespace n ON c.relnamespace = n.oid "
+                    + "WHERE n.nspname = ? AND c.relkind IN ('r','v') ORDER BY c.relname";
+
+    private static final String LIST_TABLES_SQL_INFORMATION_SCHEMA =
+            "SELECT table_name AS relname, CASE LOWER(table_type) WHEN 'base table' THEN 'table' ELSE 'view' END AS reltype, "
+                    + "0::bigint AS row_estimate, 0::bigint AS size "
+                    + "FROM information_schema.tables WHERE table_schema = ? AND table_type IN ('BASE TABLE', 'VIEW') "
+                    + "ORDER BY table_name";
+
+    private static final String COLUMN_TYPES_SQL =
+            "SELECT column_name, data_type FROM information_schema.columns WHERE table_schema = ? AND table_name = ? ORDER BY ordinal_position";
+
+    private final DbConnectionService dbConnectionService;
+
+    public Optional<Connection> getConnection(Long connectionId) {
+        return dbConnectionService.findById(connectionId).flatMap(this::createConnection);
+    }
+
+    public Optional<Connection> getConnection(Long connectionId, String dbName) {
+        return dbConnectionService.findById(connectionId)
+                .filter(c -> PostgresWireCompat.isCompatible(c.getType()))
+                .flatMap(c -> createConnectionToDb(c, dbName != null && !dbName.isBlank() ? dbName : c.getDbName()));
+    }
+
+    private Optional<Connection> createConnectionToDb(DbConnection conn, String db) {
+        if (db == null || db.isBlank()) {
+            db = "postgres";
+        }
+
+        String url = POSTGRESQL_PREFIX + conn.getHost() + ":" + conn.getPort() + "/" + db;
+
+        PostgresJdbcDrivers.ensureLoaded();
+        try {
+            return Optional.of(DriverManager.getConnection(url, conn.getUsername(), conn.getPassword() != null ? conn.getPassword() : ""));
+        } catch (SQLException e) {
+            log.warn("Failed to connect to {} db {}: {}", conn.getName(), db, e.getMessage());
+            return Optional.empty();
+        }
+    }
+
+    private Optional<Connection> createConnection(DbConnection conn) {
+        if (!PostgresWireCompat.isCompatible(conn.getType())) {
+            return Optional.empty();
+        }
+
+        String db = conn.getDbName();
+        if (db == null || db.isBlank()) {
+            db = "postgres";
+        }
+
+        String url = POSTGRESQL_PREFIX + conn.getHost() + ":" + conn.getPort() + "/" + db;
+        PostgresJdbcDrivers.ensureLoaded();
+        try {
+            return Optional.of(DriverManager.getConnection(url, conn.getUsername(), conn.getPassword() != null ? conn.getPassword() : ""));
+        } catch (SQLException e) {
+            log.warn("Failed to connect to {}: {}", conn.getName(), e.getMessage());
+
+            return Optional.empty();
+        }
+    }
+
+    public List<DatabaseInfo> listDatabaseInfos(Long connectionId) {
+        Optional<DbConnection> dc = dbConnectionService.findById(connectionId);
+        boolean withSize = dc.map(c -> PostgresWireCompat.supportsPgStatsAndSizes(c.getType())).orElse(false);
+        try (Connection conn = ConnectionSupport.require(getConnection(connectionId))) {
+            List<DatabaseInfo> infos = new ArrayList<>();
+            String sql = withSize ? LIST_DATABASES_SQL_WITH_SIZE : LIST_DATABASES_SQL_NO_SIZE;
+            try (PreparedStatement ps = conn.prepareStatement(sql);
+                 ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String name = rs.getString("datname");
+                    long size = rs.getLong("size");
+                    infos.add(new DatabaseInfo(name, size, SizeFormatter.formatSize(size)));
+                }
+            }
+
+            return infos;
+        } catch (SQLException e) {
+            if (withSize) {
+                return listDatabaseInfosFallbackSize(connectionId);
+            }
+            log.warn("listDatabaseInfos failed: {}", e.getMessage());
+            throw new MetadataAccessException(e.getMessage(), e);
+        }
+    }
+
+    private List<DatabaseInfo> listDatabaseInfosFallbackSize(Long connectionId) {
+        try (Connection conn = ConnectionSupport.require(getConnection(connectionId))) {
+            List<DatabaseInfo> infos = new ArrayList<>();
+            try (PreparedStatement ps = conn.prepareStatement(LIST_DATABASES_SQL_NO_SIZE);
+                 ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String name = rs.getString("datname");
+                    long size = rs.getLong("size");
+                    infos.add(new DatabaseInfo(name, size, SizeFormatter.formatSize(size)));
+                }
+            }
+
+            return infos;
+        } catch (SQLException e) {
+            log.warn("listDatabaseInfos fallback failed: {}", e.getMessage());
+            throw new MetadataAccessException(e.getMessage(), e);
+        }
+    }
+
+    public List<SchemaInfo> listSchemaInfos(Long connectionId, String dbName) {
+        try (Connection conn = ConnectionSupport.require(getConnection(connectionId, dbName))) {
+            List<SchemaInfo> infos = new ArrayList<>();
+            try (PreparedStatement ps = conn.prepareStatement(LIST_SCHEMAS_SQL);
+                 ResultSet rs = ps.executeQuery()) {
+
+                    while (rs.next()) {
+                    String name = rs.getString("schema_name");
+                    String owner = rs.getString("schema_owner");
+                    int tableCount = rs.getInt("table_count");
+                    infos.add(new SchemaInfo(name, owner != null ? owner : "", tableCount));
+                }
+            }
+
+            return infos;
+        } catch (SQLException e) {
+            log.warn("listSchemaInfos failed: {}", e.getMessage());
+            throw new MetadataAccessException(e.getMessage(), e);
+        }
+    }
+
+    private long getExactRowCount(Connection conn, String schema, String tableName) {
+        String quotedSchema = "\"" + (schema != null ? schema.replace("\"", "\"\"") : "") + "\"";
+        String quotedTable = "\"" + (tableName != null ? tableName.replace("\"", "\"\"") : "") + "\"";
+        String sql = "SELECT count(*) FROM " + quotedSchema + "." + quotedTable;
+        try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(sql)) {
+            return rs.next() ? rs.getLong(1) : 0;
+        } catch (SQLException e) {
+            log.debug("getExactRowCount failed for {}.{}: {}", schema, tableName, e.getMessage());
+            return -1;
+        }
+    }
+
+    public List<TableInfo> listTableInfos(Long connectionId, String dbName, String schema) {
+        if (schema == null || schema.isBlank()) {
+            return List.of();
+        }
+        Optional<DbConnection> dc = dbConnectionService.findById(connectionId);
+        boolean pgStats = dc.map(c -> PostgresWireCompat.supportsPgStatsAndSizes(c.getType())).orElse(false);
+        try (Connection conn = ConnectionSupport.require(getConnection(connectionId, dbName))) {
+            List<TableInfo> tables = new ArrayList<>();
+            String sql = pgStats ? LIST_TABLES_SQL_PG_STATS : LIST_TABLES_SQL_INFORMATION_SCHEMA;
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setString(1, schema);
+
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        String name = rs.getString("relname");
+                        String type = rs.getString("reltype");
+                        long rowEst = rs.getLong("row_estimate");
+                        long size = rs.getLong("size");
+                        if (rowEst <= 0 && pgStats) {
+                            rowEst = getExactRowCount(conn, schema, name);
+                        }
+                        tables.add(new TableInfo(name, type != null ? type : "table", rowEst, size, SizeFormatter.formatSize(size)));
+                    }
+                }
+            }
+
+            return tables;
+        } catch (SQLException e) {
+            if (pgStats) {
+                return listTableInfosInformationSchema(connectionId, dbName, schema);
+            }
+            log.warn("listTableInfos failed: {}", e.getMessage());
+            throw new MetadataAccessException(e.getMessage(), e);
+        }
+    }
+
+    private List<TableInfo> listTableInfosInformationSchema(Long connectionId, String dbName, String schema) {
+        try (Connection conn = ConnectionSupport.require(getConnection(connectionId, dbName))) {
+            List<TableInfo> tables = new ArrayList<>();
+            try (PreparedStatement ps = conn.prepareStatement(LIST_TABLES_SQL_INFORMATION_SCHEMA)) {
+                ps.setString(1, schema);
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        String name = rs.getString("relname");
+                        String type = rs.getString("reltype");
+                        long rowEst = rs.getLong("row_estimate");
+                        long size = rs.getLong("size");
+                        tables.add(new TableInfo(name, type != null ? type : "table", rowEst, size, SizeFormatter.formatSize(size)));
+                    }
+                }
+            }
+
+            return tables;
+        } catch (SQLException e) {
+            log.warn("listTableInfos information_schema failed: {}", e.getMessage());
+            throw new MetadataAccessException(e.getMessage(), e);
+        }
+    }
+
+    public Optional<QueryResultData> executeQuery(Long connectionId, String dbName, String sql) {
+        try (Connection conn = ConnectionSupport.require(getConnection(connectionId, dbName));
+             Statement stmt = conn.createStatement()) {
+            return Optional.of(JdbcSqlExecutor.execute(stmt, sql));
+        } catch (SQLException e) {
+            log.warn("executeQuery failed: {}", e.getMessage());
+            throw new MetadataAccessException(e.getMessage(), e);
+        }
+    }
+
+    public Optional<QueryResultData> executeQuery(Long connectionId, String dbName, String sql, List<Object> params) {
+        if (params == null || params.isEmpty()) {
+            return executeQuery(connectionId, dbName, sql);
+        }
+        try (Connection conn = ConnectionSupport.require(getConnection(connectionId, dbName));
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            for (int i = 0; i < params.size(); i++) {
+                ps.setObject(i + 1, params.get(i));
+            }
+
+            return Optional.of(JdbcSqlExecutor.execute(ps, sql));
+        } catch (SQLException e) {
+            log.warn("executeQuery with params failed: {}", e.getMessage());
+            throw new MetadataAccessException(e.getMessage(), e);
+        }
+    }
+
+    public Map<String, String> getColumnTypes(Long connectionId, String dbName, String schema, String table) {
+        if (schema == null || schema.isBlank() || table == null || table.isBlank()) {
+            return Map.of();
+        }
+        try (Connection conn = ConnectionSupport.require(getConnection(connectionId, dbName))) {
+            Map<String, String> types = new LinkedHashMap<>();
+            try (PreparedStatement ps = conn.prepareStatement(COLUMN_TYPES_SQL)) {
+                ps.setString(1, schema);
+                ps.setString(2, table);
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        types.put(rs.getString("column_name"), rs.getString("data_type"));
+                    }
+                }
+            }
+
+            return types;
+        } catch (SQLException e) {
+            log.warn("getColumnTypes failed: {}", e.getMessage());
+            throw new MetadataAccessException(e.getMessage(), e);
+        }
+    }
+
+    public Optional<Map<String, Object>> executeQuerySingleRow(Long connectionId, String dbName, String sql) {
+        try (Connection conn = ConnectionSupport.require(getConnection(connectionId, dbName))) {
+            try (Statement stmt = conn.createStatement();
+                 ResultSet rs = stmt.executeQuery(sql)) {
+                ResultSetMetaData meta = rs.getMetaData();
+
+                int colCount = meta.getColumnCount();
+
+                if (!rs.next()) {
+                    return Optional.empty();
+                }
+
+                Map<String, Object> row = new LinkedHashMap<>();
+                for (int i = 1; i <= colCount; i++) {
+                    row.put(meta.getColumnLabel(i), rs.getObject(i));
+                }
+
+                return Optional.of(row);
+            }
+        } catch (SQLException e) {
+            log.warn("executeQuerySingleRow failed: {}", e.getMessage());
+            throw new MetadataAccessException(e.getMessage(), e);
+        }
+    }
+
+    public Optional<String> executeUpdate(Long connectionId, String dbName, String updateSql, List<Object> params) {
+        if (params == null) {
+            return Optional.of("Missing params");
+        }
+
+        try (Connection conn = ConnectionSupport.require(getConnection(connectionId, dbName))) {
+            try (PreparedStatement ps = conn.prepareStatement(updateSql)) {
+                for (int i = 0; i < params.size(); i++) {
+                    Object param = params.get(i);
+                    if (param instanceof Boolean value) {
+                        ps.setBoolean(i + 1, value);
+                    } else {
+                        ps.setObject(i + 1, param);
+                    }
+                }
+
+                int updated = ps.executeUpdate();
+                if (updated == 0) {
+                    return Optional.of("Row not found or already changed.");
+                }
+
+                return Optional.empty();
+            }
+        } catch (SQLException e) {
+            log.warn("executeUpdate failed: {}", e.getMessage());
+            throw new MetadataAccessException(e.getMessage(), e);
+        }
+    }
+
+    public Optional<EntityDescription> describeTable(Long connectionId, String dbName, String schema, String tableName) {
+        try (Connection conn = ConnectionSupport.require(getConnection(connectionId, dbName))) {
+            List<ColumnInfo> columns = fetchPgColumns(conn, schema, tableName);
+            List<String> pk = columns.stream().filter(ColumnInfo::isPrimaryKey).map(ColumnInfo::getName).toList();
+            List<ForeignKeyInfo> fks = fetchPgForeignKeys(conn, schema, tableName);
+            List<IndexInfo> indexes = fetchPgIndexes(conn, schema, tableName);
+            long rowCount = fetchPgRowCount(conn, schema, tableName);
+            if (rowCount < 0) {
+                rowCount = getExactRowCount(conn, schema, tableName);
+            }
+
+            return Optional.of(EntityDescription.builder()
+                    .entityKind("table")
+                    .catalog(dbName)
+                    .namespace(schema)
+                    .entity(tableName)
+                    .columns(columns)
+                    .primaryKey(pk)
+                    .foreignKeys(fks)
+                    .indexes(indexes)
+                    .approximateRowCount(rowCount)
+                    .inferredFromSample(false)
+                    .notes(List.of())
+                    .build());
+        } catch (Exception e) {
+            log.warn("describeTable failed for {}.{}: {}", schema, tableName, e.getMessage());
+            return Optional.empty();
+        }
+    }
+
+    private static List<ColumnInfo> fetchPgColumns(Connection conn, String schema, String tableName) throws SQLException {
+        String sql = "WITH pk AS (SELECT kcu.column_name FROM information_schema.table_constraints tc "
+                + "JOIN information_schema.key_column_usage kcu "
+                + "ON tc.constraint_name = kcu.constraint_name AND tc.table_schema = kcu.table_schema "
+                + "WHERE tc.table_schema = ? AND tc.table_name = ? AND tc.constraint_type = 'PRIMARY KEY') "
+                + "SELECT c.column_name, c.data_type, c.is_nullable, c.ordinal_position, "
+                + "CASE WHEN pk.column_name IS NOT NULL THEN true ELSE false END AS is_pk "
+                + "FROM information_schema.columns c LEFT JOIN pk ON c.column_name = pk.column_name "
+                + "WHERE c.table_schema = ? AND c.table_name = ? ORDER BY c.ordinal_position";
+        List<ColumnInfo> result = new ArrayList<>();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, schema);
+            ps.setString(2, tableName);
+            ps.setString(3, schema);
+            ps.setString(4, tableName);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    result.add(ColumnInfo.builder()
+                            .name(rs.getString("column_name"))
+                            .type(rs.getString("data_type"))
+                            .nullable("YES".equals(rs.getString("is_nullable")))
+                            .primaryKey(rs.getBoolean("is_pk"))
+                            .position(rs.getInt("ordinal_position"))
+                            .build());
+                }
+            }
+        }
+        return result;
+    }
+
+    private static List<ForeignKeyInfo> fetchPgForeignKeys(Connection conn, String schema, String tableName) throws SQLException {
+        String sql = "SELECT kcu.column_name, ccu.table_name AS ref_table, ccu.column_name AS ref_col "
+                + "FROM information_schema.table_constraints tc "
+                + "JOIN information_schema.key_column_usage kcu ON tc.constraint_name = kcu.constraint_name AND tc.table_schema = kcu.table_schema "
+                + "JOIN information_schema.constraint_column_usage ccu ON tc.constraint_name = ccu.constraint_name AND tc.table_schema = ccu.table_schema "
+                + "WHERE tc.table_schema = ? AND tc.table_name = ? AND tc.constraint_type = 'FOREIGN KEY'";
+        List<ForeignKeyInfo> result = new ArrayList<>();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, schema);
+            ps.setString(2, tableName);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    result.add(ForeignKeyInfo.builder()
+                            .columns(List.of(rs.getString("column_name")))
+                            .references(Map.of("table", rs.getString("ref_table"), "columns", List.of(rs.getString("ref_col"))))
+                            .build());
+                }
+            }
+        }
+        return result;
+    }
+
+    private static List<IndexInfo> fetchPgIndexes(Connection conn, String schema, String tableName) {
+        String sql = "SELECT indexname, indexdef FROM pg_indexes WHERE schemaname = ? AND tablename = ?";
+        List<IndexInfo> result = new ArrayList<>();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, schema);
+            ps.setString(2, tableName);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String def = rs.getString("indexdef");
+                    boolean unique = def != null && def.toUpperCase().contains("UNIQUE");
+                    result.add(IndexInfo.builder()
+                            .name(rs.getString("indexname"))
+                            .unique(unique)
+                            .columns(List.of())
+                            .build());
+                }
+            }
+        } catch (SQLException e) {
+            return List.of();
+        }
+        return result;
+    }
+
+    private static long fetchPgRowCount(Connection conn, String schema, String tableName) {
+        try (PreparedStatement ps = conn.prepareStatement(
+                "SELECT reltuples::bigint FROM pg_class c JOIN pg_namespace n ON c.relnamespace = n.oid "
+                        + "WHERE n.nspname = ? AND c.relname = ?")) {
+            ps.setString(1, schema);
+            ps.setString(2, tableName);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getLong(1) : 0L;
+            }
+        } catch (SQLException e) {
+            return -1L;
+        }
+    }
+}

@@ -11,7 +11,7 @@ import com.panopticum.rabbitmq.model.RabbitMqQueueInfo;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.panopticum.rabbitmq.service.RabbitMqService;
+import com.panopticum.rabbitmq.service.RabbitMqMetadataService;
 import io.micronaut.context.annotation.Value;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
@@ -47,7 +47,7 @@ public class RabbitMqController {
     private static final int DEFAULT_PEEK_COUNT = 20;
 
     private final DbConnectionService dbConnectionService;
-    private final RabbitMqService rabbitMqService;
+    private final RabbitMqMetadataService rabbitMqMetadataService;
     private final ObjectMapper objectMapper;
 
     @Value("${panopticum.read-only:false}")
@@ -77,7 +77,7 @@ public class RabbitMqController {
         ControllerModelHelper.addBreadcrumbs(model, breadcrumbs);
         model.put("connectionId", id);
 
-        Page<RabbitMqQueueInfo> paged = rabbitMqService.listQueuesPaged(id, page, size, sort, order);
+        Page<RabbitMqQueueInfo> paged = rabbitMqMetadataService.listQueuesPaged(id, page, size, sort, order);
         ControllerModelHelper.addPagination(model, paged, "items");
         ControllerModelHelper.addOrderToggles(model, paged.getSort(), paged.getOrder(),
                 Map.of("name", "orderName", "vhost", "orderVhost", "messages", "orderMessages",
@@ -132,7 +132,7 @@ public class RabbitMqController {
         String queueName = queue != null ? queue : "";
 
         try {
-            int published = rabbitMqService.publishMessages(id, vhostDecoded, queueName, payloadList);
+            int published = rabbitMqMetadataService.publishMessages(id, vhostDecoded, queueName, payloadList);
             Map<String, Object> model = messagesModel(id, vhost, queue, count, sort, order, null);
             AppAlerts.raw(model, published + " / " + payloadList.size());
 
@@ -163,14 +163,14 @@ public class RabbitMqController {
         model.put("connectionId", id);
         model.put("vhost", vhostDecoded);
         model.put("queue", queueName);
-        model.put("queueDetails", rabbitMqService.getQueueDetails(id, vhostDecoded, queueName).orElse(null));
+        model.put("queueDetails", rabbitMqMetadataService.getQueueDetails(id, vhostDecoded, queueName).orElse(null));
         model.put("readOnly", readOnly);
         model.put("publishDraft", publishDraft != null ? publishDraft : "");
 
         int peekCount = count > 0 ? Math.min(count, 50) : DEFAULT_PEEK_COUNT;
-        List<RabbitMqMessage> messages = rabbitMqService.peekMessages(id, vhostDecoded, queueName, peekCount);
-        List<RabbitMqMessage> sorted = rabbitMqService.sortMessages(messages, sort != null ? sort : "index", order != null ? order : "asc");
-        model.put("messages", rabbitMqService.truncatePayloadsForList(sorted));
+        List<RabbitMqMessage> messages = rabbitMqMetadataService.peekMessages(id, vhostDecoded, queueName, peekCount);
+        List<RabbitMqMessage> sorted = rabbitMqMetadataService.sortMessages(messages, sort != null ? sort : "index", order != null ? order : "asc");
+        model.put("messages", rabbitMqMetadataService.truncatePayloadsForList(sorted));
         model.put("peekCount", peekCount);
         model.put("vhostForUrl", vhostForUrl(vhostDecoded));
         model.put("sort", sort != null ? sort : "index");
@@ -246,7 +246,7 @@ public class RabbitMqController {
         model.put("queue", queueName);
         model.put("index", index);
 
-        Optional<RabbitMqMessage> message = rabbitMqService.peekOneByIndex(id, vhostDecoded, queueName, index);
+        Optional<RabbitMqMessage> message = rabbitMqMetadataService.peekOneByIndex(id, vhostDecoded, queueName, index);
         model.put("message", message.orElse(null));
         model.put("vhostForUrl", vhostForUrl(vhostDecoded));
         if (message.isEmpty()) {

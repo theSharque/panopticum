@@ -2,6 +2,7 @@ package com.panopticum.mcp.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.panopticum.core.model.ConnectionType;
 import com.panopticum.core.model.QueryResult;
 import com.panopticum.mcp.model.McpToolContent;
 import com.panopticum.mcp.model.McpToolRequest;
@@ -11,6 +12,8 @@ import jakarta.inject.Singleton;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -37,9 +40,10 @@ public class QueryDataToolExecutor implements McpToolExecutor {
             return error("connectionId (number) is required");
         }
 
+        List<String> publishPayloads = parsePublishPayloads(args.get("publish"));
         String query = args.get("query") != null ? args.get("query").toString() : null;
-        if (query == null || query.isBlank()) {
-            return error("query (string) is required");
+        if ((query == null || query.isBlank()) && publishPayloads.isEmpty()) {
+            return error("query (string) is required unless publish is provided");
         }
 
         String catalog = args.get("catalog") != null ? args.get("catalog").toString() : null;
@@ -56,10 +60,13 @@ public class QueryDataToolExecutor implements McpToolExecutor {
             return error("connection.notFound");
         }
 
-        String queryFormat = queryFormatFor(dbType);
+        String queryFormat = ConnectionType.queryFormatFor(dbType);
+        if (!publishPayloads.isEmpty()) {
+            queryFormat = "message-publish";
+        }
 
         Optional<QueryResult> qrOpt = metadataFacadeService.executeQuery(
-                connectionId, catalog, namespace, entity, query, offset, effectiveLimit, sort, order);
+                connectionId, catalog, namespace, entity, query, offset, effectiveLimit, sort, order, publishPayloads);
 
         if (qrOpt.isEmpty()) {
             return error("error.queryExecutionFailed");
@@ -85,20 +92,29 @@ public class QueryDataToolExecutor implements McpToolExecutor {
         }
     }
 
-    private static String queryFormatFor(String dbType) {
-        return switch (dbType) {
-            case "mongodb" -> "mql-json";
-            case "cassandra" -> "cql";
-            case "kafka" -> "json";
-            case "kubernetes" -> "tail";
-            case "redis" -> "pattern";
-            case "elasticsearch" -> "json";
-            case "couchbase" -> "n1ql";
-            case "s3" -> "object-peek";
-            case "prometheus" -> "promql";
-            case "rabbitmq" -> "message-peek-or-publish";
-            default -> "sql";
-        };
+    private List<String> parsePublishPayloads(Object publishArg) {
+        if (publishArg == null) {
+            return List.of();
+        }
+        List<String> payloads = new ArrayList<>();
+        if (publishArg instanceof List<?> list) {
+            for (Object item : list) {
+                if (item != null) {
+                    payloads.add(item.toString());
+                }
+            }
+            return payloads;
+        }
+        if (publishArg instanceof Iterable<?> iterable) {
+            for (Object item : iterable) {
+                if (item != null) {
+                    payloads.add(item.toString());
+                }
+            }
+            return payloads;
+        }
+        payloads.add(publishArg.toString());
+        return payloads;
     }
 
     private McpToolResponse error(String message) {

@@ -10,7 +10,7 @@ import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.core.util.ApiQueryParams;
 import com.panopticum.couchbase.model.CouchbaseBucketInfo;
 import com.panopticum.couchbase.model.CouchbaseScopeCollections;
-import com.panopticum.couchbase.service.CouchbaseService;
+import com.panopticum.couchbase.service.CouchbaseMetadataService;
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
@@ -39,11 +39,11 @@ import java.util.Map;
 @Tag(name = "Couchbase", description = "Couchbase buckets, collections, and N1QL API")
 public class CouchbaseApiController extends AbstractConnectionApiController {
 
-    private final CouchbaseService couchbaseService;
+    private final CouchbaseMetadataService couchbaseMetadataService;
 
-    public CouchbaseApiController(DbConnectionService dbConnectionService, CouchbaseService couchbaseService) {
+    public CouchbaseApiController(DbConnectionService dbConnectionService, CouchbaseMetadataService couchbaseMetadataService) {
         super(dbConnectionService);
-        this.couchbaseService = couchbaseService;
+        this.couchbaseMetadataService = couchbaseMetadataService;
     }
 
     @Get("/{id}/buckets")
@@ -60,7 +60,7 @@ public class CouchbaseApiController extends AbstractConnectionApiController {
             @QueryValue(value = "sort", defaultValue = "name") String sort,
             @QueryValue(value = "order", defaultValue = "asc") String order) {
         ensureConnectionExists(id);
-        return couchbaseService.listBucketsPaged(id, page, size, sort, order);
+        return couchbaseMetadataService.listBucketsPaged(id, page, size, sort, order);
     }
 
     @Get("/{id}/buckets/{bucket}/scopes")
@@ -70,7 +70,7 @@ public class CouchbaseApiController extends AbstractConnectionApiController {
             @Parameter(description = "Connection ID") @PathVariable Long id,
             @PathVariable String bucket) {
         ensureConnectionExists(id);
-        return couchbaseService.listScopesAndCollections(id, bucket);
+        return couchbaseMetadataService.listScopesAndCollections(id, bucket);
     }
 
     @Get("/{id}/buckets/{bucket}/schemas")
@@ -83,7 +83,7 @@ public class CouchbaseApiController extends AbstractConnectionApiController {
             @QueryValue(value = "sort", defaultValue = "name") String sort,
             @QueryValue(value = "order", defaultValue = "asc") String order) {
         ensureConnectionExists(id);
-        return couchbaseService.listScopesPaged(id, bucket, page, size, sort, order);
+        return couchbaseMetadataService.listScopesPaged(id, bucket, page, size, sort, order);
     }
 
     @Get("/{id}/buckets/{bucket}/scopes/{scope}/tables")
@@ -97,7 +97,7 @@ public class CouchbaseApiController extends AbstractConnectionApiController {
             @QueryValue(value = "sort", defaultValue = "name") String sort,
             @QueryValue(value = "order", defaultValue = "asc") String order) {
         ensureConnectionExists(id);
-        return couchbaseService.listCollectionsAsTablesPaged(id, bucket, scope, page, size, sort, order);
+        return couchbaseMetadataService.listCollectionsAsTablesPaged(id, bucket, scope, page, size, sort, order);
     }
 
     @Post("/{id}/query")
@@ -110,7 +110,7 @@ public class CouchbaseApiController extends AbstractConnectionApiController {
         }
         int offset = ApiQueryParams.normalizedOffset(request.getOffset());
         int limit = ApiQueryParams.normalizedLimit(request.getLimit());
-        return couchbaseService.executeN1ql(id, request.getSql(), offset, limit);
+        return couchbaseMetadataService.executeN1ql(id, request.getSql(), offset, limit);
     }
 
     @Get("/{id}/buckets/{bucket}/scopes/{scope}/collections/{collection}/documents")
@@ -123,7 +123,7 @@ public class CouchbaseApiController extends AbstractConnectionApiController {
             @QueryValue(value = "offset", defaultValue = "0") int offset,
             @QueryValue(value = "limit", defaultValue = "50") int limit) {
         ensureConnectionExists(id);
-        return couchbaseService.scanCollection(id, bucket, scope, collection, offset, limit);
+        return couchbaseMetadataService.scanCollection(id, bucket, scope, collection, offset, limit);
     }
 
     @Get("/{id}/buckets/{bucket}/scopes/{scope}/collections/{collection}/documents/{documentId}")
@@ -135,7 +135,7 @@ public class CouchbaseApiController extends AbstractConnectionApiController {
             @PathVariable String collection,
             @PathVariable String documentId) {
         ensureConnectionExists(id);
-        return couchbaseService.getDocument(id, bucket, scope, collection, documentId)
+        return couchbaseMetadataService.getDocument(id, bucket, scope, collection, documentId)
                 .orElse(Map.of());
     }
 }

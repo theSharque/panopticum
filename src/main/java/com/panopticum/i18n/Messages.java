@@ -13,7 +13,7 @@ public class Messages {
         if ("ru".equalsIgnoreCase(locale)) {
             merged.putAll(MessagesCommon.RU);
             merged.putAll(MessagesSettings.RU);
-            merged.putAll(MessagesPg.RU);
+            merged.putAll(MessagesPostgres.RU);
             merged.putAll(MessagesMongo.RU);
             merged.putAll(MessagesRedis.RU);
             merged.putAll(MessagesClickhouse.RU);
@@ -29,7 +29,7 @@ public class Messages {
         } else {
             merged.putAll(MessagesCommon.EN);
             merged.putAll(MessagesSettings.EN);
-            merged.putAll(MessagesPg.EN);
+            merged.putAll(MessagesPostgres.EN);
             merged.putAll(MessagesMongo.EN);
             merged.putAll(MessagesRedis.EN);
             merged.putAll(MessagesClickhouse.EN);

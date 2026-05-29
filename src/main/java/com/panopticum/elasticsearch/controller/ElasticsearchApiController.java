@@ -8,7 +8,7 @@ import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.core.util.ApiQueryParams;
 import com.panopticum.elasticsearch.model.ElasticsearchIndexInfo;
 import com.panopticum.elasticsearch.model.ElasticsearchSearchRequest;
-import com.panopticum.elasticsearch.service.ElasticsearchService;
+import com.panopticum.elasticsearch.service.ElasticsearchMetadataService;
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
@@ -39,11 +39,11 @@ public class ElasticsearchApiController extends AbstractConnectionApiController 
 
     private static final String DEFAULT_QUERY = "{\"query\":{\"match_all\":{}}}";
 
-    private final ElasticsearchService elasticsearchService;
+    private final ElasticsearchMetadataService elasticsearchMetadataService;
 
-    public ElasticsearchApiController(DbConnectionService dbConnectionService, ElasticsearchService elasticsearchService) {
+    public ElasticsearchApiController(DbConnectionService dbConnectionService, ElasticsearchMetadataService elasticsearchMetadataService) {
         super(dbConnectionService);
-        this.elasticsearchService = elasticsearchService;
+        this.elasticsearchMetadataService = elasticsearchMetadataService;
     }
 
     @Get("/{id}/indices")
@@ -60,7 +60,7 @@ public class ElasticsearchApiController extends AbstractConnectionApiController 
             @QueryValue(value = "sort", defaultValue = "index") String sort,
             @QueryValue(value = "order", defaultValue = "asc") String order) {
         ensureConnectionExists(id);
-        return elasticsearchService.listIndicesPaged(id, page, size, sort, order);
+        return elasticsearchMetadataService.listIndicesPaged(id, page, size, sort, order);
     }
 
     @Post("/{id}/indices/{indexName}/search")
@@ -79,7 +79,7 @@ public class ElasticsearchApiController extends AbstractConnectionApiController 
                 ? request.getQuery() : DEFAULT_QUERY;
         int offset = ApiQueryParams.normalizedOffset(request.getOffset());
         int limit = ApiQueryParams.normalizedLimit(request.getLimit());
-        return elasticsearchService.executeQuery(id, indexName, query, offset, limit)
+        return elasticsearchMetadataService.executeQuery(id, indexName, query, offset, limit)
                 .orElse(QueryResult.error("error.queryExecutionFailed"));
     }
 
@@ -95,7 +95,7 @@ public class ElasticsearchApiController extends AbstractConnectionApiController 
             @PathVariable String indexName,
             @PathVariable String docId) {
         ensureConnectionExists(id);
-        return elasticsearchService.getDocument(id, indexName, docId).orElse("{}");
+        return elasticsearchMetadataService.getDocument(id, indexName, docId).orElse("{}");
     }
 
     @Put("/{id}/indices/{indexName}/doc/{docId}")
@@ -113,7 +113,7 @@ public class ElasticsearchApiController extends AbstractConnectionApiController 
             @Body String body) {
         assertNotReadOnly();
         ensureConnectionExists(id);
-        Optional<String> err = elasticsearchService.updateDocument(id, indexName, docId, body);
+        Optional<String> err = elasticsearchMetadataService.updateDocument(id, indexName, docId, body);
         if (err.isPresent()) {
             return ApiMutationResult.failure(err.get());
         }

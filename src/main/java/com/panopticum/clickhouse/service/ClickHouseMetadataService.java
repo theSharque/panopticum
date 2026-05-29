@@ -7,7 +7,7 @@ import com.panopticum.core.util.StringUtils;
 import com.panopticum.core.model.DatabaseInfo;
 import com.panopticum.core.model.QueryResultData;
 import com.panopticum.core.model.TableInfo;
-import com.panopticum.mcp.model.EntityDescription;
+import com.panopticum.core.model.EntityDescription;
 import com.panopticum.clickhouse.ClickHouseJdbcDrivers;
 import com.panopticum.clickhouse.repository.ClickHouseMetadataRepository;
 import io.micronaut.core.annotation.NonNull;

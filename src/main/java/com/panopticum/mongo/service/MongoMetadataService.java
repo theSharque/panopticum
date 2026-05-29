@@ -5,7 +5,7 @@ import com.mongodb.client.MongoClients;
 import com.panopticum.core.model.Page;
 import com.panopticum.core.model.QueryResult;
 import com.panopticum.core.util.StringUtils;
-import com.panopticum.mcp.model.EntityDescription;
+import com.panopticum.core.model.EntityDescription;
 import com.panopticum.mongo.model.MongoCollectionInfo;
 import com.panopticum.core.model.DatabaseInfo;
 import com.panopticum.mongo.repository.MongoMetadataRepository;

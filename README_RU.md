@@ -72,7 +72,7 @@ helm install my-panopticum panopticum/panopticum
 | Тип | Возможности |
 |-----|--------------|
 | **PostgreSQL** | Просмотр; SQL; правка строк через CTID где доступно |
-| **Greenplum** | Тот же UI, что у PostgreSQL (`/pg/{id}`); SQL; CTID при поддержке |
+| **Greenplum** | Тот же UI, что у PostgreSQL (`/postgres/{id}`); SQL; CTID при поддержке |
 | **YugabyteDB** | Как PostgreSQL; SQL; fallback метаданных для совместимости |
 | **CockroachDB** | Как PostgreSQL; SQL; fallback метаданных для совместимости |
 | **MySQL / MariaDB** | Просмотр; SQL; редактирование (с PK/unique) |

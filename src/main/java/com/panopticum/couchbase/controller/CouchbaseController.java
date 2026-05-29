@@ -4,7 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.panopticum.couchbase.model.CouchbaseBucketInfo;
 import com.panopticum.couchbase.model.CouchbaseScopeCollections;
-import com.panopticum.couchbase.service.CouchbaseService;
+import com.panopticum.couchbase.service.CouchbaseMetadataService;
 import com.panopticum.core.model.BreadcrumbItem;
 import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.model.Page;
@@ -45,7 +45,7 @@ import java.util.Optional;
 public class CouchbaseController {
 
     private final DbConnectionService dbConnectionService;
-    private final CouchbaseService couchbaseService;
+    private final CouchbaseMetadataService couchbaseMetadataService;
     private final ObjectMapper objectMapper;
 
     @Produces(MediaType.TEXT_HTML)
@@ -68,7 +68,7 @@ public class CouchbaseController {
         model.put("connectionId", id);
         model.put("itemUrlPrefix", "/couchbase/" + id + "/");
 
-        Page<CouchbaseBucketInfo> paged = couchbaseService.listBucketsPaged(id, page, size, sort, order);
+        Page<CouchbaseBucketInfo> paged = couchbaseMetadataService.listBucketsPaged(id, page, size, sort, order);
         ControllerModelHelper.addPagination(model, paged, "items");
         ControllerModelHelper.addOrderToggles(model, paged.getSort(), paged.getOrder(),
                 Map.of("name", "orderName", "size", "orderSize"));
@@ -93,7 +93,7 @@ public class CouchbaseController {
         model.put("connectionId", id);
         model.put("bucket", bucket);
 
-        List<CouchbaseScopeCollections> tree = couchbaseService.listScopesAndCollections(id, bucket);
+        List<CouchbaseScopeCollections> tree = couchbaseMetadataService.listScopesAndCollections(id, bucket);
         model.put("scopes", tree);
 
         return model;
@@ -124,7 +124,7 @@ public class CouchbaseController {
         model.put("offset", offset);
         model.put("limit", limit);
 
-        QueryResult qr = couchbaseService.scanCollection(id, bucket, scope, collection, offset, limit);
+        QueryResult qr = couchbaseMetadataService.scanCollection(id, bucket, scope, collection, offset, limit);
         AppAlerts.fromControllerMessage(model, qr.hasError() ? qr.getError() : null);
         model.put("columns", qr.getColumns());
         model.put("columnTypes", qr.getColumnTypes() != null ? qr.getColumnTypes() : List.<String>of());
@@ -153,7 +153,7 @@ public class CouchbaseController {
     @Produces(MediaType.TEXT_HTML)
     public Object saveDocument(@PathVariable Long id, @PathVariable String bucket, @PathVariable String scope,
                                @PathVariable String collection, String documentId, String body) {
-        Optional<String> err = couchbaseService.replaceDocument(id, bucket, scope, collection, documentId, body);
+        Optional<String> err = couchbaseMetadataService.replaceDocument(id, bucket, scope, collection, documentId, body);
 
         if (err.isPresent()) {
             Map<String, Object> model = documentDetailModel(id, bucket, scope, collection, documentId, body);
@@ -191,7 +191,7 @@ public class CouchbaseController {
         model.put("documentId", documentId);
 
         Optional<Map<String, Object>> document = fallbackBody == null
-                ? couchbaseService.getDocument(id, bucket, scope, collection, documentId)
+                ? couchbaseMetadataService.getDocument(id, bucket, scope, collection, documentId)
                 : Optional.empty();
         String json = fallbackBody != null ? fallbackBody : document.map(this::documentToPrettyJson).orElse("{}");
         model.put("prettyJson", json);
@@ -266,7 +266,7 @@ public class CouchbaseController {
         model.put("limit", limit);
 
         if (statement != null && !statement.isBlank()) {
-            QueryResult qr = couchbaseService.executeN1ql(id, statement, offset, limit);
+            QueryResult qr = couchbaseMetadataService.executeN1ql(id, statement, offset, limit);
             AppAlerts.fromControllerMessage(model, qr.hasError() ? qr.getError() : null);
             model.put("columns", qr.getColumns());
             model.put("columnTypes", qr.getColumnTypes() != null ? qr.getColumnTypes() : List.<String>of());

@@ -7,7 +7,7 @@ import com.panopticum.core.model.QueryResultData;
 import com.panopticum.core.model.TableInfo;
 import com.panopticum.core.sql.SqlQuerySupport;
 import com.panopticum.core.util.StringUtils;
-import com.panopticum.mcp.model.EntityDescription;
+import com.panopticum.core.model.EntityDescription;
 import com.panopticum.mysql.repository.MySqlMetadataRepository;
 import io.micronaut.core.annotation.NonNull;
 import io.micronaut.context.annotation.Value;

@@ -3,6 +3,7 @@ package com.panopticum.core.controller;
 import com.panopticum.core.model.ConnectionRequest;
 import com.panopticum.core.model.ConnectionTestRequest;
 import com.panopticum.core.model.ConnectionTestResponse;
+import com.panopticum.core.model.ConnectionType;
 import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.service.ConnectionTestService;
 import com.panopticum.core.service.DbConnectionFactory;
@@ -173,6 +174,7 @@ public class ConnectionsApiController {
         if (type == null || type.isBlank()) {
             return type;
         }
-        return "mssql".equalsIgnoreCase(type) ? "sqlserver" : type;
+        String normalized = ConnectionType.normalizeTypeId(type);
+        return normalized.isBlank() ? type : normalized;
     }
 }

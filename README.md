@@ -72,7 +72,7 @@ For Helm: use a Secret with `valueFrom.secretKeyRef` if the JSON contains passwo
 | Type | Features |
 |------|----------|
 | **PostgreSQL** | Browse; SQL; row edit via CTID where supported |
-| **Greenplum** | Same UI as PostgreSQL (`/pg/{id}`); SQL; CTID edit when available |
+| **Greenplum** | Same UI as PostgreSQL (`/postgres/{id}`); SQL; CTID edit when available |
 | **YugabyteDB** | Same UI as PostgreSQL; SQL; metadata fallbacks for compatibility |
 | **CockroachDB** | Same UI as PostgreSQL; SQL; metadata fallbacks for compatibility |
 | **MySQL / MariaDB** | Browse; SQL; edit (with PK/unique) |
