@@ -77,11 +77,24 @@ micronaut:
       - pattern: /theme
         access:
           - isAnonymous()
+      - pattern: /actuator/**
+        access:
+          - isAnonymous()
       - pattern: /**
         access:
           - isAuthenticated()
   views:
     throttled-server-mode: false
+
+endpoints:
+  all:
+    path: /actuator
+    enabled: true
+    sensitive: false
+  health:
+    enabled: true
+    sensitive: false
+    details-visible: ANONYMOUS
 
 datasources:
   default:

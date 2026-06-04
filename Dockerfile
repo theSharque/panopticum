@@ -13,7 +13,15 @@ FROM eclipse-temurin:17-jre-alpine
 ARG APP_VERSION=dev
 ENV APP_VERSION=$APP_VERSION
 
-RUN apk add --no-cache bash \
+RUN apk upgrade --no-cache \
+    && apk del --no-cache \
+        gnupg \
+        gpg \
+        gpg-agent \
+        gpgsm \
+        dirmngr \
+        fontconfig \
+        ttf-dejavu \
     && addgroup -g 1001 app \
     && adduser -u 1001 -G app -s /sbin/nologin -D app
 
@@ -30,6 +38,6 @@ USER 1001
 EXPOSE 8080
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
-    CMD bash -ec 'exec 3<>/dev/tcp/127.0.0.1/8080; printf "GET /login HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n" >&3; IFS= read -r status <&3; case "$status" in HTTP/*\ 2*|HTTP/*\ 3*) exit 0 ;; *) exit 1 ;; esac'
+    CMD wget --spider -q http://127.0.0.1:8080/actuator/health/liveness || exit 1
 
 ENTRYPOINT ["java", "-jar", "app.jar"]

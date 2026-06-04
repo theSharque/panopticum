@@ -65,6 +65,7 @@ jobs:
           file: ./Dockerfile
           push: true
           pull: true
+          squash: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |

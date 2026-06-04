@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Micronaut Management: anonymous `/actuator/health`, `/actuator/health/liveness`, `/actuator/health/readiness` (Helm probes and Docker HEALTHCHECK)
+
+### Changed
+
+- Docker runtime (`eclipse-temurin:17-jre-alpine`): `apk upgrade` and remove Temurin-bundled packages not needed at runtime (`gnupg`, `fontconfig`, `ttf-dejavu` and transitive libs); drop `bash`, Docker healthcheck uses `wget` on actuator liveness
+- Release CI: `docker/build-push-action` builds with `squash: true` so scanners see the flattened image after package cleanup
+
 ## [8.2.10] - 2026-06-04
 
 ### Added
