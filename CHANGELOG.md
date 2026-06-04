@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [8.2.10] - 2026-06-04
+
+### Added
+
+- MCP tool `resolve-panopticum-link`: parse Panopticum UI URL or breadcrumb path into `connectionId` and MCP scope (`catalog`, `namespace`, `entity`)
+- On resolve failure, `availablePaths` lists configured UI paths from H2 only (`DbConnectionService.listConfiguredUiPaths()` via `DbConnectionRepository` and `ConnectionType.uiPathPrefix`)
+
+### Changed
+
+- MCP `tools/call` errors with tool `content` return JSON-RPC result (`isError: true`) instead of dropping the payload
+
 ## [8.2.9] - 2026-05-29
 
 ### Changed

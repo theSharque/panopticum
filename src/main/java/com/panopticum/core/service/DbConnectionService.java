@@ -1,5 +1,6 @@
 package com.panopticum.core.service;
 
+import com.panopticum.core.model.ConnectionType;
 import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.repository.DbConnectionRepository;
 import io.micronaut.http.HttpStatus;
@@ -7,6 +8,10 @@ import io.micronaut.http.exceptions.HttpStatusException;
 import jakarta.inject.Singleton;
 import lombok.RequiredArgsConstructor;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -22,6 +27,10 @@ public class DbConnectionService {
 
     public Optional<DbConnection> findById(Long id) {
         return repository.findById(id);
+    }
+
+    public Optional<DbConnection> findByName(String name) {
+        return repository.findByName(name);
     }
 
     public DbConnection save(DbConnection connection) {
@@ -43,5 +52,27 @@ public class DbConnectionService {
 
     public void deleteById(Long id) {
         repository.deleteById(id);
+    }
+
+    public List<String> listConfiguredUiPaths() {
+        List<String> paths = new ArrayList<>();
+        for (DbConnection conn : repository.findAll()) {
+            Optional<ConnectionType> type = ConnectionType.fromStoredType(conn.getType());
+            if (type.isEmpty() || conn.getId() == null) {
+                continue;
+            }
+            String prefix = type.get().getUiPathPrefix();
+            paths.add(prefix + "/" + conn.getId());
+            String dbName = conn.getDbName();
+            if (dbName != null && !dbName.isBlank()) {
+                paths.add(prefix + "/" + conn.getId() + "/" + encodeUiPathSegment(dbName));
+            }
+        }
+        paths.sort(Comparator.naturalOrder());
+        return paths;
+    }
+
+    public static String encodeUiPathSegment(String segment) {
+        return URLEncoder.encode(segment, StandardCharsets.UTF_8).replace("+", "%20");
     }
 }

@@ -100,6 +100,11 @@ public class McpToolRegistry {
                         "Required: connectionId (number), entity (string — table name, collection name, index name, topic, queue, pod name, etc.). " +
                         "Optional: catalog (database/keyspace/bucket/vhost/job), namespace (schema/scope/prefix), sampleSize (Mongo only, default 100). " +
                         "Returns columns, types, PK, FK, indexes, approximate row count. Use before query-data to avoid guessing column names.";
+            case "resolve-panopticum-link" ->
+                "Resolve a Panopticum UI URL or path into connectionId and MCP scope (catalog, namespace, entity). " +
+                        "Required: link (string) — e.g. http://host/postgres/5/mydb/public/users or /postgres/5/mydb or connection-name/mydb from breadcrumbs. " +
+                        "On failure returns error and availablePaths: configured paths from app storage only (/type/id and /type/id/db_name when set in connection settings). " +
+                        "Use before other tools when the user pasted a link from the UI; avoids list-data-sources.";
             default -> "MCP tool: " + toolName;
         };
     }
@@ -177,6 +182,11 @@ public class McpToolRegistry {
                         "namespace", Map.of("type", "string", "description", "Schema if applicable"),
                         "sampleSize", Map.of("type", "number", "description", "Sample size for schema inference (Mongo, default 100, max 500)")));
                 schema.put("required", List.of("connectionId", "entity"));
+            }
+            case "resolve-panopticum-link" -> {
+                schema.put("properties", Map.of(
+                        "link", Map.of("type", "string", "description", "Panopticum UI URL or path from copy/link")));
+                schema.put("required", List.of("link"));
             }
             default -> {
                 schema.put("properties", Map.of());

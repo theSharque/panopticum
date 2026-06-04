@@ -113,6 +113,7 @@ MCP-совместимый endpoint `POST /mcp` для Cursor, Claude Desktop и
 
 | Инструмент | Описание |
 |------------|----------|
+| `resolve-panopticum-link` | URL/путь UI → `connectionId` и scope для MCP; при ошибке — `availablePaths` только из сохранённых подключений (H2) |
 | `list-data-sources` | Список всех настроенных подключений |
 | `list-catalogs` | Базы данных / бакеты / jobs / namespace |
 | `list-namespaces` | Схемы (где применимо) |

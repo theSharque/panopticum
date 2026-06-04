@@ -110,14 +110,20 @@ public class McpService {
 
         McpToolResponse mcpResponse = toolRegistry.executeTool(toolRequest);
 
-        if (Boolean.TRUE.equals(mcpResponse.getIsError())) {
+        Map<String, Object> result = new HashMap<>();
+        if (mcpResponse.getContent() != null && !mcpResponse.getContent().isEmpty()) {
+            result.put("content", mcpResponse.getContent());
+        } else if (Boolean.TRUE.equals(mcpResponse.getIsError()) && mcpResponse.getError() != null) {
+            result.put("content", List.of(Map.of("type", "text", "text", mcpResponse.getError())));
+        }
+        result.put("isError", mcpResponse.getIsError() != null ? mcpResponse.getIsError() : false);
+
+        if (Boolean.TRUE.equals(mcpResponse.getIsError())
+                && (mcpResponse.getContent() == null || mcpResponse.getContent().isEmpty())
+                && mcpResponse.getError() != null) {
             return createErrorResponse(request.getId(), JSON_RPC_INTERNAL_ERROR, "Internal error",
                     mcpResponse.getError());
         }
-
-        Map<String, Object> result = new HashMap<>();
-        result.put("content", mcpResponse.getContent());
-        result.put("isError", mcpResponse.getIsError() != null ? mcpResponse.getIsError() : false);
 
         return JsonRpcResponse.builder()
                 .jsonrpc("2.0")

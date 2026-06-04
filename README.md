@@ -113,6 +113,7 @@ Replace `YWRtaW46YWRtaW4=` with Base64 of `username:password` (`echo -n "admin:c
 
 | Tool | Description |
 |------|-------------|
+| `resolve-panopticum-link` | Turn a UI URL/path into `connectionId` and MCP scope; on error returns `availablePaths` from saved connections only |
 | `list-data-sources` | List all configured connections |
 | `list-catalogs` | List databases / buckets / jobs / namespaces |
 | `list-namespaces` | List schemas (where applicable) |
