@@ -93,7 +93,7 @@ public class McpToolRegistry {
                         "SQL/CQL: SELECT returns rows; DML (INSERT/UPDATE/DELETE) returns rows_affected column; SQL with RETURNING returns rows. N1QL: N1QL text (Couchbase). Mongo/Elasticsearch: JSON (MQL/DSL). Kafka: JSON {\"partition\",\"fromOffset\",\"count\",\"fromEnd\"}, catalog=topic. Redis: glob pattern (e.g. user:*), catalog=dbIndex. S3: JSON {\"headBytes\",\"format\"}, catalog=bucket, entity=key. Prometheus: PromQL or JSON range query. RabbitMQ peek: count or JSON {\"count\"}, catalog=vhost, entity=queue; publish: publish array, catalog=vhost, entity=queue.";
             case "get-record-detail" ->
                 "Get full detail of a single record/document for point comparison between sources. " +
-                        "Required: connectionId (number), entity (string), and an identifier. DocumentId is implemented for Mongo/Couchbase; primaryKey and locator are reserved for engine-specific point lookup. " +
+                        "Required: connectionId (number), entity (string), and an identifier. DocumentId for Mongo/Couchbase; entity as key name for Redis (catalog=dbIndex, default 0). primaryKey and locator reserved for engine-specific point lookup. " +
                         "Optional: catalog, namespace, queryContext. Use after query-data when comparing specific fields.";
             case "describe-entity" ->
                 "Return schema/structure of an entity (table, collection, index, topic, queue, pod). " +
@@ -165,7 +165,7 @@ public class McpToolRegistry {
             case "get-record-detail" -> {
                 schema.put("properties", Map.of(
                         "connectionId", Map.of("type", "number", "description", "Connection ID"),
-                        "entity", Map.of("type", "string", "description", "Table or collection name"),
+                        "entity", Map.of("type", "string", "description", "Table/collection name, or Redis key name"),
                         "documentId", Map.of("type", "string", "description", "Mongo _id or Couchbase document ID"),
                         "primaryKey", Map.of("type", "object", "description", "Reserved primary key object e.g. {\"id\": 42}"),
                         "locator", Map.of("type", "string", "description", "Reserved engine-specific locator (ctid, rowid)"),

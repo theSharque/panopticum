@@ -404,6 +404,22 @@ public class MetadataFacadeService {
                     });
         }
 
+        if ("redis".equals(type)) {
+            int dbIndex = parseRedisDbIndex(cat);
+            return redisMetadataService.getKeyDetail(connectionId, dbIndex, entity)
+                    .map(detail -> {
+                        Map<String, Object> out = new HashMap<>();
+                        out.put("record", detail);
+                        out.put("metadata", Map.of(
+                                "entity", entity,
+                                "dbType", type,
+                                "catalog", String.valueOf(dbIndex),
+                                "identifierType", "key",
+                                "identifierValue", entity));
+                        return out;
+                    });
+        }
+
         if (primaryKey != null && !primaryKey.isEmpty()) {
             return getRecordByPrimaryKey(connectionId, type, cat, ns, entity, primaryKey);
         }
@@ -413,6 +429,17 @@ public class MetadataFacadeService {
         }
 
         return Optional.empty();
+    }
+
+    private static int parseRedisDbIndex(String catalog) {
+        if (catalog == null || catalog.isBlank()) {
+            return 0;
+        }
+        try {
+            return Integer.parseInt(catalog.trim());
+        } catch (NumberFormatException e) {
+            return 0;
+        }
     }
 
     private Optional<Map<String, Object>> getRecordByPrimaryKey(Long connectionId, String type, String catalog, String namespace, String entity, Map<String, Object> primaryKey) {

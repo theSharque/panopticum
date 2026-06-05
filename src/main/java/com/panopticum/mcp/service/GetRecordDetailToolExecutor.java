@@ -44,10 +44,13 @@ public class GetRecordDetailToolExecutor implements McpToolExecutor {
         Map<String, Object> primaryKey = args.get("primaryKey") instanceof Map ? (Map<String, Object>) args.get("primaryKey") : null;
         String locator = args.get("locator") != null ? args.get("locator").toString() : null;
 
-        if ((documentId == null || documentId.isBlank())
+        String dbType = metadataFacadeService.getDbType(connectionId);
+        boolean redisKeyLookup = "redis".equals(dbType);
+        if (!redisKeyLookup
+                && (documentId == null || documentId.isBlank())
                 && (primaryKey == null || primaryKey.isEmpty())
                 && (locator == null || locator.isBlank())) {
-            return error("One of documentId (Mongo), primaryKey (object), or locator (engine-specific) is required");
+            return error("One of documentId (Mongo/Couchbase), primaryKey (object), or locator (engine-specific) is required; Redis uses entity as key name");
         }
 
         java.util.Optional<Map<String, Object>> detailOpt = metadataFacadeService.getRecordDetail(
