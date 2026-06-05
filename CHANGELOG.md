@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [8.2.12] - 2026-06-05
+
+### Fixed
+
+- MCP `get-record-detail` for Redis: read key value via `entity` (key name) and `catalog` (db index)
+
 ## [8.2.11] - 2026-06-04
 
 ### Added
