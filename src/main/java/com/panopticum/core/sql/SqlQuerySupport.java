@@ -1,5 +1,6 @@
 package com.panopticum.core.sql;
 
+import com.panopticum.core.error.ErrorKeys;
 import com.panopticum.core.error.MetadataAccessException;
 import com.panopticum.core.model.QueryResult;
 import lombok.experimental.UtilityClass;
@@ -12,7 +13,7 @@ public class SqlQuerySupport {
 
     public Optional<QueryResult> readOnlyBlock(boolean readOnly, String sql) {
         if (readOnly && sql != null && SqlStatementClassifier.isMutation(sql)) {
-            return Optional.of(QueryResult.error("read.only.enabled"));
+            return Optional.of(QueryResult.error(ErrorKeys.READ_ONLY_ENABLED));
         }
 
         return Optional.empty();
@@ -22,7 +23,7 @@ public class SqlQuerySupport {
         try {
             return action.get();
         } catch (MetadataAccessException e) {
-            String message = e.getMessage() != null ? e.getMessage() : "error.queryExecutionFailed";
+            String message = e.getMessage() != null ? e.getMessage() : ErrorKeys.QUERY_EXECUTION_FAILED;
 
             return Optional.of(QueryResult.error(message));
         }

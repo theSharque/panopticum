@@ -7,11 +7,12 @@ import com.panopticum.core.model.QueryResultData;
 import com.panopticum.core.model.SchemaInfo;
 import com.panopticum.core.model.TableInfo;
 import com.panopticum.core.error.ErrorKeys;
+import com.panopticum.core.error.ServiceQueryErrors;
 import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.core.sql.SqlQuerySupport;
 import com.panopticum.core.sql.SqlStatementClassifier;
-import com.panopticum.core.util.StringUtils;
+import com.panopticum.core.util.QueryResultMapper;
 import com.panopticum.lightjdbc.repository.LightJdbcMetadataRepository;
 import com.panopticum.core.model.EntityDescription;
 import io.micronaut.context.annotation.Value;
@@ -131,7 +132,7 @@ public class LightJdbcMetadataService {
 
     private Optional<QueryResult> executeQueryUnchecked(Long connectionId, String sql, int offset, int limit) {
         if (lightJdbcMetadataRepository.getConnection(connectionId).isEmpty()) {
-            return Optional.of(QueryResult.error("error.connectionNotAvailable"));
+            return ServiceQueryErrors.connectionUnavailable();
         }
         int lim = Math.min(limit > 0 ? limit : 100, queryRowsLimit);
         int off = Math.max(0, offset);
@@ -140,20 +141,15 @@ public class LightJdbcMetadataService {
                 ? lightJdbcMetadataRepository.executeQueryWindow(connectionId, normalized, off, lim)
                 : lightJdbcMetadataRepository.executeQuery(connectionId, normalized);
         if (dataOpt.isEmpty()) {
-            return Optional.of(QueryResult.error("error.queryExecutionFailed"));
+            return Optional.of(QueryResult.error(ErrorKeys.QUERY_EXECUTION_FAILED));
         }
         QueryResultData data = dataOpt.get();
-        boolean hasMore = SqlStatementClassifier.isSelect(normalized) && data.getRows().size() == lim;
-        List<List<Object>> rows = new ArrayList<>();
-        for (List<Object> row : data.getRows()) {
-            List<Object> t = new ArrayList<>();
-            for (Object cell : row) {
-                t.add(StringUtils.truncateCell(cell));
-            }
-            rows.add(t);
-        }
+        QueryResult result = QueryResultMapper.fromPaged(data, off, lim, true);
+        boolean hasMore = SqlStatementClassifier.isSelect(normalized) && result.isHasMore();
 
-        return Optional.of(new QueryResult(data.getColumns(), data.getColumnTypes(), rows, null, null, off, lim, hasMore));
+        return Optional.of(new QueryResult(
+                result.getColumns(), result.getColumnTypes(), result.getRows(),
+                null, null, off, lim, hasMore));
     }
 
     private Optional<QueryResult> executeQueryWithSearch(Long connectionId, String sql, int offset, int limit,
@@ -213,7 +209,7 @@ public class LightJdbcMetadataService {
         String baseSql = sql.strip().replaceFirst(";+\\s*$", "");
         Optional<QueryResultData> win = lightJdbcMetadataRepository.executeQueryWindow(connectionId, baseSql, Math.max(0, rowNum), 1);
         if (win.isEmpty() || win.get().getRows().isEmpty()) {
-            out.put("error", "error.connectionNotAvailable");
+            out.put("error", ErrorKeys.CONNECTION_NOT_AVAILABLE);
             out.put("editable", false);
             out.put("detailRows", List.<Map<String, String>>of());
             return out;

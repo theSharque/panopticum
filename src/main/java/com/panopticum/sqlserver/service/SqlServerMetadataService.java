@@ -1,6 +1,7 @@
 package com.panopticum.sqlserver.service;
 
 import com.panopticum.core.error.ErrorKeys;
+import com.panopticum.core.error.ServiceQueryErrors;
 import com.panopticum.core.model.DatabaseInfo;
 import com.panopticum.core.model.Page;
 import com.panopticum.core.model.QueryResult;
@@ -8,7 +9,7 @@ import com.panopticum.core.model.QueryResultData;
 import com.panopticum.core.model.SchemaInfo;
 import com.panopticum.core.model.TableInfo;
 import com.panopticum.core.sql.SqlQuerySupport;
-import com.panopticum.core.util.StringUtils;
+import com.panopticum.core.util.QueryResultMapper;
 import com.panopticum.core.model.EntityDescription;
 import com.panopticum.sqlserver.repository.SqlServerMetadataRepository;
 import io.micronaut.context.annotation.Value;
@@ -142,35 +143,20 @@ public class SqlServerMetadataService {
     private Optional<QueryResult> executeQueryUnchecked(Long connectionId, String dbName, String sql, int offset, int limit,
                                                         String sortBy, String sortOrder, boolean truncateCells) {
         if (sqlServerMetadataRepository.getConnection(connectionId, dbName).isEmpty()) {
-            return Optional.of(QueryResult.error("Connection not available"));
+            return ServiceQueryErrors.connectionUnavailable();
         }
         String pagedSql = wrapWithLimitOffset(sql.trim(), limit, offset, sortBy, sortOrder);
         Optional<QueryResultData> dataOpt = sqlServerMetadataRepository.executeQuery(connectionId, dbName, pagedSql);
         if (dataOpt.isEmpty()) {
-            return Optional.of(QueryResult.error("Connection not available"));
+            return ServiceQueryErrors.connectionUnavailable();
         }
-        QueryResultData data = dataOpt.get();
-        boolean hasMore = data.getRows().size() == limit;
-        List<List<Object>> rows = data.getRows().size() > limit ? data.getRows().subList(0, limit) : data.getRows();
-        if (truncateCells) {
-            List<List<Object>> truncated = new ArrayList<>();
-            for (List<Object> row : rows) {
-                List<Object> t = new ArrayList<>();
-                for (Object cell : row) {
-                    t.add(StringUtils.truncateCell(cell));
-                }
-                truncated.add(t);
-            }
-            rows = truncated;
-        }
-
-        return Optional.of(new QueryResult(data.getColumns(), data.getColumnTypes(), rows, null, null, offset, limit, hasMore));
+        return Optional.of(QueryResultMapper.fromPaged(dataOpt.get(), offset, limit, truncateCells));
     }
 
     private Optional<QueryResult> executeQueryWithSearch(Long connectionId, String dbName, String sql, int offset, int limit,
                                                          String sortBy, String sortOrder, String searchTerm) {
         if (sqlServerMetadataRepository.getConnection(connectionId, dbName).isEmpty()) {
-            return Optional.of(QueryResult.error("Connection not available"));
+            return ServiceQueryErrors.connectionUnavailable();
         }
         String trimmed = sql.strip().replaceFirst(";+\\s*$", "");
         String upper = trimmed.toUpperCase().stripLeading();
@@ -181,7 +167,7 @@ public class SqlServerMetadataService {
         String metaSql = "SELECT TOP 0 * FROM (" + trimmed + ") AS _paged" + orderByClauseForMeta;
         Optional<QueryResultData> metaOpt = sqlServerMetadataRepository.executeQuery(connectionId, dbName, metaSql);
         if (metaOpt.isEmpty() || metaOpt.get().getColumns() == null || metaOpt.get().getColumns().isEmpty()) {
-            return Optional.of(QueryResult.error("Connection not available"));
+            return ServiceQueryErrors.connectionUnavailable();
         }
         List<String> columns = metaOpt.get().getColumns();
         String concatExpr = columns.stream()
@@ -196,20 +182,9 @@ public class SqlServerMetadataService {
         List<Object> params = List.of(likePattern, Math.max(0, offset), maxLimit);
         Optional<QueryResultData> dataOpt = sqlServerMetadataRepository.executeQuery(connectionId, dbName, searchSql, params);
         if (dataOpt.isEmpty()) {
-            return Optional.of(QueryResult.error("Connection not available"));
+            return ServiceQueryErrors.connectionUnavailable();
         }
-        QueryResultData data = dataOpt.get();
-        boolean hasMore = data.getRows().size() == limit;
-        List<List<Object>> rows = data.getRows().size() > limit ? data.getRows().subList(0, limit) : data.getRows();
-        List<List<Object>> truncated = new ArrayList<>();
-        for (List<Object> row : rows) {
-            List<Object> t = new ArrayList<>();
-            for (Object cell : row) {
-                t.add(StringUtils.truncateCell(cell));
-            }
-            truncated.add(t);
-        }
-        return Optional.of(new QueryResult(data.getColumns(), data.getColumnTypes(), truncated, null, null, offset, limit, hasMore));
+        return Optional.of(QueryResultMapper.fromPaged(dataOpt.get(), offset, limit, true));
     }
 
     private static String escapeForLike(String term) {
@@ -288,7 +263,7 @@ public class SqlServerMetadataService {
         Optional<Map<String, Object>> rowOpt = sqlServerMetadataRepository.executeQuerySingleRow(connectionId, dbName, pagedSql);
 
         if (rowOpt.isEmpty()) {
-            out.put("error", "error.connectionNotAvailable");
+            out.put("error", ErrorKeys.CONNECTION_NOT_AVAILABLE);
             out.put("editable", false);
             out.put("detailRows", List.<Map<String, String>>of());
             return out;
@@ -296,7 +271,7 @@ public class SqlServerMetadataService {
 
         Map<String, Object> row = rowOpt.get();
         if (row.isEmpty()) {
-            out.put("error", "No row at this position.");
+            out.put("error", ErrorKeys.NO_ROW_AT_POSITION);
             out.put("editable", false);
             out.put("detailRows", List.<Map<String, String>>of());
             return out;

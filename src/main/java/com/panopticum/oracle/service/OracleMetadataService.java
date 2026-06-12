@@ -1,13 +1,14 @@
 package com.panopticum.oracle.service;
 
 import com.panopticum.core.error.ErrorKeys;
+import com.panopticum.core.error.ServiceQueryErrors;
 import com.panopticum.core.model.Page;
 import com.panopticum.core.model.QueryResult;
 import com.panopticum.core.model.QueryResultData;
 import com.panopticum.core.model.SchemaInfo;
 import com.panopticum.core.model.TableInfo;
 import com.panopticum.core.sql.SqlQuerySupport;
-import com.panopticum.core.util.StringUtils;
+import com.panopticum.core.util.QueryResultMapper;
 import com.panopticum.core.model.EntityDescription;
 import com.panopticum.oracle.repository.OracleMetadataRepository;
 import io.micronaut.context.annotation.Value;
@@ -131,35 +132,20 @@ public class OracleMetadataService {
     private Optional<QueryResult> executeQueryUnchecked(Long connectionId, String schema, String sql, int offset, int limit,
                                                         String sortBy, String sortOrder, boolean truncateCells) {
         if (oracleMetadataRepository.getConnection(connectionId, schema).isEmpty()) {
-            return Optional.of(QueryResult.error("Connection not available"));
+            return ServiceQueryErrors.connectionUnavailable();
         }
         String pagedSql = wrapWithLimitOffset(sql.trim(), limit, offset, sortBy, sortOrder);
         Optional<QueryResultData> dataOpt = oracleMetadataRepository.executeQuery(connectionId, schema, pagedSql);
         if (dataOpt.isEmpty()) {
-            return Optional.of(QueryResult.error("Connection not available"));
+            return ServiceQueryErrors.connectionUnavailable();
         }
-        QueryResultData data = dataOpt.get();
-        boolean hasMore = data.getRows().size() == limit;
-        List<List<Object>> rows = data.getRows().size() > limit ? data.getRows().subList(0, limit) : data.getRows();
-        if (truncateCells) {
-            List<List<Object>> truncated = new ArrayList<>();
-            for (List<Object> row : rows) {
-                List<Object> t = new ArrayList<>();
-                for (Object cell : row) {
-                    t.add(StringUtils.truncateCell(cell));
-                }
-                truncated.add(t);
-            }
-            rows = truncated;
-        }
-
-        return Optional.of(new QueryResult(data.getColumns(), data.getColumnTypes(), rows, null, null, offset, limit, hasMore));
+        return Optional.of(QueryResultMapper.fromPaged(dataOpt.get(), offset, limit, truncateCells));
     }
 
     private Optional<QueryResult> executeQueryWithSearch(Long connectionId, String schema, String sql, int offset, int limit,
                                                          String sortBy, String sortOrder, String searchTerm) {
         if (oracleMetadataRepository.getConnection(connectionId, schema).isEmpty()) {
-            return Optional.of(QueryResult.error("Connection not available"));
+            return ServiceQueryErrors.connectionUnavailable();
         }
         String trimmed = sql.strip().replaceFirst(";+\\s*$", "");
         String upper = trimmed.toUpperCase().stripLeading();
@@ -175,7 +161,7 @@ public class OracleMetadataService {
             return Optional.of(QueryResult.error(e.getCause() != null ? e.getCause().getMessage() : e.getMessage()));
         }
         if (metaOpt.isEmpty() || metaOpt.get().getColumns() == null || metaOpt.get().getColumns().isEmpty()) {
-            return Optional.of(QueryResult.error("Connection not available"));
+            return ServiceQueryErrors.connectionUnavailable();
         }
         List<String> columns = metaOpt.get().getColumns();
         String concatExpr = columns.stream()
@@ -194,20 +180,9 @@ public class OracleMetadataService {
             return Optional.of(QueryResult.error(e.getCause() != null ? e.getCause().getMessage() : e.getMessage()));
         }
         if (dataOpt.isEmpty()) {
-            return Optional.of(QueryResult.error("Connection not available"));
+            return ServiceQueryErrors.connectionUnavailable();
         }
-        QueryResultData data = dataOpt.get();
-        boolean hasMore = data.getRows().size() == limit;
-        List<List<Object>> rows = data.getRows().size() > limit ? data.getRows().subList(0, limit) : data.getRows();
-        List<List<Object>> truncated = new ArrayList<>();
-        for (List<Object> row : rows) {
-            List<Object> t = new ArrayList<>();
-            for (Object cell : row) {
-                t.add(StringUtils.truncateCell(cell));
-            }
-            truncated.add(t);
-        }
-        return Optional.of(new QueryResult(data.getColumns(), data.getColumnTypes(), truncated, null, null, offset, limit, hasMore));
+        return Optional.of(QueryResultMapper.fromPaged(dataOpt.get(), offset, limit, true));
     }
 
     private static String escapeForLike(String term) {
@@ -295,14 +270,14 @@ public class OracleMetadataService {
 
         if (rowOpt.isEmpty()) {
             log.warn("getDetailRowWithRowid: connection not available for connectionId={}, schema={}", connectionId, schema);
-            out.put("error", "error.connectionNotAvailable");
+            out.put("error", ErrorKeys.CONNECTION_NOT_AVAILABLE);
             return out;
         }
 
         Map<String, Object> row = rowOpt.get();
         if (row.isEmpty()) {
             log.warn("getDetailRowWithRowid: no row at position {} for connectionId={}, schema={}", rowNum, connectionId, schema);
-            out.put("error", "No row at this position.");
+            out.put("error", ErrorKeys.NO_ROW_AT_POSITION);
             return out;
         }
 

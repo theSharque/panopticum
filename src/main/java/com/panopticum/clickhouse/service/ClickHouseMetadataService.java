@@ -1,9 +1,10 @@
 package com.panopticum.clickhouse.service;
 
+import com.panopticum.core.error.ErrorKeys;
 import com.panopticum.core.model.Page;
 import com.panopticum.core.model.QueryResult;
 import com.panopticum.core.sql.SqlQuerySupport;
-import com.panopticum.core.util.StringUtils;
+import com.panopticum.core.util.QueryResultMapper;
 import com.panopticum.core.model.DatabaseInfo;
 import com.panopticum.core.model.QueryResultData;
 import com.panopticum.core.model.TableInfo;
@@ -125,21 +126,8 @@ public class ClickHouseMetadataService {
                                                         String sortBy, String sortOrder, boolean truncateCells) {
         String pagedSql = wrapWithLimitOffset(sql.trim(), limit, offset, sortBy, sortOrder);
         QueryResultData data = clickHouseMetadataRepository.executeQuery(connectionId, dbName, pagedSql).orElseThrow();
-        boolean hasMore = data.getRows().size() == limit;
-        List<List<Object>> rows = data.getRows();
-        if (truncateCells) {
-            List<List<Object>> truncated = new ArrayList<>();
-            for (List<Object> row : rows) {
-                List<Object> t = new ArrayList<>();
-                for (Object cell : row) {
-                    t.add(StringUtils.truncateCell(cell));
-                }
-                truncated.add(t);
-            }
-            rows = truncated;
-        }
 
-        return Optional.of(new QueryResult(data.getColumns(), data.getColumnTypes(), rows, null, null, offset, limit, hasMore));
+        return Optional.of(QueryResultMapper.fromRows(data, offset, limit, truncateCells));
     }
 
     private Optional<QueryResult> executeQueryWithSearch(Long connectionId, String dbName, String sql, int offset, int limit,
@@ -152,7 +140,7 @@ public class ClickHouseMetadataService {
         String innerWithOrder = buildWrappedQueryWithOrder(trimmed, sortBy, sortOrder);
         QueryResultData meta = clickHouseMetadataRepository.executeQuery(connectionId, dbName, innerWithOrder + " LIMIT 0").orElseThrow();
         if (meta.getColumns() == null || meta.getColumns().isEmpty()) {
-            return Optional.of(QueryResult.error("error.queryExecutionFailed"));
+            return Optional.of(QueryResult.error(ErrorKeys.QUERY_EXECUTION_FAILED));
         }
         List<String> columns = meta.getColumns();
         String concatExpr = columns.stream()
@@ -165,17 +153,8 @@ public class ClickHouseMetadataService {
         int maxLimit = Math.min(limit, queryRowsLimit);
         List<Object> params = List.of(likePattern, maxLimit, Math.max(0, offset));
         QueryResultData data = clickHouseMetadataRepository.executeQuery(connectionId, dbName, searchSql, params).orElseThrow();
-        boolean hasMore = data.getRows().size() == limit;
-        List<List<Object>> rows = data.getRows().size() > limit ? data.getRows().subList(0, limit) : data.getRows();
-        List<List<Object>> truncated = new ArrayList<>();
-        for (List<Object> row : rows) {
-            List<Object> t = new ArrayList<>();
-            for (Object cell : row) {
-                t.add(StringUtils.truncateCell(cell));
-            }
-            truncated.add(t);
-        }
-        return Optional.of(new QueryResult(data.getColumns(), data.getColumnTypes(), truncated, null, null, offset, limit, hasMore));
+
+        return Optional.of(QueryResultMapper.fromPaged(data, offset, limit, true));
     }
 
     private static String escapeForLike(String term) {

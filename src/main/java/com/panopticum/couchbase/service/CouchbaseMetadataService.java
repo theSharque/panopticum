@@ -13,6 +13,7 @@ import com.couchbase.client.java.manager.collection.ScopeSpec;
 import com.couchbase.client.java.query.QueryOptions;
 import com.couchbase.client.java.query.QueryResult;
 import com.couchbase.client.java.ClusterOptions;
+import com.panopticum.core.error.ErrorKeys;
 import com.panopticum.core.model.DatabaseInfo;
 import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.model.Page;
@@ -71,7 +72,7 @@ public class CouchbaseMetadataService {
             return Optional.of("connection.notFound");
         }
         if (!"couchbase".equalsIgnoreCase(c.get().getType())) {
-            return Optional.of("error.connectionNotAvailable");
+            return Optional.of(ErrorKeys.CONNECTION_NOT_AVAILABLE);
         }
         return testWithConnection(c.get());
     }
@@ -241,7 +242,7 @@ public class CouchbaseMetadataService {
             return new com.panopticum.core.model.QueryResult(columns, types, rows, null, null, offset, limit, hasMore);
         } catch (Exception e) {
             log.warn("scanCollection failed: {}", e.getMessage());
-            return com.panopticum.core.model.QueryResult.error(e.getMessage() != null ? e.getMessage() : "error.queryExecutionFailed");
+            return com.panopticum.core.model.QueryResult.error(e.getMessage() != null ? e.getMessage() : ErrorKeys.QUERY_EXECUTION_FAILED);
         }
     }
 
@@ -274,7 +275,7 @@ public class CouchbaseMetadataService {
             return new com.panopticum.core.model.QueryResult(columns, types, rows, null, null, offset, limit, hasMore);
         } catch (Exception e) {
             log.warn("executeN1ql failed: {}", e.getMessage());
-            return com.panopticum.core.model.QueryResult.error(e.getMessage() != null ? e.getMessage() : "error.queryExecutionFailed");
+            return com.panopticum.core.model.QueryResult.error(e.getMessage() != null ? e.getMessage() : ErrorKeys.QUERY_EXECUTION_FAILED);
         }
     }
 
@@ -324,7 +325,7 @@ public class CouchbaseMetadataService {
             return Optional.of("Document not found");
         } catch (Exception e) {
             log.warn("replaceDocument failed: {}", e.getMessage());
-            return Optional.of(e.getMessage() != null ? e.getMessage() : "error.queryExecutionFailed");
+            return Optional.of(e.getMessage() != null ? e.getMessage() : ErrorKeys.QUERY_EXECUTION_FAILED);
         }
     }
 

@@ -1,10 +1,11 @@
 package com.panopticum.cassandra.service;
 
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
+import com.panopticum.core.error.ErrorKeys;
 import com.panopticum.core.model.Page;
 import com.panopticum.core.model.QueryResult;
 import com.panopticum.core.sql.SqlQuerySupport;
-import com.panopticum.core.util.StringUtils;
+import com.panopticum.core.util.QueryResultMapper;
 import com.panopticum.cassandra.model.CassandraKeyspaceInfo;
 import com.panopticum.core.model.QueryResultData;
 import com.panopticum.cassandra.model.CassandraTableInfo;
@@ -137,13 +138,13 @@ public class CassandraMetadataService {
         Optional<com.datastax.oss.driver.api.core.CqlSession> sessionOpt =
                 cassandraMetadataRepository.createSessionForTest(host, port, keyspace, username, password);
         if (sessionOpt.isEmpty()) {
-            return Optional.of("error.connectionNotAvailable");
+            return Optional.of(ErrorKeys.CONNECTION_NOT_AVAILABLE);
         }
         try (com.datastax.oss.driver.api.core.CqlSession session = sessionOpt.get()) {
             session.execute(SimpleStatement.newInstance("SELECT * FROM system.local LIMIT 1"));
             return Optional.empty();
         } catch (Exception e) {
-            return Optional.of(e.getMessage() != null ? e.getMessage() : "error.queryExecutionFailed");
+            return Optional.of(e.getMessage() != null ? e.getMessage() : ErrorKeys.QUERY_EXECUTION_FAILED);
         }
     }
 
@@ -206,25 +207,17 @@ public class CassandraMetadataService {
     private Optional<QueryResult> executeQueryUnchecked(Long connectionId, String keyspaceName, String cql, int offset, int limit, boolean truncateCells) {
         int lim = Math.min(limit > 0 ? limit : 100, queryRowsLimit);
         QueryResultData data = cassandraMetadataRepository.executeCql(connectionId, keyspaceName, cql, lim).orElseThrow();
-        boolean hasMore = data.getRows() != null && data.getRows().size() == lim;
-        List<List<Object>> rows = data.getRows() != null ? new ArrayList<>(data.getRows()) : List.of();
-        if (truncateCells) {
-            List<List<Object>> truncated = new ArrayList<>();
-            for (List<Object> row : rows) {
-                List<Object> t = new ArrayList<>();
-                for (Object cell : row) {
-                    t.add(StringUtils.truncateCell(cell));
-                }
-                truncated.add(t);
-            }
-            rows = truncated;
+        if (data.getColumns() == null) {
+            data.setColumns(List.of());
         }
-        return Optional.of(new QueryResult(
-                data.getColumns() != null ? data.getColumns() : List.of(),
-                data.getColumnTypes() != null ? data.getColumnTypes() : List.of(),
-                rows,
-                null, null,
-                offset, lim, hasMore));
+        if (data.getColumnTypes() == null) {
+            data.setColumnTypes(List.of());
+        }
+        if (data.getRows() == null) {
+            data.setRows(List.of());
+        }
+
+        return Optional.of(QueryResultMapper.fromPaged(data, offset, lim, truncateCells));
     }
 
     public Optional<QueryResult> executeQuery(Long connectionId, String keyspaceName, String cql, int offset, int limit) {

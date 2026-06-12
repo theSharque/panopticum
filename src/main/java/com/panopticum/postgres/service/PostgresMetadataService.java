@@ -1,6 +1,7 @@
 package com.panopticum.postgres.service;
 
 import com.panopticum.core.error.ErrorKeys;
+import com.panopticum.core.error.ServiceQueryErrors;
 import com.panopticum.core.model.DatabaseInfo;
 import com.panopticum.core.model.Page;
 import com.panopticum.core.model.QueryResult;
@@ -10,7 +11,7 @@ import com.panopticum.core.model.TableInfo;
 import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.core.sql.SqlQuerySupport;
-import com.panopticum.core.util.StringUtils;
+import com.panopticum.core.util.QueryResultMapper;
 import com.panopticum.core.model.EntityDescription;
 import com.panopticum.postgres.PostgresJdbcDrivers;
 import com.panopticum.postgres.PostgresWireCompat;
@@ -164,35 +165,20 @@ public class PostgresMetadataService {
     private Optional<QueryResult> executeQueryUnchecked(Long connectionId, String dbName, String sql, int offset, int limit,
                                                         String sortBy, String sortOrder, boolean truncateCells) {
         if (postgresMetadataRepository.getConnection(connectionId, dbName).isEmpty()) {
-            return Optional.of(QueryResult.error("Connection not available"));
+            return ServiceQueryErrors.connectionUnavailable();
         }
         String pagedSql = wrapWithLimitOffset(sql.trim(), limit, offset, sortBy, sortOrder);
         Optional<QueryResultData> dataOpt = postgresMetadataRepository.executeQuery(connectionId, dbName, pagedSql);
         if (dataOpt.isEmpty()) {
-            return Optional.of(QueryResult.error("Connection not available"));
+            return ServiceQueryErrors.connectionUnavailable();
         }
-        QueryResultData data = dataOpt.get();
-        boolean hasMore = data.getRows().size() == limit;
-        List<List<Object>> rows = data.getRows().size() > limit ? data.getRows().subList(0, limit) : data.getRows();
-        if (truncateCells) {
-            List<List<Object>> truncated = new ArrayList<>();
-            for (List<Object> row : rows) {
-                List<Object> t = new ArrayList<>();
-                for (Object cell : row) {
-                    t.add(StringUtils.truncateCell(cell));
-                }
-                truncated.add(t);
-            }
-            rows = truncated;
-        }
-
-        return Optional.of(new QueryResult(data.getColumns(), data.getColumnTypes(), rows, null, null, offset, limit, hasMore));
+        return Optional.of(QueryResultMapper.fromPaged(dataOpt.get(), offset, limit, truncateCells));
     }
 
     private Optional<QueryResult> executeQueryWithSearch(Long connectionId, String dbName, String sql, int offset, int limit,
                                                          String sortBy, String sortOrder, String searchTerm) {
         if (postgresMetadataRepository.getConnection(connectionId, dbName).isEmpty()) {
-            return Optional.of(QueryResult.error("Connection not available"));
+            return ServiceQueryErrors.connectionUnavailable();
         }
         String trimmed = sql.strip().replaceFirst(";+\\s*$", "");
         String upper = trimmed.toUpperCase().stripLeading();
@@ -202,7 +188,7 @@ public class PostgresMetadataService {
         String innerWithOrder = buildWrappedQueryWithOrder(trimmed, sortBy, sortOrder);
         Optional<QueryResultData> metaOpt = postgresMetadataRepository.executeQuery(connectionId, dbName, innerWithOrder + " LIMIT 0");
         if (metaOpt.isEmpty() || metaOpt.get().getColumns() == null || metaOpt.get().getColumns().isEmpty()) {
-            return Optional.of(QueryResult.error("Connection not available"));
+            return ServiceQueryErrors.connectionUnavailable();
         }
         List<String> columns = metaOpt.get().getColumns();
         String concatExpr = columns.stream()
@@ -216,20 +202,9 @@ public class PostgresMetadataService {
         List<Object> params = List.of(likePattern, maxLimit, Math.max(0, offset));
         Optional<QueryResultData> dataOpt = postgresMetadataRepository.executeQuery(connectionId, dbName, searchSql, params);
         if (dataOpt.isEmpty()) {
-            return Optional.of(QueryResult.error("Connection not available"));
+            return ServiceQueryErrors.connectionUnavailable();
         }
-        QueryResultData data = dataOpt.get();
-        boolean hasMore = data.getRows().size() == limit;
-        List<List<Object>> rows = data.getRows().size() > limit ? data.getRows().subList(0, limit) : data.getRows();
-        List<List<Object>> truncated = new ArrayList<>();
-        for (List<Object> row : rows) {
-            List<Object> t = new ArrayList<>();
-            for (Object cell : row) {
-                t.add(StringUtils.truncateCell(cell));
-            }
-            truncated.add(t);
-        }
-        return Optional.of(new QueryResult(data.getColumns(), data.getColumnTypes(), truncated, null, null, offset, limit, hasMore));
+        return Optional.of(QueryResultMapper.fromPaged(dataOpt.get(), offset, limit, true));
     }
 
     private static String escapeForLike(String term) {
@@ -327,13 +302,13 @@ public class PostgresMetadataService {
         Optional<Map<String, Object>> rowOpt = postgresMetadataRepository.executeQuerySingleRow(connectionId, dbName, pagedSql);
 
         if (rowOpt.isEmpty()) {
-            out.put("error", "error.connectionNotAvailable");
+            out.put("error", ErrorKeys.CONNECTION_NOT_AVAILABLE);
             return out;
         }
 
         Map<String, Object> row = rowOpt.get();
         if (row.isEmpty()) {
-            out.put("error", "No row at this position.");
+            out.put("error", ErrorKeys.NO_ROW_AT_POSITION);
             return out;
         }
 

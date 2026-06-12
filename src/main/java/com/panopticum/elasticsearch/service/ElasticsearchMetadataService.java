@@ -2,6 +2,7 @@ package com.panopticum.elasticsearch.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.panopticum.core.error.ConnectionSupport;
+import com.panopticum.core.error.ErrorKeys;
 import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.model.Page;
 import com.panopticum.core.model.QueryResult;
@@ -168,7 +169,7 @@ public class ElasticsearchMetadataService {
             return Optional.of(QueryResult.error(sr.failureMessage()));
         }
         if (sr.response() == null) {
-            return Optional.of(QueryResult.error("error.queryExecutionFailed"));
+            return Optional.of(QueryResult.error(ErrorKeys.QUERY_EXECUTION_FAILED));
         }
 
         return Optional.of(searchResponseToQueryResult(sr.response(), off, lim));
@@ -176,7 +177,7 @@ public class ElasticsearchMetadataService {
 
     private QueryResult searchResponseToQueryResult(SearchResponseDto response, int offset, int limit) {
         if (response == null || response.getHits() == null) {
-            return QueryResult.error("error.queryExecutionFailed");
+            return QueryResult.error(ErrorKeys.QUERY_EXECUTION_FAILED);
         }
         List<SearchHitDto> hits = response.getHits().getHits();
         if (hits == null) {
@@ -272,7 +273,7 @@ public class ElasticsearchMetadataService {
                 conn.getUsername() != null ? conn.getUsername() : "",
                 conn.getPassword() != null ? conn.getPassword() : "");
 
-        return updated ? Optional.empty() : Optional.of("error.queryExecutionFailed");
+        return updated ? Optional.empty() : Optional.of(ErrorKeys.QUERY_EXECUTION_FAILED);
     }
 
     private DbConnection requireElasticsearch(Long connectionId) {
