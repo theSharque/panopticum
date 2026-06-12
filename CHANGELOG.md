@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [8.2.14] - 2026-06-12
+
+### Changed
+
+- Controller layer: shared `AbstractConnectionApiController` / `AbstractConnectionUiController`, `QueryResultModelHelper`, `AdminLockGuard`, `ConnectionTestHelper`; unified API/UI error constants (`ApiErrors`, `ErrorKeys`)
+- Service layer: `ServiceQueryErrors`, `QueryResultMapper`; JDBC metadata services use shared error keys and query result mapping (~200 lines removed)
+
 ## [8.2.13] - 2026-06-12
 
 ### Changed
