@@ -129,9 +129,6 @@ public class RedisApiController extends AbstractConnectionApiController {
             err = redisMetadataService.setKey(id, dbIndex, request.getKey(),
                     request.getValue() != null ? request.getValue() : "");
         }
-        if (err.isPresent()) {
-            return ApiMutationResult.failure(err.get());
-        }
-        return ApiMutationResult.success();
+        return ApiMutationResult.from(err);
     }
 }

@@ -8,7 +8,6 @@ import com.panopticum.core.model.SqlQueryRequest;
 import com.panopticum.core.model.TableInfo;
 import com.panopticum.core.controller.AbstractConnectionApiController;
 import com.panopticum.core.service.DbConnectionService;
-import com.panopticum.core.util.ApiQueryParams;
 import com.panopticum.lightjdbc.service.LightJdbcMetadataService;
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
@@ -104,17 +103,8 @@ public class LightJdbcApiController extends AbstractConnectionApiController {
     })
     public QueryResult query(@Parameter(description = "Connection ID") @PathVariable Long id,
                              @Valid @Body SqlQueryRequest request) {
-        ensureConnectionExists(id);
-        if (request.getSql() == null || request.getSql().isBlank()) {
-            return QueryResult.error("Empty query");
-        }
-        assertNotReadOnlyForSqlMutation(request.getSql());
-        int offset = ApiQueryParams.normalizedOffset(request.getOffset());
-        int limit = ApiQueryParams.normalizedLimit(request.getLimit());
-        String search = ApiQueryParams.trimmedSearchOrEmpty(request.getSearch());
-        return lightJdbcMetadataService.executeQuery(id, request.getSql(), offset, limit,
-                request.getSort() != null ? request.getSort() : "",
-                request.getOrder() != null ? request.getOrder() : "",
-                search).orElse(QueryResult.error("error.queryExecutionFailed"));
+        return runSqlQuery(id, request,
+                (connId, db, sql, offset, limit, sort, order, search) ->
+                        lightJdbcMetadataService.executeQuery(connId, sql, offset, limit, sort, order, search));
     }
 }

@@ -4,6 +4,7 @@ import com.panopticum.core.model.DatabaseInfo;
 import com.panopticum.core.model.Page;
 import com.panopticum.core.model.QueryResult;
 import com.panopticum.core.controller.AbstractConnectionApiController;
+import com.panopticum.core.error.ApiErrors;
 import com.panopticum.core.model.ApiMutationResult;
 import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.core.util.ApiQueryParams;
@@ -30,7 +31,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
-import java.util.Optional;
 
 @Controller("/api/mongo/connections")
 @Secured(SecurityRule.IS_AUTHENTICATED)
@@ -97,7 +97,7 @@ public class MongoApiController extends AbstractConnectionApiController {
         String sortVal = request.getSort() != null && !request.getSort().isBlank() ? request.getSort() : "_id";
         String orderVal = request.getOrder() != null && !request.getOrder().isBlank() ? request.getOrder() : "asc";
         return mongoMetadataService.executeQuery(id, request.getDbName(), request.getCollection(), queryText, offset, limit, sortVal, orderVal)
-                .orElse(QueryResult.error("error.queryExecutionFailed"));
+                .orElse(QueryResult.error(ApiErrors.QUERY_EXECUTION_FAILED));
     }
 
     @Get("/{id}/databases/{dbName}/document")
@@ -133,11 +133,7 @@ public class MongoApiController extends AbstractConnectionApiController {
             @Valid @Body MongoDocumentReplaceRequest request) {
         assertNotReadOnly();
         ensureConnectionExists(id);
-        Optional<String> err = mongoMetadataService.replaceDocument(id, dbName, request.getCollection(),
-                request.getDocId(), request.getBody());
-        if (err.isPresent()) {
-            return ApiMutationResult.failure(err.get());
-        }
-        return ApiMutationResult.success();
+        return ApiMutationResult.from(mongoMetadataService.replaceDocument(id, dbName, request.getCollection(),
+                request.getDocId(), request.getBody()));
     }
 }

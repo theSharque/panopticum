@@ -1,5 +1,6 @@
 package com.panopticum.mysql.service;
 
+import com.panopticum.core.error.ErrorKeys;
 import com.panopticum.core.model.DatabaseInfo;
 import com.panopticum.core.model.Page;
 import com.panopticum.core.model.QueryResult;
@@ -239,7 +240,7 @@ public class MySqlMetadataService {
         Optional<String> tableRef = parseTableFromSql(sql);
 
         if (tableRef.isEmpty()) {
-            out.put("error", "Could not determine table from SQL.");
+            out.put("error", ErrorKeys.TABLE_NOT_DETERMINED);
             out.put("editable", false);
             out.put("detailRows", List.<Map<String, String>>of());
             return out;

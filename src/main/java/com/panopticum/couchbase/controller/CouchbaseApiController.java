@@ -7,7 +7,6 @@ import com.panopticum.core.model.SqlQueryRequest;
 import com.panopticum.core.model.TableInfo;
 import com.panopticum.core.controller.AbstractConnectionApiController;
 import com.panopticum.core.service.DbConnectionService;
-import com.panopticum.core.util.ApiQueryParams;
 import com.panopticum.couchbase.model.CouchbaseBucketInfo;
 import com.panopticum.couchbase.model.CouchbaseScopeCollections;
 import com.panopticum.couchbase.service.CouchbaseMetadataService;
@@ -104,13 +103,7 @@ public class CouchbaseApiController extends AbstractConnectionApiController {
     @Produces(MediaType.APPLICATION_JSON)
     @Operation(summary = "Execute N1QL")
     public QueryResult query(@PathVariable Long id, @Valid @Body SqlQueryRequest request) {
-        ensureConnectionExists(id);
-        if (request.getSql() == null || request.getSql().isBlank()) {
-            return QueryResult.error("Empty query");
-        }
-        int offset = ApiQueryParams.normalizedOffset(request.getOffset());
-        int limit = ApiQueryParams.normalizedLimit(request.getLimit());
-        return couchbaseMetadataService.executeN1ql(id, request.getSql(), offset, limit);
+        return runN1qlQuery(id, request, couchbaseMetadataService::executeN1ql);
     }
 
     @Get("/{id}/buckets/{bucket}/scopes/{scope}/collections/{collection}/documents")

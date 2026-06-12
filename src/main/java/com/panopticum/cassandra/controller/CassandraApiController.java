@@ -8,7 +8,6 @@ import com.panopticum.core.model.Page;
 import com.panopticum.core.model.QueryResult;
 import com.panopticum.core.controller.AbstractConnectionApiController;
 import com.panopticum.core.service.DbConnectionService;
-import com.panopticum.core.util.ApiQueryParams;
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
@@ -87,15 +86,7 @@ public class CassandraApiController extends AbstractConnectionApiController {
             @Parameter(description = "Connection ID") @PathVariable Long id,
             @PathVariable String keyspaceName,
             @Valid @Body CassandraQueryRequest request) {
-        ensureConnectionExists(id);
-        String cql = request.getCql();
-        if (cql == null || cql.isBlank()) {
-            return QueryResult.error("Empty query");
-        }
-        assertNotReadOnlyForSqlMutation(cql);
-        int offset = ApiQueryParams.normalizedOffset(request.getOffset());
-        int limit = ApiQueryParams.normalizedLimit(request.getLimit());
-        return cassandraMetadataService.executeQuery(id, keyspaceName, cql, offset, limit)
-                .orElse(QueryResult.error("error.queryExecutionFailed"));
+        return runCqlQuery(id, keyspaceName, request.getCql(), request.getOffset(), request.getLimit(),
+                cassandraMetadataService::executeQuery);
     }
 }

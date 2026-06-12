@@ -3,6 +3,7 @@ package com.panopticum.elasticsearch.controller;
 import com.panopticum.core.model.Page;
 import com.panopticum.core.model.QueryResult;
 import com.panopticum.core.controller.AbstractConnectionApiController;
+import com.panopticum.core.error.ApiErrors;
 import com.panopticum.core.model.ApiMutationResult;
 import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.core.util.ApiQueryParams;
@@ -29,7 +30,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
-import java.util.Optional;
 
 @Controller("/api/elasticsearch/connections")
 @Secured(SecurityRule.IS_AUTHENTICATED)
@@ -80,7 +80,7 @@ public class ElasticsearchApiController extends AbstractConnectionApiController 
         int offset = ApiQueryParams.normalizedOffset(request.getOffset());
         int limit = ApiQueryParams.normalizedLimit(request.getLimit());
         return elasticsearchMetadataService.executeQuery(id, indexName, query, offset, limit)
-                .orElse(QueryResult.error("error.queryExecutionFailed"));
+                .orElse(QueryResult.error(ApiErrors.QUERY_EXECUTION_FAILED));
     }
 
     @Get("/{id}/indices/{indexName}/doc/{docId}")
@@ -113,10 +113,6 @@ public class ElasticsearchApiController extends AbstractConnectionApiController 
             @Body String body) {
         assertNotReadOnly();
         ensureConnectionExists(id);
-        Optional<String> err = elasticsearchMetadataService.updateDocument(id, indexName, docId, body);
-        if (err.isPresent()) {
-            return ApiMutationResult.failure(err.get());
-        }
-        return ApiMutationResult.success();
+        return ApiMutationResult.from(elasticsearchMetadataService.updateDocument(id, indexName, docId, body));
     }
 }

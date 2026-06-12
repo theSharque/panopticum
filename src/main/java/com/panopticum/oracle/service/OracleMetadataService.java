@@ -1,5 +1,6 @@
 package com.panopticum.oracle.service;
 
+import com.panopticum.core.error.ErrorKeys;
 import com.panopticum.core.model.Page;
 import com.panopticum.core.model.QueryResult;
 import com.panopticum.core.model.QueryResultData;
@@ -261,7 +262,7 @@ public class OracleMetadataService {
         Optional<String> tableRef = parseTableFromSql(sql);
 
         if (tableRef.isEmpty()) {
-            out.put("error", "Could not determine table from SQL.");
+            out.put("error", ErrorKeys.TABLE_NOT_DETERMINED);
             return out;
         }
 

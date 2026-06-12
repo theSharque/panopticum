@@ -8,6 +8,8 @@ import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.service.ConnectionTestService;
 import com.panopticum.core.service.DbConnectionFactory;
 import com.panopticum.core.service.DbConnectionService;
+import com.panopticum.core.util.AdminLockGuard;
+import com.panopticum.core.util.ConnectionTestHelper;
 import io.micronaut.context.annotation.Value;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.Body;
@@ -33,7 +35,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 import java.util.List;
-import java.util.Optional;
 
 @Controller("/api/connections")
 @Secured(SecurityRule.IS_AUTHENTICATED)
@@ -80,7 +81,7 @@ public class ConnectionsApiController {
             @ApiResponse(responseCode = "404", description = "connection.notFound")
     })
     public DbConnection save(@Valid @Body ConnectionRequest request) {
-        assertNotLocked();
+        AdminLockGuard.assertNotLocked(adminLock);
         String type = normalizeType(request.getType());
         Long id = request.getId();
         String username = "redis".equalsIgnoreCase(type) ? null : request.getUsername();
@@ -124,16 +125,8 @@ public class ConnectionsApiController {
         String database = request.getDatabase() != null ? request.getDatabase() : "";
         String username = request.getUsername() != null ? request.getUsername() : "";
         String password = resolvePasswordForTest(request.getId(), request.getPassword());
-        try {
-            Optional<String> error = connectionTestService.test(type, host, port, database, username, password,
-                    Optional.ofNullable(request.getId()), request.getUseHttps());
-            boolean success = error.isEmpty();
-            String messageKey = error.orElse("connectionTest.success");
-            return new ConnectionTestResponse(success, messageKey);
-        } catch (Exception e) {
-            String messageKey = e.getMessage() != null ? e.getMessage() : "error.queryExecutionFailed";
-            return new ConnectionTestResponse(false, messageKey);
-        }
+        return ConnectionTestHelper.toApiResponse(connectionTestService, type, host, port, database, username,
+                password, request.getId(), request.getUseHttps());
     }
 
     @Delete("/{id}")
@@ -145,17 +138,11 @@ public class ConnectionsApiController {
             @ApiResponse(responseCode = "404", description = "connection.notFound")
     })
     public void delete(@Parameter(description = "Connection ID") @PathVariable Long id) {
-        assertNotLocked();
+        AdminLockGuard.assertNotLocked(adminLock);
         if (dbConnectionService.findById(id).isEmpty()) {
             throw new HttpStatusException(HttpStatus.NOT_FOUND, "connection.notFound");
         }
         dbConnectionService.deleteById(id);
-    }
-
-    private void assertNotLocked() {
-        if (adminLock) {
-            throw new HttpStatusException(HttpStatus.FORBIDDEN, "admin.lock.enabled");
-        }
     }
 
     private String resolvePasswordForTest(Long id, String password) {

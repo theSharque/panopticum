@@ -6,6 +6,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.Optional;
+
 @Data
 @Serdeable
 @NoArgsConstructor
@@ -25,5 +27,9 @@ public class ApiMutationResult {
 
     public static ApiMutationResult failure(String errorKey) {
         return new ApiMutationResult(false, errorKey);
+    }
+
+    public static ApiMutationResult from(Optional<String> error) {
+        return error.map(ApiMutationResult::failure).orElseGet(ApiMutationResult::success);
     }
 }

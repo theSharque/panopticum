@@ -6,6 +6,7 @@ import com.panopticum.core.model.QueryResult;
 import com.panopticum.core.model.QueryResultData;
 import com.panopticum.core.model.SchemaInfo;
 import com.panopticum.core.model.TableInfo;
+import com.panopticum.core.error.ErrorKeys;
 import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.core.sql.SqlQuerySupport;
@@ -195,7 +196,7 @@ public class LightJdbcMetadataService {
         Optional<String> tableRef = parseTableFromSql(sql);
 
         if (tableRef.isEmpty()) {
-            out.put("error", "Could not determine table from SQL.");
+            out.put("error", ErrorKeys.TABLE_NOT_DETERMINED);
             out.put("editable", false);
             out.put("detailRows", List.<Map<String, String>>of());
             return out;

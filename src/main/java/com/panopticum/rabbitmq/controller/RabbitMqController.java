@@ -3,6 +3,7 @@ package com.panopticum.rabbitmq.controller;
 import com.panopticum.core.model.BreadcrumbItem;
 import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.model.Page;
+import com.panopticum.core.controller.AbstractConnectionUiController;
 import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.core.ui.AppAlerts;
 import com.panopticum.core.util.ControllerModelHelper;
@@ -12,9 +13,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.panopticum.rabbitmq.service.RabbitMqMetadataService;
-import io.micronaut.context.annotation.Value;
 import io.micronaut.http.HttpResponse;
-import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.Consumes;
 import io.micronaut.http.annotation.Controller;
@@ -23,15 +22,12 @@ import io.micronaut.http.annotation.PathVariable;
 import io.micronaut.http.annotation.Post;
 import io.micronaut.http.annotation.Produces;
 import io.micronaut.http.annotation.QueryValue;
-import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.annotation.ExecuteOn;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import io.micronaut.views.ModelAndView;
 import io.micronaut.views.View;
-import lombok.RequiredArgsConstructor;
-
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
@@ -41,17 +37,20 @@ import java.util.Optional;
 @Controller("/rabbitmq")
 @Secured(SecurityRule.IS_AUTHENTICATED)
 @ExecuteOn(TaskExecutors.BLOCKING)
-@RequiredArgsConstructor
-public class RabbitMqController {
+public class RabbitMqController extends AbstractConnectionUiController {
 
     private static final int DEFAULT_PEEK_COUNT = 20;
 
-    private final DbConnectionService dbConnectionService;
     private final RabbitMqMetadataService rabbitMqMetadataService;
     private final ObjectMapper objectMapper;
 
-    @Value("${panopticum.read-only:false}")
-    private boolean readOnly;
+    public RabbitMqController(DbConnectionService dbConnectionService,
+                              RabbitMqMetadataService rabbitMqMetadataService,
+                              ObjectMapper objectMapper) {
+        super(dbConnectionService);
+        this.rabbitMqMetadataService = rabbitMqMetadataService;
+        this.objectMapper = objectMapper;
+    }
 
     @Get("/{id}")
     public HttpResponse<?> index(@PathVariable Long id) {
@@ -211,12 +210,6 @@ public class RabbitMqController {
         }
 
         return lines;
-    }
-
-    private void assertNotReadOnly() {
-        if (readOnly) {
-            throw new HttpStatusException(HttpStatus.FORBIDDEN, "read.only.enabled");
-        }
     }
 
     @Produces(MediaType.TEXT_HTML)

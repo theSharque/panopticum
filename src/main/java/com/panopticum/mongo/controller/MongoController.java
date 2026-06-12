@@ -4,8 +4,10 @@ import com.panopticum.core.model.BreadcrumbItem;
 import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.model.Page;
 import com.panopticum.core.model.QueryResult;
+import com.panopticum.core.error.ErrorKeys;
 import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.core.ui.AppAlerts;
+import com.panopticum.core.util.QueryResultModelHelper;
 import com.panopticum.core.util.ControllerModelHelper;
 import com.panopticum.mongo.model.MongoCollectionInfo;
 import com.panopticum.core.model.DatabaseInfo;
@@ -184,19 +186,8 @@ public class MongoController {
         } else {
             String queryText = query != null && !query.isBlank() ? query : "{}";
             var result = mongoMetadataService.executeQuery(id, dbName, collection, queryText, off, lim, sortVal, orderVal)
-                    .orElse(QueryResult.error("error.queryExecutionFailed"));
-            AppAlerts.fromControllerMessage(model, result.hasError() ? result.getError() : null);
-            model.put("columns", result.getColumns());
-            model.put("rows", result.getRows());
-            model.put("docIds", result.getDocIds() != null ? result.getDocIds() : List.<String>of());
-            model.put("offset", result.getOffset());
-            model.put("limit", result.getLimit());
-            model.put("hasPrev", result.hasPrev());
-            model.put("hasMore", result.isHasMore());
-            model.put("nextOffset", result.nextOffset());
-            model.put("prevOffset", result.prevOffset());
-            model.put("fromRow", result.fromRow());
-            model.put("toRow", result.toRow());
+                    .orElse(QueryResult.error(ErrorKeys.QUERY_EXECUTION_FAILED));
+            QueryResultModelHelper.putQueryResult(model, result, sortVal, orderVal);
         }
 
         return model;
@@ -335,21 +326,9 @@ public class MongoController {
         int off = offset != null ? Math.max(0, offset) : 0;
         int lim = limit != null && limit > 0 ? limit : 100;
         var result = mongoMetadataService.executeQuery(id, dbName, collection, queryText, off, lim, sortVal, orderVal)
-                .orElse(QueryResult.error("error.queryExecutionFailed"));
-
-        AppAlerts.fromControllerMessage(model, result.hasError() ? result.getError() : null);
-        model.put("columns", result.getColumns());
-        model.put("rows", result.getRows());
-        model.put("docIds", result.getDocIds() != null ? result.getDocIds() : List.<String>of());
+                .orElse(QueryResult.error(ErrorKeys.QUERY_EXECUTION_FAILED));
+        QueryResultModelHelper.putQueryResult(model, result, sortVal, orderVal);
         model.put("query", queryText);
-        model.put("offset", result.getOffset());
-        model.put("limit", result.getLimit());
-        model.put("hasPrev", result.hasPrev());
-        model.put("hasMore", result.isHasMore());
-        model.put("nextOffset", result.nextOffset());
-        model.put("prevOffset", result.prevOffset());
-        model.put("fromRow", result.fromRow());
-        model.put("toRow", result.toRow());
 
         return "table".equals(target)
                 ? new ModelAndView<>("partials/mongo-table-view-result", model)

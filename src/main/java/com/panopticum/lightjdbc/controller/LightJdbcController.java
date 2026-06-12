@@ -7,8 +7,9 @@ import com.panopticum.core.model.QueryResult;
 import com.panopticum.core.model.SchemaInfo;
 import com.panopticum.core.model.TableInfo;
 import com.panopticum.core.service.DbConnectionService;
-import com.panopticum.core.ui.AppAlerts;
+import com.panopticum.core.error.ErrorKeys;
 import com.panopticum.core.util.ControllerModelHelper;
+import com.panopticum.core.util.QueryResultModelHelper;
 import com.panopticum.lightjdbc.service.LightJdbcMetadataService;
 import io.micronaut.context.annotation.Value;
 import io.micronaut.core.annotation.Nullable;
@@ -186,37 +187,11 @@ public class LightJdbcController {
         model.put("size", lim);
 
         if (sql == null || sql.isBlank()) {
-            AppAlerts.clear(model);
-            model.put("columns", List.<String>of());
-            model.put("columnTypes", List.<String>of());
-            model.put("rows", List.<List<Object>>of());
-            model.put("offset", 0);
-            model.put("limit", lim);
-            model.put("hasPrev", false);
-            model.put("hasMore", false);
-            model.put("nextOffset", lim);
-            model.put("prevOffset", 0);
-            model.put("fromRow", 0);
-            model.put("toRow", 0);
-            model.put("sort", "");
-            model.put("order", "");
+            QueryResultModelHelper.putEmptyQueryPage(model, lim);
         } else {
             var result = lightJdbcMetadataService.executeQuery(id, sql, off, lim, sort, order, searchTerm)
-                    .orElse(QueryResult.error("error.queryExecutionFailed"));
-            AppAlerts.fromControllerMessage(model, result.hasError() ? result.getError() : null);
-            model.put("columns", result.getColumns());
-            model.put("columnTypes", result.getColumnTypes() != null ? result.getColumnTypes() : List.<String>of());
-            model.put("rows", result.getRows());
-            model.put("offset", result.getOffset());
-            model.put("limit", result.getLimit());
-            model.put("hasPrev", result.hasPrev());
-            model.put("hasMore", result.isHasMore());
-            model.put("nextOffset", result.nextOffset());
-            model.put("prevOffset", result.prevOffset());
-            model.put("fromRow", result.fromRow());
-            model.put("toRow", result.toRow());
-            model.put("sort", sort != null ? sort : "");
-            model.put("order", order != null ? order : "");
+                    .orElse(QueryResult.error(ErrorKeys.QUERY_EXECUTION_FAILED));
+            QueryResultModelHelper.putQueryResult(model, result, sort, order);
         }
 
         return model;
@@ -243,7 +218,7 @@ public class LightJdbcController {
         String searchTerm = search != null && !search.isBlank() ? search.trim() : "";
         model.put("searchTerm", searchTerm);
         if (sql == null || sql.isBlank()) {
-            AppAlerts.raw(model, "Empty query");
+            QueryResultModelHelper.putEmptyQueryHtmxAlert(model);
             model.put("queryActionUrl", "/lightjdbc/" + id + "/query");
             model.put("tableQueryActionUrl", "/lightjdbc/" + id + "/query");
             model.put("tableDetailActionUrl", "/lightjdbc/" + id + "/" + schemaName + "/detail");
@@ -262,22 +237,9 @@ public class LightJdbcController {
         int off = offset != null ? Math.max(0, offset) : 0;
         int lim = limit != null && limit > 0 ? limit : 100;
         var result = lightJdbcMetadataService.executeQuery(id, sql, off, lim, sort, order, searchTerm)
-                .orElse(QueryResult.error("Execution failed"));
-        AppAlerts.fromControllerMessage(model, result.hasError() ? result.getError() : null);
-        model.put("columns", result.getColumns());
-        model.put("columnTypes", result.getColumnTypes() != null ? result.getColumnTypes() : List.<String>of());
-        model.put("rows", result.getRows());
+                .orElse(QueryResult.error(ErrorKeys.QUERY_EXECUTION_FAILED));
+        QueryResultModelHelper.putQueryResult(model, result, sort, order);
         model.put("sql", sql);
-        model.put("offset", result.getOffset());
-        model.put("limit", result.getLimit());
-        model.put("hasPrev", result.hasPrev());
-        model.put("hasMore", result.isHasMore());
-        model.put("nextOffset", result.nextOffset());
-        model.put("prevOffset", result.prevOffset());
-        model.put("fromRow", result.fromRow());
-        model.put("toRow", result.toRow());
-        model.put("sort", sort != null ? sort : "");
-        model.put("order", order != null ? order : "");
 
         return "table".equals(target)
                 ? new ModelAndView<>("partials/table-view-result", model)

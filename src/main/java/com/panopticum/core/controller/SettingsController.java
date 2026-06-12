@@ -5,6 +5,8 @@ import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.service.ConnectionTestService;
 import com.panopticum.core.service.DbConnectionFactory;
 import com.panopticum.core.service.DbConnectionService;
+import com.panopticum.core.util.AdminLockGuard;
+import com.panopticum.core.util.ConnectionTestHelper;
 import com.panopticum.i18n.LocaleFilter;
 import com.panopticum.i18n.Messages;
 import io.micronaut.context.annotation.Value;
@@ -72,7 +74,7 @@ public class SettingsController {
     @Get("/edit/{id}")
     @View("settings/index")
     public Map<String, Object> edit(@PathVariable Long id) {
-        assertNotLocked();
+        AdminLockGuard.assertNotLocked(adminLock);
         DbConnection conn = dbConnectionService.findById(id)
                 .orElseThrow(() -> new HttpStatusException(HttpStatus.NOT_FOUND, "connection.notFound"));
         Map<String, Object> model = new HashMap<>();
@@ -83,19 +85,13 @@ public class SettingsController {
         return model;
     }
 
-    private void assertNotLocked() {
-        if (adminLock) {
-            throw new HttpStatusException(HttpStatus.FORBIDDEN, "admin.lock.enabled");
-        }
-    }
-
     @Post("/add-postgres")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces(MediaType.TEXT_HTML)
     public Object addPostgres(HttpRequest<?> request,
                              String name, String host, Integer port, String database, String username, String password,
                              Optional<Long> id) {
-        assertNotLocked();
+        AdminLockGuard.assertNotLocked(adminLock);
         DbConnection conn = saveOrUpdate("postgresql", id, name, host, port, database, username, password);
         Map<String, Object> model = new HashMap<>();
         model.put("connections", dbConnectionService.findAll());
@@ -118,7 +114,7 @@ public class SettingsController {
     public Object addGreenplum(HttpRequest<?> request,
                                String name, String host, Integer port, String database, String username, String password,
                                Optional<Long> id) {
-        assertNotLocked();
+        AdminLockGuard.assertNotLocked(adminLock);
         DbConnection conn = saveOrUpdate("greenplum", id, name, host, port, database, username, password);
         Map<String, Object> model = new HashMap<>();
         model.put("connections", dbConnectionService.findAll());
@@ -141,7 +137,7 @@ public class SettingsController {
     public Object addYugabytedb(HttpRequest<?> request,
                               String name, String host, Integer port, String database, String username, String password,
                               Optional<Long> id) {
-        assertNotLocked();
+        AdminLockGuard.assertNotLocked(adminLock);
         DbConnection conn = saveOrUpdate("yugabytedb", id, name, host, port, database, username, password);
         Map<String, Object> model = new HashMap<>();
         model.put("connections", dbConnectionService.findAll());
@@ -164,7 +160,7 @@ public class SettingsController {
     public Object addCockroachdb(HttpRequest<?> request,
                                 String name, String host, Integer port, String database, String username, String password,
                                 Optional<Long> id) {
-        assertNotLocked();
+        AdminLockGuard.assertNotLocked(adminLock);
         DbConnection conn = saveOrUpdate("cockroachdb", id, name, host, port, database, username, password);
         Map<String, Object> model = new HashMap<>();
         model.put("connections", dbConnectionService.findAll());
@@ -187,7 +183,7 @@ public class SettingsController {
     public Object addH2(HttpRequest<?> request,
                        String name, String host, Integer port, String database, String username, String password,
                        Optional<Long> id) {
-        assertNotLocked();
+        AdminLockGuard.assertNotLocked(adminLock);
         DbConnection conn = saveOrUpdate("h2", id, name, host, port, database, username, password);
         Map<String, Object> model = new HashMap<>();
         model.put("connections", dbConnectionService.findAll());
@@ -210,7 +206,7 @@ public class SettingsController {
     public Object addHsqldb(HttpRequest<?> request,
                            String name, String host, Integer port, String database, String username, String password,
                            Optional<Long> id) {
-        assertNotLocked();
+        AdminLockGuard.assertNotLocked(adminLock);
         DbConnection conn = saveOrUpdate("hsqldb", id, name, host, port, database, username, password);
         Map<String, Object> model = new HashMap<>();
         model.put("connections", dbConnectionService.findAll());
@@ -233,7 +229,7 @@ public class SettingsController {
     public Object addDerby(HttpRequest<?> request,
                           String name, String host, Integer port, String database, String username, String password,
                           Optional<Long> id) {
-        assertNotLocked();
+        AdminLockGuard.assertNotLocked(adminLock);
         DbConnection conn = saveOrUpdate("derby", id, name, host, port, database, username, password);
         Map<String, Object> model = new HashMap<>();
         model.put("connections", dbConnectionService.findAll());
@@ -257,7 +253,7 @@ public class SettingsController {
                                String name, String host, Integer port, String database,
                                String username, String password, Optional<Boolean> useHttps,
                                Optional<Long> id) {
-        assertNotLocked();
+        AdminLockGuard.assertNotLocked(adminLock);
         DbConnection conn = saveOrUpdateWithHttps("couchbase", id, name, host, port, database, username, password, useHttps.orElse(false));
         Map<String, Object> model = new HashMap<>();
         model.put("connections", dbConnectionService.findAll());
@@ -272,19 +268,9 @@ public class SettingsController {
             String host, Integer port, String database, String username, String password,
             Optional<Boolean> useHttps, Optional<Long> id) {
         String pwd = resolvePasswordForTest(id, password);
-        Map<String, Object> model = new HashMap<>();
-        try {
-            var error = connectionTestService.test("couchbase", host, port, database, username, pwd, id, useHttps.orElse(null));
-            model.put("success", error.isEmpty());
-            String messageKey = error.orElse("connectionTest.success");
-            model.put("message", messageKey);
-            putDisplayText(model, request, messageKey);
-        } catch (Exception e) {
-            model.put("success", false);
-            String messageKey = e.getMessage() != null ? e.getMessage() : "error.queryExecutionFailed";
-            model.put("message", messageKey);
-            putDisplayText(model, request, messageKey);
-        }
+        Map<String, Object> model = ConnectionTestHelper.toUiModel(connectionTestService, "couchbase", host, port,
+                database, username, pwd, id, useHttps.orElse(null), null);
+        ConnectionTestHelper.applyDisplayText(model, (m, key) -> putDisplayText(m, request, key));
         return new ModelAndView<>("partials/connection-test-result", model);
     }
 
@@ -294,7 +280,7 @@ public class SettingsController {
     public Object addMongo(HttpRequest<?> request,
                           String name, String host, Integer port, String database, String username, String password,
                           Optional<Long> id) {
-        assertNotLocked();
+        AdminLockGuard.assertNotLocked(adminLock);
         DbConnection conn = saveOrUpdate("mongodb", id, name, host, port, database, username, password);
         Map<String, Object> model = new HashMap<>();
         model.put("connections", dbConnectionService.findAll());
@@ -317,7 +303,7 @@ public class SettingsController {
     public Object addRedis(HttpRequest<?> request,
                           String name, String host, Integer port, String database, String password,
                           Optional<Long> id) {
-        assertNotLocked();
+        AdminLockGuard.assertNotLocked(adminLock);
         DbConnection conn = saveOrUpdate("redis", id, name, host, port, database, null, password);
         Map<String, Object> model = new HashMap<>();
         model.put("connections", dbConnectionService.findAll());
@@ -340,7 +326,7 @@ public class SettingsController {
     public Object addClickhouse(HttpRequest<?> request,
                                String name, String host, Integer port, String database, String username, String password,
                                Optional<Long> id) {
-        assertNotLocked();
+        AdminLockGuard.assertNotLocked(adminLock);
         DbConnection conn = saveOrUpdate("clickhouse", id, name, host, port, database, username, password);
         Map<String, Object> model = new HashMap<>();
         model.put("connections", dbConnectionService.findAll());
@@ -363,7 +349,7 @@ public class SettingsController {
     public Object addMysql(HttpRequest<?> request,
                           String name, String host, Integer port, String database, String username, String password,
                           Optional<Long> id) {
-        assertNotLocked();
+        AdminLockGuard.assertNotLocked(adminLock);
         DbConnection conn = saveOrUpdate("mysql", id, name, host, port, database, username, password);
         Map<String, Object> model = new HashMap<>();
         model.put("connections", dbConnectionService.findAll());
@@ -386,7 +372,7 @@ public class SettingsController {
     public Object addSqlServer(HttpRequest<?> request,
                            String name, String host, Integer port, String database, String username, String password,
                            Optional<Long> id) {
-        assertNotLocked();
+        AdminLockGuard.assertNotLocked(adminLock);
         DbConnection conn = saveOrUpdate("sqlserver", id, name, host, port, database, username, password);
         Map<String, Object> model = new HashMap<>();
         model.put("connections", dbConnectionService.findAll());
@@ -409,7 +395,7 @@ public class SettingsController {
     public Object addOracle(HttpRequest<?> request,
                             String name, String host, Integer port, String database, String username, String password,
                             Optional<Long> id) {
-        assertNotLocked();
+        AdminLockGuard.assertNotLocked(adminLock);
         DbConnection conn = saveOrUpdate("oracle", id, name, host, port, database, username, password);
         Map<String, Object> model = new HashMap<>();
         model.put("connections", dbConnectionService.findAll());
@@ -432,7 +418,7 @@ public class SettingsController {
     public Object addCassandra(HttpRequest<?> request,
                               String name, String host, Integer port, String database, String username, String password,
                               Optional<Long> id) {
-        assertNotLocked();
+        AdminLockGuard.assertNotLocked(adminLock);
         DbConnection conn = saveOrUpdate("cassandra", id, name, host, port, database, username, password);
         Map<String, Object> model = new HashMap<>();
         model.put("connections", dbConnectionService.findAll());
@@ -446,7 +432,7 @@ public class SettingsController {
     public Object addRabbitmq(HttpRequest<?> request,
                               String name, String host, Integer port, String database, String username, String password,
                               Optional<Long> id) {
-        assertNotLocked();
+        AdminLockGuard.assertNotLocked(adminLock);
         DbConnection conn = saveOrUpdate("rabbitmq", id, name, host, port, database, username, password);
         Map<String, Object> model = new HashMap<>();
         model.put("connections", dbConnectionService.findAll());
@@ -470,7 +456,7 @@ public class SettingsController {
                            String name, String host, Integer port, String database,
                            Optional<String> username, Optional<String> password,
                            Optional<Long> id) {
-        assertNotLocked();
+        AdminLockGuard.assertNotLocked(adminLock);
         DbConnection conn = saveOrUpdate("kafka", id, name, host, port, database,
                 username.orElse(null), password.orElse(null));
         Map<String, Object> model = new HashMap<>();
@@ -497,7 +483,7 @@ public class SettingsController {
                                    String name, String host, Integer port, String database,
                                    String username, String password,
                                    Optional<Long> id) {
-        assertNotLocked();
+        AdminLockGuard.assertNotLocked(adminLock);
         DbConnection conn = saveOrUpdate("elasticsearch", id, name, host, port, database, username, password);
         Map<String, Object> model = new HashMap<>();
         model.put("connections", dbConnectionService.findAll());
@@ -511,7 +497,7 @@ public class SettingsController {
     public Object addKubernetes(HttpRequest<?> request,
                                 String name, String host, Integer port, String database, String password,
                                 Optional<Long> id) {
-        assertNotLocked();
+        AdminLockGuard.assertNotLocked(adminLock);
         DbConnection conn = saveOrUpdate("kubernetes", id, name, host, port, database, null, password);
         Map<String, Object> model = new HashMap<>();
         model.put("connections", dbConnectionService.findAll());
@@ -535,7 +521,7 @@ public class SettingsController {
                         String name, String host, Integer port, String database,
                         String username, String password, Optional<Boolean> useHttps,
                         Optional<Long> id) {
-        assertNotLocked();
+        AdminLockGuard.assertNotLocked(adminLock);
         DbConnection conn = saveOrUpdateWithHttps("s3", id, name, host, port, database, username, password, useHttps.orElse(false));
         Map<String, Object> model = new HashMap<>();
         model.put("connections", dbConnectionService.findAll());
@@ -559,7 +545,7 @@ public class SettingsController {
                                 String name, String host, Integer port,
                                 String username, String password, Optional<Boolean> useHttps,
                                 Optional<Long> id) {
-        assertNotLocked();
+        AdminLockGuard.assertNotLocked(adminLock);
         DbConnection conn = saveOrUpdateWithHttps("prometheus", id, name, host, port, null, username, password, useHttps.orElse(false));
         Map<String, Object> model = new HashMap<>();
         model.put("connections", dbConnectionService.findAll());
@@ -598,7 +584,7 @@ public class SettingsController {
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces(MediaType.TEXT_HTML)
     public Object deleteConnection(HttpRequest<?> request, @PathVariable Long id) {
-        assertNotLocked();
+        AdminLockGuard.assertNotLocked(adminLock);
         dbConnectionService.deleteById(id);
         Map<String, Object> model = new HashMap<>();
         model.put("connections", dbConnectionService.findAll());
@@ -689,20 +675,9 @@ public class SettingsController {
                                                                    String username, String password,
                                                                    Optional<Long> id, Optional<Boolean> useHttps) {
         String pwd = resolvePasswordForTest(id, password);
-        Map<String, Object> model = new HashMap<>();
-        try {
-            var error = connectionTestService.test(type, host, port, database, username, pwd, id,
-                    null, useHttps.orElse(null));
-            model.put("success", error.isEmpty());
-            String messageKey = error.orElse("connectionTest.success");
-            model.put("message", messageKey);
-            putDisplayText(model, request, messageKey);
-        } catch (Exception e) {
-            model.put("success", false);
-            String messageKey = e.getMessage() != null ? e.getMessage() : "error.queryExecutionFailed";
-            model.put("message", messageKey);
-            putDisplayText(model, request, messageKey);
-        }
+        Map<String, Object> model = ConnectionTestHelper.toUiModel(connectionTestService, type, host, port, database,
+                username, pwd, id, null, useHttps.orElse(null));
+        ConnectionTestHelper.applyDisplayText(model, (m, key) -> putDisplayText(m, request, key));
         return new ModelAndView<>("partials/connection-test-result", model);
     }
 

@@ -5,8 +5,8 @@ import com.panopticum.core.model.QueryResult;
 import com.panopticum.core.model.SchemaInfo;
 import com.panopticum.core.model.TableInfo;
 import com.panopticum.core.controller.AbstractConnectionApiController;
+import com.panopticum.core.error.ApiErrors;
 import com.panopticum.core.service.DbConnectionService;
-import com.panopticum.core.util.ApiQueryParams;
 import com.panopticum.oracle.model.OracleQueryRequest;
 import com.panopticum.oracle.model.OracleRowDetailResponse;
 import com.panopticum.oracle.model.OracleRowUpdateRequest;
@@ -94,18 +94,8 @@ public class OracleApiController extends AbstractConnectionApiController {
     public QueryResult query(
             @Parameter(description = "Connection ID") @PathVariable Long id,
             @Valid @Body OracleQueryRequest request) {
-        ensureConnectionExists(id);
-        if (request.getSql() == null || request.getSql().isBlank()) {
-            return QueryResult.error("Empty query");
-        }
-        assertNotReadOnlyForSqlMutation(request.getSql());
-        int offset = ApiQueryParams.normalizedOffset(request.getOffset());
-        int limit = ApiQueryParams.normalizedLimit(request.getLimit());
-        String search = ApiQueryParams.trimmedSearchOrEmpty(request.getSearch());
-        return oracleMetadataService.executeQuery(id, request.getSchema(), request.getSql(), offset, limit,
-                request.getSort() != null ? request.getSort() : "",
-                request.getOrder() != null ? request.getOrder() : "",
-                search).orElse(QueryResult.error("error.queryExecutionFailed"));
+        return runSqlQuery(id, request.getSql(), request.getSchema(), request.getOffset(), request.getLimit(),
+                request.getSort(), request.getOrder(), request.getSearch(), oracleMetadataService::executeQuery);
     }
 
     @Get("/{id}/schemas/{schema}/row/detail")
@@ -146,7 +136,7 @@ public class OracleApiController extends AbstractConnectionApiController {
         String schemaClean = unquote(schema);
         Optional<String> qualifiedTable = oracleMetadataService.parseTableFromSql(request.getSql());
         if (qualifiedTable.isEmpty()) {
-            return new OracleRowDetailResponse("Could not determine table from SQL.", List.of(), "");
+            return new OracleRowDetailResponse(ApiErrors.TABLE_NOT_DETERMINED, List.of(), "");
         }
         Map<String, String> columnValues = request.getColumnValues() != null ? request.getColumnValues() : Map.of();
         Optional<String> err = oracleMetadataService.executeUpdateByRowid(id, schemaClean, qualifiedTable.get(),

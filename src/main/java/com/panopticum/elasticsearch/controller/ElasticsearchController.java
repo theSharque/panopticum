@@ -4,18 +4,18 @@ import com.panopticum.core.model.BreadcrumbItem;
 import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.model.Page;
 import com.panopticum.core.model.QueryResult;
+import com.panopticum.core.controller.AbstractConnectionUiController;
+import com.panopticum.core.error.ErrorKeys;
 import com.panopticum.core.service.DbConnectionService;
 import com.panopticum.core.ui.AppAlerts;
 import com.panopticum.core.util.ControllerModelHelper;
+import com.panopticum.core.util.QueryResultModelHelper;
 import com.panopticum.elasticsearch.model.ElasticsearchIndexInfo;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.panopticum.elasticsearch.service.ElasticsearchMetadataService;
-import io.micronaut.context.annotation.Value;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.http.HttpResponse;
-import io.micronaut.http.HttpStatus;
-import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.Consumes;
 import io.micronaut.http.annotation.Controller;
@@ -30,8 +30,6 @@ import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import io.micronaut.views.ModelAndView;
 import io.micronaut.views.View;
-import lombok.RequiredArgsConstructor;
-
 import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -44,18 +42,21 @@ import java.util.Optional;
 @Controller("/elasticsearch")
 @Secured(SecurityRule.IS_AUTHENTICATED)
 @ExecuteOn(TaskExecutors.BLOCKING)
-@RequiredArgsConstructor
-public class ElasticsearchController {
+public class ElasticsearchController extends AbstractConnectionUiController {
 
     private static final String DEFAULT_QUERY = "{\"query\":{\"match_all\":{}}}";
     private static final int DEFAULT_SIZE = 100;
 
-    private final DbConnectionService dbConnectionService;
     private final ElasticsearchMetadataService elasticsearchMetadataService;
     private final ObjectMapper objectMapper;
 
-    @Value("${panopticum.read-only:false}")
-    private boolean readOnly;
+    public ElasticsearchController(DbConnectionService dbConnectionService,
+                                   ElasticsearchMetadataService elasticsearchMetadataService,
+                                   ObjectMapper objectMapper) {
+        super(dbConnectionService);
+        this.elasticsearchMetadataService = elasticsearchMetadataService;
+        this.objectMapper = objectMapper;
+    }
 
     @Get("/{id}")
     public HttpResponse<?> index(@PathVariable Long id) {
@@ -144,19 +145,8 @@ public class ElasticsearchController {
             model.put("toRow", 0);
         } else {
             var result = elasticsearchMetadataService.executeQuery(id, indexName, query, off, lim)
-                    .orElse(QueryResult.error("error.queryExecutionFailed"));
-            AppAlerts.fromControllerMessage(model, result.hasError() ? result.getError() : null);
-            model.put("columns", result.getColumns());
-            model.put("rows", result.getRows());
-            model.put("docIds", result.getDocIds() != null ? result.getDocIds() : List.<String>of());
-            model.put("offset", result.getOffset());
-            model.put("limit", result.getLimit());
-            model.put("hasPrev", result.hasPrev());
-            model.put("hasMore", result.isHasMore());
-            model.put("nextOffset", result.nextOffset());
-            model.put("prevOffset", result.prevOffset());
-            model.put("fromRow", result.fromRow());
-            model.put("toRow", result.toRow());
+                    .orElse(QueryResult.error(ErrorKeys.QUERY_EXECUTION_FAILED));
+            QueryResultModelHelper.putQueryResult(model, result, "", "");
         }
 
         return model;
@@ -298,28 +288,10 @@ public class ElasticsearchController {
         }
 
         var result = elasticsearchMetadataService.executeQuery(id, indexName, query, off, lim)
-                .orElse(QueryResult.error("error.queryExecutionFailed"));
-
-        AppAlerts.fromControllerMessage(model, result.hasError() ? result.getError() : null);
-        model.put("columns", result.getColumns());
-        model.put("rows", result.getRows());
-        model.put("docIds", result.getDocIds() != null ? result.getDocIds() : List.<String>of());
-        model.put("offset", result.getOffset());
-        model.put("limit", result.getLimit());
-        model.put("hasPrev", result.hasPrev());
-        model.put("hasMore", result.isHasMore());
-        model.put("nextOffset", result.nextOffset());
-        model.put("prevOffset", result.prevOffset());
-        model.put("fromRow", result.fromRow());
-        model.put("toRow", result.toRow());
+                .orElse(QueryResult.error(ErrorKeys.QUERY_EXECUTION_FAILED));
+        QueryResultModelHelper.putQueryResult(model, result, "", "");
 
         return new ModelAndView<>("partials/elasticsearch-search-result", model);
-    }
-
-    private void assertNotReadOnly() {
-        if (readOnly) {
-            throw new HttpStatusException(HttpStatus.FORBIDDEN, "read.only.enabled");
-        }
     }
 
     private static String encodePath(String value) {

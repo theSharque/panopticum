@@ -1,5 +1,6 @@
 package com.panopticum.redis.controller;
 
+import com.panopticum.core.controller.AbstractConnectionUiController;
 import com.panopticum.core.model.BreadcrumbItem;
 import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.service.DbConnectionService;
@@ -13,10 +14,7 @@ import com.panopticum.redis.model.RedisKeyInfo;
 import com.panopticum.redis.RedisScanCursors;
 import com.panopticum.redis.model.RedisKeysPage;
 import com.panopticum.redis.service.RedisMetadataService;
-import io.micronaut.context.annotation.Value;
 import io.micronaut.http.HttpResponse;
-import io.micronaut.http.HttpStatus;
-import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.Consumes;
 import io.micronaut.http.annotation.Controller;
@@ -32,8 +30,6 @@ import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import io.micronaut.views.ModelAndView;
 import io.micronaut.views.View;
-import lombok.RequiredArgsConstructor;
-
 import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -46,14 +42,18 @@ import java.util.Optional;
 @Controller("/redis")
 @Secured(SecurityRule.IS_AUTHENTICATED)
 @ExecuteOn(TaskExecutors.BLOCKING)
-@RequiredArgsConstructor
-public class RedisController {
+public class RedisController extends AbstractConnectionUiController {
 
-    private final DbConnectionService dbConnectionService;
     private final RedisMetadataService redisMetadataService;
     private final ObjectMapper objectMapper;
-    @Value("${panopticum.read-only:false}")
-    private boolean readOnly;
+
+    public RedisController(DbConnectionService dbConnectionService,
+                           RedisMetadataService redisMetadataService,
+                           ObjectMapper objectMapper) {
+        super(dbConnectionService);
+        this.redisMetadataService = redisMetadataService;
+        this.objectMapper = objectMapper;
+    }
 
     @Produces(MediaType.TEXT_HTML)
     @Get("/{id}")
@@ -177,12 +177,6 @@ public class RedisController {
         }
 
         return model;
-    }
-
-    private void assertNotReadOnly() {
-        if (readOnly) {
-            throw new HttpStatusException(HttpStatus.FORBIDDEN, "read.only.enabled");
-        }
     }
 
     @Post("/{id}/{dbIndex}/detail")

@@ -8,7 +8,6 @@ import com.panopticum.core.model.SqlQueryRequest;
 import com.panopticum.core.model.TableInfo;
 import com.panopticum.core.controller.AbstractConnectionApiController;
 import com.panopticum.core.service.DbConnectionService;
-import com.panopticum.core.util.ApiQueryParams;
 import com.panopticum.sqlserver.service.SqlServerMetadataService;
 import com.panopticum.core.model.JdbcRowDetailResponse;
 import com.panopticum.core.model.JdbcRowUpdateRequest;
@@ -114,18 +113,7 @@ public class SqlServerApiController extends AbstractConnectionApiController {
     public QueryResult query(
             @Parameter(description = "Connection ID") @PathVariable Long id,
             @Valid @Body SqlQueryRequest request) {
-        ensureConnectionExists(id);
-        if (request.getSql() == null || request.getSql().isBlank()) {
-            return QueryResult.error("Empty query");
-        }
-        assertNotReadOnlyForSqlMutation(request.getSql());
-        int offset = ApiQueryParams.normalizedOffset(request.getOffset());
-        int limit = ApiQueryParams.normalizedLimit(request.getLimit());
-        String search = ApiQueryParams.trimmedSearchOrEmpty(request.getSearch());
-        return sqlServerMetadataService.executeQuery(id, request.getDbName(), request.getSql(), offset, limit,
-                request.getSort() != null ? request.getSort() : "",
-                request.getOrder() != null ? request.getOrder() : "",
-                search).orElse(QueryResult.error("error.queryExecutionFailed"));
+        return runSqlQuery(id, request, sqlServerMetadataService::executeQuery);
     }
 
     @Get("/{id}/databases/{dbName}/schemas/{schema}/row/detail")
