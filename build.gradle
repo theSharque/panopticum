@@ -4,7 +4,7 @@ plugins {
     id("com.diffplug.spotless") version "8.5.1"
 }
 
-version = "8.2.12"
+version = "8.2.13"
 group = "com.panopticum"
 
 repositories {

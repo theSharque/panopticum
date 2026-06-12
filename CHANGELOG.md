@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [8.2.13] - 2026-06-12
+
+### Changed
+
+- Docker runtime: `apk update` + upgrade (OpenSSL 3.5.7); remove unused `openssl` CLI and `coreutils`; HEALTHCHECK sends HTTP GET to `/actuator/health/liveness` via `nc` (no `wget`)
+
 ## [8.2.12] - 2026-06-05
 
 ### Fixed
