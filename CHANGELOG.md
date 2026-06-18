@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [8.4.0] - 2026-06-18
+
+### Added
+
+- Activity audit: structured `AUDIT` lines to stdout for browse (`OPEN_DATABASE` / `OPEN_SCHEMA` / `OPEN_TABLE`), queries (`RUN_QUERY` with `kind` only — no SQL text), row updates, connection CRUD, API and MCP calls; toggle via `AUDIT_ENABLED` / `panopticum.audit.enabled`
+
+### Fixed
+
+- SQL/CQL query result partials: column sort forms no longer break Thymeleaf rendering (HTTP 500 after a successful `SELECT` in the query editor)
+
 ## [8.3.0] - 2026-06-18
 
 ### Fixed

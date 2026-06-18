@@ -28,7 +28,7 @@ docker run -d --name panopticum \
 
 Open **http://localhost:8080**.
 
-Images: [GHCR](https://github.com/thesharque/panopticum/pkgs/container/panopticum) `ghcr.io/thesharque/panopticum:latest`, [Docker Hub](https://hub.docker.com/r/sharque/panopticum) `sharque/panopticum:latest`. For a fixed version use a tag, e.g. `:v8.0.3`.
+Images: [GHCR](https://github.com/thesharque/panopticum/pkgs/container/panopticum) `ghcr.io/thesharque/panopticum:latest`, [Docker Hub](https://hub.docker.com/r/sharque/panopticum) `sharque/panopticum:latest`. For a fixed version use a tag, e.g. `:v8.4.0`.
 
 ### Helm
 
@@ -52,6 +52,19 @@ See [panopticum-helm-chart/README.md](panopticum-helm-chart/README.md) for confi
 | `PANOPTICUM_CONNECTIONS_JSON` | JSON array of connections to load on first start | — |
 | `ADMIN_LOCK` | Disable adding/removing connections | `false` |
 | `READ_ONLY` | Disable data editing | `false` |
+| `AUDIT_ENABLED` | Activity audit lines to stdout (`AUDIT user=... action=...`) — browse, queries (no SQL text), mutations, connection CRUD, API/MCP; for DevOps / Loki | `true` |
+
+### Activity audit
+
+Structured one-line events on stdout (logger `com.panopticum.audit`), suitable for Loki/Grafana. No SQL, request bodies, passwords, or row values.
+
+```
+20:12:53.446 AUDIT user=admin conn=419 action=OPEN_DATABASE type=mysql scope=panopticum_dev
+20:12:53.814 AUDIT user=admin conn=641 action=RUN_QUERY type=postgresql kind=SELECT
+20:12:53.908 AUDIT user=admin action=API_CALL method=POST route=/api/postgres/connections/{id}/query status=200 durationMs=126
+```
+
+Actions: `OPEN_DATABASE`, `OPEN_SCHEMA`, `OPEN_TABLE`, `RUN_QUERY`, `ROW_UPDATE`, `CONNECTION_CREATE` / `UPDATE` / `DELETE`, `API_CALL`, `MCP_CALL`. Set `AUDIT_ENABLED=false` to disable.
 
 ### Bootstrap connections
 
@@ -148,4 +161,4 @@ JAR: `build/libs/panopticum-all.jar`
 
 ## CI/CD
 
-Push a version tag (e.g. `v8.0.3`) to trigger a GitHub Actions workflow that builds and pushes Docker images to GHCR and Docker Hub.
+Push a version tag (e.g. `v8.4.0`) to trigger a GitHub Actions workflow that builds and pushes Docker images to GHCR and Docker Hub.

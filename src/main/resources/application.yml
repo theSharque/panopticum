@@ -2,6 +2,8 @@ panopticum:
   admin-lock: ${ADMIN_LOCK:false}
   read-only: ${READ_ONLY:false}
   version: ${APP_VERSION:dev}
+  audit:
+    enabled: ${AUDIT_ENABLED:true}
   limits:
     query-rows: 1000
     query-page-size: 100

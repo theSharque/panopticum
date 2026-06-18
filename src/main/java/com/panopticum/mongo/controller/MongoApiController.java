@@ -7,6 +7,7 @@ import com.panopticum.core.controller.AbstractConnectionApiController;
 import com.panopticum.core.error.ApiErrors;
 import com.panopticum.core.model.ApiMutationResult;
 import com.panopticum.core.service.DbConnectionService;
+import com.panopticum.core.sql.SqlStatementKind;
 import com.panopticum.core.util.ApiQueryParams;
 import com.panopticum.mongo.model.MongoCollectionInfo;
 import com.panopticum.mongo.model.MongoDocumentReplaceRequest;
@@ -91,6 +92,7 @@ public class MongoApiController extends AbstractConnectionApiController {
             @Parameter(description = "Connection ID") @PathVariable Long id,
             @Valid @Body MongoQueryRequest request) {
         ensureConnectionExists(id);
+        auditService.query(id, "mongodb", SqlStatementKind.OTHER);
         String queryText = request.getQuery() != null && !request.getQuery().isBlank() ? request.getQuery() : "{}";
         int offset = ApiQueryParams.normalizedOffset(request.getOffset());
         int limit = ApiQueryParams.normalizedLimit(request.getLimit());

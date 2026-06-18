@@ -1,5 +1,6 @@
 package com.panopticum.core.controller;
 
+import com.panopticum.core.audit.AuditService;
 import com.panopticum.core.error.ApiErrors;
 import com.panopticum.core.model.QueryResult;
 import com.panopticum.core.model.SqlQueryRequest;
@@ -9,6 +10,7 @@ import com.panopticum.core.util.ApiQueryParams;
 import io.micronaut.context.annotation.Value;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.exceptions.HttpStatusException;
+import jakarta.inject.Inject;
 
 import java.util.Optional;
 
@@ -31,6 +33,9 @@ public abstract class AbstractConnectionApiController {
     }
 
     protected final DbConnectionService dbConnectionService;
+
+    @Inject
+    protected AuditService auditService;
 
     @Value("${panopticum.read-only:false}")
     protected boolean readOnly;
@@ -69,6 +74,7 @@ public abstract class AbstractConnectionApiController {
             return QueryResult.error(ApiErrors.EMPTY_QUERY);
         }
         assertNotReadOnlyForSqlMutation(sql);
+        auditQuery(id, sql);
         int off = ApiQueryParams.normalizedOffset(offset);
         int lim = ApiQueryParams.normalizedLimit(limit);
         String searchTerm = ApiQueryParams.trimmedSearchOrEmpty(search);
@@ -85,6 +91,7 @@ public abstract class AbstractConnectionApiController {
             return QueryResult.error(ApiErrors.EMPTY_QUERY);
         }
         assertNotReadOnlyForSqlMutation(cql);
+        auditQuery(id, cql);
         int off = ApiQueryParams.normalizedOffset(offset);
         int lim = ApiQueryParams.normalizedLimit(limit);
         return runner.run(id, keyspaceName, cql, off, lim)
@@ -96,8 +103,14 @@ public abstract class AbstractConnectionApiController {
         if (request.getSql() == null || request.getSql().isBlank()) {
             return QueryResult.error(ApiErrors.EMPTY_QUERY);
         }
+        auditQuery(id, request.getSql());
         int offset = ApiQueryParams.normalizedOffset(request.getOffset());
         int limit = ApiQueryParams.normalizedLimit(request.getLimit());
         return runner.run(id, request.getSql(), offset, limit);
+    }
+
+    protected void auditQuery(Long id, String sql) {
+        dbConnectionService.findById(id).ifPresent(conn ->
+                auditService.query(id, conn.getType(), SqlStatementClassifier.kindOf(sql)));
     }
 }

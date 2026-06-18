@@ -28,7 +28,7 @@ docker run -d --name panopticum \
 
 Откройте **http://localhost:8080**.
 
-Образы: [GHCR](https://github.com/thesharque/panopticum/pkgs/container/panopticum) `ghcr.io/thesharque/panopticum:latest`, [Docker Hub](https://hub.docker.com/r/sharque/panopticum) `sharque/panopticum:latest`. Для фиксированной версии — тег, например `:v8.0.3`.
+Образы: [GHCR](https://github.com/thesharque/panopticum/pkgs/container/panopticum) `ghcr.io/thesharque/panopticum:latest`, [Docker Hub](https://hub.docker.com/r/sharque/panopticum) `sharque/panopticum:latest`. Для фиксированной версии — тег, например `:v8.4.0`.
 
 ### Helm
 
@@ -52,6 +52,19 @@ helm install my-panopticum panopticum/panopticum
 | `PANOPTICUM_CONNECTIONS_JSON` | JSON-массив подключений при первом старте | — |
 | `ADMIN_LOCK` | Запрет добавления/удаления подключений | `false` |
 | `READ_ONLY` | Запрет редактирования данных | `false` |
+| `AUDIT_ENABLED` | Activity audit в stdout (`AUDIT user=... action=...`) — просмотр, запросы (без текста SQL), мутации, CRUD подключений, API/MCP; для DevOps / Loki | `true` |
+
+### Activity audit
+
+Структурированные однострочные события в stdout (logger `com.panopticum.audit`), удобно для Loki/Grafana. Без SQL, тел запросов, паролей и значений строк.
+
+```
+20:12:53.446 AUDIT user=admin conn=419 action=OPEN_DATABASE type=mysql scope=panopticum_dev
+20:12:53.814 AUDIT user=admin conn=641 action=RUN_QUERY type=postgresql kind=SELECT
+20:12:53.908 AUDIT user=admin action=API_CALL method=POST route=/api/postgres/connections/{id}/query status=200 durationMs=126
+```
+
+Действия: `OPEN_DATABASE`, `OPEN_SCHEMA`, `OPEN_TABLE`, `RUN_QUERY`, `ROW_UPDATE`, `CONNECTION_CREATE` / `UPDATE` / `DELETE`, `API_CALL`, `MCP_CALL`. `AUDIT_ENABLED=false` — отключить.
 
 ### Bootstrap-подключения
 
@@ -148,4 +161,4 @@ JAR: `build/libs/panopticum-all.jar`
 
 ## CI/CD
 
-Пуш тега версии (например `v8.0.3`) запускает GitHub Actions — сборка и пуш Docker-образов в GHCR и Docker Hub.
+Пуш тега версии (например `v8.4.0`) запускает GitHub Actions — сборка и пуш Docker-образов в GHCR и Docker Hub.

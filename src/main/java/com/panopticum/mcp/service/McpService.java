@@ -1,5 +1,6 @@
 package com.panopticum.mcp.service;
 
+import com.panopticum.core.audit.AuditService;
 import com.panopticum.mcp.model.JsonRpcError;
 import com.panopticum.mcp.model.JsonRpcRequest;
 import com.panopticum.mcp.model.JsonRpcResponse;
@@ -24,6 +25,7 @@ public class McpService {
     private static final int JSON_RPC_INTERNAL_ERROR = -32603;
 
     private final McpToolRegistry toolRegistry;
+    private final AuditService auditService;
 
     public JsonRpcResponse handleRequest(JsonRpcRequest request) {
         log.debug("Received MCP request: {}", request);
@@ -54,7 +56,7 @@ public class McpService {
     }
 
     private JsonRpcResponse handleInitialize(JsonRpcRequest request) {
-        log.info("MCP initialize");
+        auditService.mcpCall("initialize", null, null);
 
         Map<String, Object> result = new HashMap<>();
         Map<String, Object> capabilities = new HashMap<>();
@@ -71,7 +73,7 @@ public class McpService {
     }
 
     private JsonRpcResponse handleToolsList(JsonRpcRequest request) {
-        log.info("MCP tools/list");
+        auditService.mcpCall("tools/list", null, null);
 
         List<?> tools = toolRegistry.getAllTools();
         Map<String, Object> result = new HashMap<>();
@@ -100,8 +102,8 @@ public class McpService {
 
         Map<String, Object> argumentsMap = (Map<String, Object>) params.get("arguments");
         Map<String, Object> arguments = argumentsMap != null ? argumentsMap : new HashMap<>();
-        Object connId = arguments.get("connectionId");
-        log.info("MCP tools/call name={} connectionId={}", toolName, connId != null ? connId : "-");
+        Long connectionId = parseConnectionId(arguments.get("connectionId"));
+        auditService.mcpCall("tools/call", toolName, connectionId);
 
         McpToolRequest toolRequest = McpToolRequest.builder()
                 .name(toolName)
@@ -142,5 +144,21 @@ public class McpService {
                         .build())
                 .id(id)
                 .build();
+    }
+
+    private static Long parseConnectionId(Object value) {
+        if (value == null) {
+            return null;
+        }
+
+        if (value instanceof Number number) {
+            return number.longValue();
+        }
+
+        try {
+            return Long.parseLong(value.toString());
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 }

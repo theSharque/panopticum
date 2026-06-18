@@ -32,7 +32,7 @@
                 <thead>
                     <tr>
                         <th th:each="col : ${columns}" class="query-th query-th-sortable">
-                            <form th:if="${sort != col or sort == null}" th:attr="hx-post=${queryActionUrl}, hx-target=#query-result, hx-swap=innerHTML" class="query-th-form">
+                            <form th:if="${sort != col or sort == null}" th:attr="hx-post=${queryActionUrl}" hx-target="#query-result" hx-swap="innerHTML" class="query-th-form">
                                 <input type="hidden" name="sql" th:value="${sql}"/>
                                 <input type="hidden" name="dbName" th:value="${dbName}"/>
                                 <input th:if="${schema != null}" type="hidden" name="schema" th:value="${schema}"/>
@@ -42,7 +42,7 @@
                                 <input type="hidden" name="order" value="asc"/>
                                 <button type="submit" class="query-th-link" th:text="${col}"></button>
                             </form>
-                            <form th:if="${sort == col and order == 'asc'}" th:attr="hx-post=${queryActionUrl}, hx-target=#query-result, hx-swap=innerHTML" class="query-th-form">
+                            <form th:if="${sort == col and order == 'asc'}" th:attr="hx-post=${queryActionUrl}" hx-target="#query-result" hx-swap="innerHTML" class="query-th-form">
                                 <input type="hidden" name="sql" th:value="${sql}"/>
                                 <input type="hidden" name="dbName" th:value="${dbName}"/>
                                 <input th:if="${schema != null}" type="hidden" name="schema" th:value="${schema}"/>
@@ -52,7 +52,7 @@
                                 <input type="hidden" name="order" value="desc"/>
                                 <button type="submit" class="query-th-link" th:text="${col}"></button>
                             </form>
-                            <form th:if="${sort == col and order == 'desc'}" th:attr="hx-post=${queryActionUrl}, hx-target=#query-result, hx-swap=innerHTML" class="query-th-form">
+                            <form th:if="${sort == col and order == 'desc'}" th:attr="hx-post=${queryActionUrl}" hx-target="#query-result" hx-swap="innerHTML" class="query-th-form">
                                 <input type="hidden" name="sql" th:value="${sql}"/>
                                 <input type="hidden" name="dbName" th:value="${dbName}"/>
                                 <input th:if="${schema != null}" type="hidden" name="schema" th:value="${schema}"/>

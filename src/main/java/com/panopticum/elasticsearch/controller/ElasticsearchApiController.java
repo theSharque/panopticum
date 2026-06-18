@@ -6,6 +6,7 @@ import com.panopticum.core.controller.AbstractConnectionApiController;
 import com.panopticum.core.error.ApiErrors;
 import com.panopticum.core.model.ApiMutationResult;
 import com.panopticum.core.service.DbConnectionService;
+import com.panopticum.core.sql.SqlStatementKind;
 import com.panopticum.core.util.ApiQueryParams;
 import com.panopticum.elasticsearch.model.ElasticsearchIndexInfo;
 import com.panopticum.elasticsearch.model.ElasticsearchSearchRequest;
@@ -75,6 +76,7 @@ public class ElasticsearchApiController extends AbstractConnectionApiController 
             @PathVariable String indexName,
             @Valid @Body ElasticsearchSearchRequest request) {
         ensureConnectionExists(id);
+        auditService.query(id, "elasticsearch", SqlStatementKind.OTHER);
         String query = request.getQuery() != null && !request.getQuery().isBlank()
                 ? request.getQuery() : DEFAULT_QUERY;
         int offset = ApiQueryParams.normalizedOffset(request.getOffset());

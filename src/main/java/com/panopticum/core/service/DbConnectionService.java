@@ -1,5 +1,6 @@
 package com.panopticum.core.service;
 
+import com.panopticum.core.audit.AuditService;
 import com.panopticum.core.model.ConnectionType;
 import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.repository.DbConnectionRepository;
@@ -21,6 +22,7 @@ import java.util.Optional;
 public class DbConnectionService {
 
     private final DbConnectionRepository repository;
+    private final AuditService auditService;
 
     public List<DbConnection> findAll() {
         return repository.findAll();
@@ -40,7 +42,15 @@ public class DbConnectionService {
 
     public DbConnection save(DbConnection connection) {
         validateName(connection);
-        return repository.save(connection);
+        boolean create = connection.getId() == null;
+        DbConnection saved = repository.save(connection);
+        if (create) {
+            auditService.connectionCreate(saved.getId(), saved.getType(), saved.getName());
+        } else {
+            auditService.connectionUpdate(saved.getId(), saved.getType(), saved.getName());
+        }
+
+        return saved;
     }
 
     private void validateName(DbConnection conn) {
@@ -56,6 +66,8 @@ public class DbConnectionService {
     }
 
     public void deleteById(Long id) {
+        repository.findById(id).ifPresent(conn ->
+                auditService.connectionDelete(conn.getId(), conn.getType(), conn.getName()));
         repository.deleteById(id);
     }
 
