@@ -10,6 +10,7 @@ import com.panopticum.core.model.SchemaInfo;
 import com.panopticum.core.model.TableInfo;
 import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.service.DbConnectionService;
+import com.panopticum.core.sql.SqlPagingSupport;
 import com.panopticum.core.sql.SqlQuerySupport;
 import com.panopticum.core.util.QueryResultMapper;
 import com.panopticum.core.model.EntityDescription;
@@ -185,8 +186,9 @@ public class PostgresMetadataService {
         if (!upper.startsWith("SELECT") || upper.startsWith("SELECT INTO")) {
             return executeQuery(connectionId, dbName, sql, offset, limit, sortBy, sortOrder, true);
         }
-        String innerWithOrder = buildWrappedQueryWithOrder(trimmed, sortBy, sortOrder);
-        Optional<QueryResultData> metaOpt = postgresMetadataRepository.executeQuery(connectionId, dbName, innerWithOrder + " LIMIT 0");
+        String inner = SqlPagingSupport.wrapForSubquery(trimmed, sortBy, sortOrder, PostgresMetadataService::quoteColumn,
+                SqlPagingSupport.Style.LIMIT_OFFSET);
+        Optional<QueryResultData> metaOpt = postgresMetadataRepository.executeQuery(connectionId, dbName, inner + " LIMIT 0");
         if (metaOpt.isEmpty() || metaOpt.get().getColumns() == null || metaOpt.get().getColumns().isEmpty()) {
             return ServiceQueryErrors.connectionUnavailable();
         }
@@ -195,8 +197,9 @@ public class PostgresMetadataService {
                 .map(c -> "\"_sub\".\"" + c.replace("\"", "\"\"") + "\"::text")
                 .reduce((a, b) -> a + " || ':' || " + b)
                 .orElse("''");
-        String orderByClause = buildOrderBy(sortBy, sortOrder);
-        String searchSql = "SELECT * FROM (" + innerWithOrder + ") AS _sub WHERE (" + concatExpr + ") LIKE ? " + orderByClause + " LIMIT ? OFFSET ?";
+        String orderByClause = SqlPagingSupport.orderByClause(sortBy, sortOrder, PostgresMetadataService::quoteColumn,
+                SqlPagingSupport.Style.LIMIT_OFFSET);
+        String searchSql = "SELECT * FROM (" + inner + ") AS _sub WHERE (" + concatExpr + ") LIKE ?" + orderByClause + " LIMIT ? OFFSET ?";
         String likePattern = "%" + escapeForLike(searchTerm) + "%";
         int maxLimit = Math.min(limit, queryRowsLimit);
         List<Object> params = List.of(likePattern, maxLimit, Math.max(0, offset));
@@ -214,28 +217,14 @@ public class PostgresMetadataService {
         return term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
     }
 
-    private String buildWrappedQueryWithOrder(String trimmed, String sortBy, String sortOrder) {
-        String orderBy = buildOrderBy(sortBy, sortOrder);
-        return "SELECT * FROM (" + trimmed + ") AS _paged" + orderBy;
-    }
-
-    private static String buildOrderBy(String sortBy, String sortOrder) {
-        if (sortBy != null && !sortBy.isBlank() && sortOrder != null && !sortOrder.isBlank()
-                && ("asc".equalsIgnoreCase(sortOrder) || "desc".equalsIgnoreCase(sortOrder))) {
-            String quotedCol = "\"" + sortBy.replace("\"", "\"\"") + "\"";
-            return " ORDER BY " + quotedCol + " " + sortOrder.toUpperCase();
-        }
-        return " ORDER BY 1 ASC";
-    }
-
     private String wrapWithLimitOffset(String sql, int limit, int offset, String sortBy, String sortOrder) {
-        String trimmed = sql.strip().replaceFirst(";+\\s*$", "");
-        String upper = trimmed.toUpperCase().stripLeading();
-        if (!upper.startsWith("SELECT") || upper.startsWith("SELECT INTO")) {
-            return sql;
-        }
         int maxLimit = Math.min(limit, queryRowsLimit);
-        return buildWrappedQueryWithOrder(trimmed, sortBy, sortOrder) + " LIMIT " + maxLimit + " OFFSET " + Math.max(0, offset);
+        return SqlPagingSupport.wrapPagedSelect(sql, maxLimit, offset, sortBy, sortOrder,
+                SqlPagingSupport.Style.LIMIT_OFFSET, PostgresMetadataService::quoteColumn);
+    }
+
+    private static String quoteColumn(String column) {
+        return "\"" + column.replace("\"", "\"\"") + "\"";
     }
 
     private static final Pattern FROM_TABLE = Pattern.compile("(?i)FROM\\s+([^\\s,;()]+)(?:\\s+[Aa][Ss]\\s+[^\\s,;()]+)?(?=[\\s,;(]|$)");

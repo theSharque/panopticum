@@ -102,7 +102,7 @@ public class McpToolRegistry {
                         "Returns columns, types, PK, FK, indexes, approximate row count. Use before query-data to avoid guessing column names.";
             case "resolve-panopticum-link" ->
                 "Resolve a Panopticum UI URL or path into connectionId and MCP scope (catalog, namespace, entity). " +
-                        "Required: link (string) — e.g. http://host/postgres/5/mydb/public/users or /postgres/5/mydb or connection-name/mydb from breadcrumbs. " +
+                        "Required: link (string) — e.g. http://host/postgres/5/mydb/public/users, /postgres/5/mydb, clickhouse/289/log, or breadcrumb copy path PROD/FEED/ClickHouse/log (connection name may contain slashes). " +
                         "On failure returns error and availablePaths: configured paths from app storage only (/type/id and /type/id/db_name when set in connection settings). " +
                         "Use before other tools when the user pasted a link from the UI; avoids list-data-sources.";
             default -> "MCP tool: " + toolName;

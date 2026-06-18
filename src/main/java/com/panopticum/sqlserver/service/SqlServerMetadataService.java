@@ -8,6 +8,7 @@ import com.panopticum.core.model.QueryResult;
 import com.panopticum.core.model.QueryResultData;
 import com.panopticum.core.model.SchemaInfo;
 import com.panopticum.core.model.TableInfo;
+import com.panopticum.core.sql.SqlPagingSupport;
 import com.panopticum.core.sql.SqlQuerySupport;
 import com.panopticum.core.util.QueryResultMapper;
 import com.panopticum.core.model.EntityDescription;
@@ -163,8 +164,13 @@ public class SqlServerMetadataService {
         if (!upper.startsWith("SELECT") || upper.startsWith("SELECT INTO")) {
             return executeQuery(connectionId, dbName, sql, offset, limit, sortBy, sortOrder, true);
         }
-        String orderByClauseForMeta = buildOrderBy(sortBy, sortOrder);
-        String metaSql = "SELECT TOP 0 * FROM (" + trimmed + ") AS _paged" + orderByClauseForMeta;
+        String inner = SqlPagingSupport.wrapForSubquery(trimmed, sortBy, sortOrder, SqlServerMetadataService::quoteColumn,
+                SqlPagingSupport.Style.SQL_SERVER);
+        String metaSql = SqlPagingSupport.hasExplicitSort(sortBy, sortOrder)
+                ? "SELECT TOP 0 * FROM (" + trimmed + ") AS _paged"
+                + SqlPagingSupport.orderByClause(sortBy, sortOrder, SqlServerMetadataService::quoteColumn,
+                        SqlPagingSupport.Style.SQL_SERVER)
+                : "SELECT TOP 0 * FROM (" + trimmed + ") AS _paged";
         Optional<QueryResultData> metaOpt = sqlServerMetadataRepository.executeQuery(connectionId, dbName, metaSql);
         if (metaOpt.isEmpty() || metaOpt.get().getColumns() == null || metaOpt.get().getColumns().isEmpty()) {
             return ServiceQueryErrors.connectionUnavailable();
@@ -174,12 +180,12 @@ public class SqlServerMetadataService {
                 .map(c -> "ISNULL(CAST([_sub].[" + c.replace("]", "]]") + "] AS NVARCHAR(MAX)), N'')")
                 .reduce((a, b) -> "CONCAT(" + a + ", N':', " + b + ")")
                 .orElse("N''");
-        String orderByClause = buildOrderBy(sortBy, sortOrder);
-        String innerWithoutOrder = "SELECT * FROM (" + trimmed + ") AS _paged";
-        String searchSql = "SELECT * FROM (" + innerWithoutOrder + ") AS _sub WHERE " + concatExpr + " LIKE ? " + orderByClause + " OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
-        String likePattern = "%" + escapeForLike(searchTerm) + "%";
+        String filtered = "SELECT * FROM (" + inner + ") AS _sub WHERE " + concatExpr + " LIKE ?";
         int maxLimit = Math.max(1, Math.min(limit, queryRowsLimit));
-        List<Object> params = List.of(likePattern, Math.max(0, offset), maxLimit);
+        String searchSql = SqlPagingSupport.wrapPagedSelect(filtered, maxLimit, Math.max(0, offset), sortBy, sortOrder,
+                SqlPagingSupport.Style.SQL_SERVER, SqlServerMetadataService::quoteColumn);
+        String likePattern = "%" + escapeForLike(searchTerm) + "%";
+        List<Object> params = List.of(likePattern);
         Optional<QueryResultData> dataOpt = sqlServerMetadataRepository.executeQuery(connectionId, dbName, searchSql, params);
         if (dataOpt.isEmpty()) {
             return ServiceQueryErrors.connectionUnavailable();
@@ -194,27 +200,14 @@ public class SqlServerMetadataService {
         return term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
     }
 
-    private String buildWrappedQueryWithOrder(String trimmed, String sortBy, String sortOrder) {
-        return "SELECT * FROM (" + trimmed + ") AS _paged" + buildOrderBy(sortBy, sortOrder);
-    }
-
-    private static String buildOrderBy(String sortBy, String sortOrder) {
-        if (sortBy != null && !sortBy.isBlank() && sortOrder != null && !sortOrder.isBlank()
-                && ("asc".equalsIgnoreCase(sortOrder) || "desc".equalsIgnoreCase(sortOrder))) {
-            String quotedCol = "[" + sortBy.replace("]", "]]") + "]";
-            return " ORDER BY " + quotedCol + " " + sortOrder.toUpperCase();
-        }
-        return " ORDER BY 1 ASC";
-    }
-
     private String wrapWithLimitOffset(String sql, int limit, int offset, String sortBy, String sortOrder) {
-        String trimmed = sql.strip().replaceFirst(";+\\s*$", "");
-        String upper = trimmed.toUpperCase().stripLeading();
-        if (!upper.startsWith("SELECT") || upper.startsWith("SELECT INTO")) {
-            return sql;
-        }
         int maxLimit = Math.max(1, Math.min(limit, queryRowsLimit));
-        return buildWrappedQueryWithOrder(trimmed, sortBy, sortOrder) + " OFFSET " + Math.max(0, offset) + " ROWS FETCH NEXT " + maxLimit + " ROWS ONLY";
+        return SqlPagingSupport.wrapPagedSelect(sql, maxLimit, offset, sortBy, sortOrder,
+                SqlPagingSupport.Style.SQL_SERVER, SqlServerMetadataService::quoteColumn);
+    }
+
+    private static String quoteColumn(String column) {
+        return "[" + column.replace("]", "]]") + "]";
     }
 
     public Optional<String> parseTableFromSql(String sql) {

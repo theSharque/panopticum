@@ -3,6 +3,7 @@ package com.panopticum.core.service;
 import com.panopticum.core.model.ConnectionType;
 import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.repository.DbConnectionRepository;
+import com.panopticum.core.util.BreadcrumbPathHelper;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.exceptions.HttpStatusException;
 import jakarta.inject.Singleton;
@@ -31,6 +32,10 @@ public class DbConnectionService {
 
     public Optional<DbConnection> findByName(String name) {
         return repository.findByName(name);
+    }
+
+    public Optional<BreadcrumbPathHelper.BreadcrumbMatch> findByBreadcrumbCopyPath(String copyPath) {
+        return BreadcrumbPathHelper.matchLongestConnectionName(copyPath, repository.findAll());
     }
 
     public DbConnection save(DbConnection connection) {

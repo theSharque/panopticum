@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [8.3.0] - 2026-06-18
+
+### Fixed
+
+- SQL table browse no longer wraps queries with default `ORDER BY 1` on ClickHouse, PostgreSQL, MySQL, SQL Server, and Oracle; pagination uses `SqlPagingSupport` with dialect-specific lightweight LIMIT/TOP/ROWNUM
+
+### Changed
+
+- MCP `resolve-panopticum-link` resolves breadcrumb copy paths (connection names with slashes) via shared `BreadcrumbPathHelper`
+
 ## [8.2.14] - 2026-06-12
 
 ### Changed

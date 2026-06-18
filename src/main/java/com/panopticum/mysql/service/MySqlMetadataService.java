@@ -7,6 +7,7 @@ import com.panopticum.core.model.Page;
 import com.panopticum.core.model.QueryResult;
 import com.panopticum.core.model.QueryResultData;
 import com.panopticum.core.model.TableInfo;
+import com.panopticum.core.sql.SqlPagingSupport;
 import com.panopticum.core.sql.SqlQuerySupport;
 import com.panopticum.core.util.QueryResultMapper;
 import com.panopticum.core.model.EntityDescription;
@@ -142,8 +143,9 @@ public class MySqlMetadataService {
         if (!upper.startsWith("SELECT") || upper.startsWith("SELECT INTO")) {
             return executeQuery(connectionId, dbName, sql, offset, limit, sortBy, sortOrder, true);
         }
-        String innerWithOrder = buildWrappedQueryWithOrder(trimmed, sortBy, sortOrder);
-        Optional<QueryResultData> metaOpt = mySqlMetadataRepository.executeQuery(connectionId, dbName, innerWithOrder + " LIMIT 0");
+        String inner = SqlPagingSupport.wrapForSubquery(trimmed, sortBy, sortOrder, MySqlMetadataService::quoteColumn,
+                SqlPagingSupport.Style.LIMIT_OFFSET);
+        Optional<QueryResultData> metaOpt = mySqlMetadataRepository.executeQuery(connectionId, dbName, inner + " LIMIT 0");
         if (metaOpt.isEmpty() || metaOpt.get().getColumns() == null || metaOpt.get().getColumns().isEmpty()) {
             return ServiceQueryErrors.connectionUnavailable();
         }
@@ -152,8 +154,9 @@ public class MySqlMetadataService {
                 .map(c -> "IFNULL(CAST(`_sub`.`" + c.replace("`", "``") + "` AS CHAR), '')")
                 .reduce((a, b) -> "CONCAT(" + a + ", ':', " + b + ")")
                 .orElse("''");
-        String orderByClause = buildOrderBy(sortBy, sortOrder);
-        String searchSql = "SELECT * FROM (" + innerWithOrder + ") AS _sub WHERE " + concatExpr + " LIKE ? " + orderByClause + " LIMIT ? OFFSET ?";
+        String orderByClause = SqlPagingSupport.orderByClause(sortBy, sortOrder, MySqlMetadataService::quoteColumn,
+                SqlPagingSupport.Style.LIMIT_OFFSET);
+        String searchSql = "SELECT * FROM (" + inner + ") AS _sub WHERE " + concatExpr + " LIKE ?" + orderByClause + " LIMIT ? OFFSET ?";
         String likePattern = "%" + escapeForLike(searchTerm) + "%";
         int maxLimit = Math.min(limit, queryRowsLimit);
         List<Object> params = List.of(likePattern, maxLimit, Math.max(0, offset));
@@ -171,27 +174,14 @@ public class MySqlMetadataService {
         return term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
     }
 
-    private String buildWrappedQueryWithOrder(String trimmed, String sortBy, String sortOrder) {
-        return "SELECT * FROM (" + trimmed + ") AS _paged" + buildOrderBy(sortBy, sortOrder);
-    }
-
-    private static String buildOrderBy(String sortBy, String sortOrder) {
-        if (sortBy != null && !sortBy.isBlank() && sortOrder != null && !sortOrder.isBlank()
-                && ("asc".equalsIgnoreCase(sortOrder) || "desc".equalsIgnoreCase(sortOrder))) {
-            String quotedCol = "`" + sortBy.replace("`", "``") + "`";
-            return " ORDER BY " + quotedCol + " " + sortOrder.toUpperCase();
-        }
-        return " ORDER BY 1 ASC";
-    }
-
     private String wrapWithLimitOffset(String sql, int limit, int offset, String sortBy, String sortOrder) {
-        String trimmed = sql.strip().replaceFirst(";+\\s*$", "");
-        String upper = trimmed.toUpperCase().stripLeading();
-        if (!upper.startsWith("SELECT") || upper.startsWith("SELECT INTO")) {
-            return sql;
-        }
         int maxLimit = Math.min(limit, queryRowsLimit);
-        return buildWrappedQueryWithOrder(trimmed, sortBy, sortOrder) + " LIMIT " + maxLimit + " OFFSET " + Math.max(0, offset);
+        return SqlPagingSupport.wrapPagedSelect(sql, maxLimit, offset, sortBy, sortOrder,
+                SqlPagingSupport.Style.LIMIT_OFFSET, MySqlMetadataService::quoteColumn);
+    }
+
+    private static String quoteColumn(String column) {
+        return "`" + column.replace("`", "``") + "`";
     }
 
     public Optional<String> parseTableFromSql(String sql) {

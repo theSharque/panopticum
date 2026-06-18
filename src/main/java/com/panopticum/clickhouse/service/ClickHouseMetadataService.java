@@ -3,6 +3,7 @@ package com.panopticum.clickhouse.service;
 import com.panopticum.core.error.ErrorKeys;
 import com.panopticum.core.model.Page;
 import com.panopticum.core.model.QueryResult;
+import com.panopticum.core.sql.SqlPagingSupport;
 import com.panopticum.core.sql.SqlQuerySupport;
 import com.panopticum.core.util.QueryResultMapper;
 import com.panopticum.core.model.DatabaseInfo;
@@ -137,8 +138,9 @@ public class ClickHouseMetadataService {
         if (!upper.startsWith("SELECT") || upper.startsWith("SELECT INTO")) {
             return executeQuery(connectionId, dbName, sql, offset, limit, sortBy, sortOrder, true);
         }
-        String innerWithOrder = buildWrappedQueryWithOrder(trimmed, sortBy, sortOrder);
-        QueryResultData meta = clickHouseMetadataRepository.executeQuery(connectionId, dbName, innerWithOrder + " LIMIT 0").orElseThrow();
+        String inner = SqlPagingSupport.wrapForSubquery(trimmed, sortBy, sortOrder, ClickHouseMetadataService::quoteColumn,
+                SqlPagingSupport.Style.LIMIT_OFFSET);
+        QueryResultData meta = clickHouseMetadataRepository.executeQuery(connectionId, dbName, inner + " LIMIT 0").orElseThrow();
         if (meta.getColumns() == null || meta.getColumns().isEmpty()) {
             return Optional.of(QueryResult.error(ErrorKeys.QUERY_EXECUTION_FAILED));
         }
@@ -147,8 +149,9 @@ public class ClickHouseMetadataService {
                 .map(c -> "toString(`_sub`.`" + c.replace("`", "``") + "`)")
                 .reduce((a, b) -> "concat(" + a + ", ':', " + b + ")")
                 .orElse("''");
-        String orderByClause = buildOrderBy(sortBy, sortOrder);
-        String searchSql = "SELECT * FROM (" + innerWithOrder + ") AS _sub WHERE " + concatExpr + " LIKE ? " + orderByClause + " LIMIT ? OFFSET ?";
+        String orderByClause = SqlPagingSupport.orderByClause(sortBy, sortOrder, ClickHouseMetadataService::quoteColumn,
+                SqlPagingSupport.Style.LIMIT_OFFSET);
+        String searchSql = "SELECT * FROM (" + inner + ") AS _sub WHERE " + concatExpr + " LIKE ?" + orderByClause + " LIMIT ? OFFSET ?";
         String likePattern = "%" + escapeForLike(searchTerm) + "%";
         int maxLimit = Math.min(limit, queryRowsLimit);
         List<Object> params = List.of(likePattern, maxLimit, Math.max(0, offset));
@@ -164,27 +167,14 @@ public class ClickHouseMetadataService {
         return term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
     }
 
-    private String buildWrappedQueryWithOrder(String trimmed, String sortBy, String sortOrder) {
-        return "SELECT * FROM (" + trimmed + ") AS _paged" + buildOrderBy(sortBy, sortOrder);
-    }
-
-    private static String buildOrderBy(String sortBy, String sortOrder) {
-        if (sortBy != null && !sortBy.isBlank() && sortOrder != null && !sortOrder.isBlank()
-                && ("asc".equalsIgnoreCase(sortOrder) || "desc".equalsIgnoreCase(sortOrder))) {
-            String quotedCol = "`" + sortBy.replace("`", "``") + "`";
-            return " ORDER BY " + quotedCol + " " + sortOrder.toUpperCase();
-        }
-        return " ORDER BY 1 ASC";
-    }
-
     private String wrapWithLimitOffset(String sql, int limit, int offset, String sortBy, String sortOrder) {
-        String trimmed = sql.strip().replaceFirst(";+\\s*$", "");
-        String upper = trimmed.toUpperCase().stripLeading();
-        if (!upper.startsWith("SELECT") || upper.startsWith("SELECT INTO")) {
-            return sql;
-        }
         int maxLimit = Math.min(limit, queryRowsLimit);
-        return buildWrappedQueryWithOrder(trimmed, sortBy, sortOrder) + " LIMIT " + maxLimit + " OFFSET " + Math.max(0, offset);
+        return SqlPagingSupport.wrapPagedSelect(sql, maxLimit, offset, sortBy, sortOrder,
+                SqlPagingSupport.Style.LIMIT_OFFSET, ClickHouseMetadataService::quoteColumn);
+    }
+
+    private static String quoteColumn(String column) {
+        return "`" + column.replace("`", "``") + "`";
     }
 
     public Optional<EntityDescription> describeEntity(Long connectionId, String catalog, String entity) {

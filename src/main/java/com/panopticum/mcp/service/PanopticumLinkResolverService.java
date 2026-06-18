@@ -3,6 +3,7 @@ package com.panopticum.mcp.service;
 import com.panopticum.core.model.ConnectionType;
 import com.panopticum.core.model.DbConnection;
 import com.panopticum.core.service.DbConnectionService;
+import com.panopticum.core.util.BreadcrumbPathHelper;
 import jakarta.inject.Singleton;
 import lombok.RequiredArgsConstructor;
 
@@ -48,15 +49,75 @@ public class PanopticumLinkResolverService {
             return ResolveOutcome.error("Could not extract path from link", dbConnectionService.listConfiguredUiPaths());
         }
 
-        if (path.startsWith("/")) {
-            return resolveUiPath(path);
+        String normalized = trimTrailingSlash(path);
+
+        if (looksLikeUiPath(normalized)) {
+            String uiPath = normalized.startsWith("/") ? normalized : "/" + normalized;
+            return resolveUiPath(uiPath);
         }
 
-        return resolveLabelPath(path);
+        return resolveBreadcrumbPath(normalized);
+    }
+
+    private ResolveOutcome resolveBreadcrumbPath(String copyPath) {
+        Optional<BreadcrumbPathHelper.BreadcrumbMatch> matchOpt = dbConnectionService.findByBreadcrumbCopyPath(copyPath);
+        if (matchOpt.isEmpty()) {
+            return ResolveOutcome.error("Connection not found for breadcrumb path: " + copyPath, dbConnectionService.listConfiguredUiPaths());
+        }
+
+        BreadcrumbPathHelper.BreadcrumbMatch match = matchOpt.get();
+        DbConnection conn = match.connection();
+        Optional<ConnectionType> ctOpt = ConnectionType.fromStoredType(conn.getType());
+        if (ctOpt.isEmpty()) {
+            return ResolveOutcome.error("Unsupported connection type: " + conn.getType(), dbConnectionService.listConfiguredUiPaths());
+        }
+
+        ConnectionType ct = ctOpt.get();
+        List<String> scopeSegments = match.scopeLabels();
+        String uiPath = ct.getUiPathPrefix() + "/" + conn.getId();
+        if (!scopeSegments.isEmpty()) {
+            uiPath = uiPath + "/" + scopeSegments.stream()
+                    .map(DbConnectionService::encodeUiPathSegment)
+                    .collect(Collectors.joining("/"));
+        }
+
+        Map<String, Object> resolved = buildResolved(conn, ct, scopeSegments, uiPath);
+        return ResolveOutcome.success(resolved);
+    }
+
+    private boolean looksLikeUiPath(String path) {
+        if (path.startsWith("/")) {
+            return true;
+        }
+
+        for (ConnectionType ct : TYPES_BY_PREFIX_LENGTH) {
+            String prefix = ct.getUiPathPrefix().substring(1);
+            if (!path.equals(prefix) && !path.startsWith(prefix + "/")) {
+                continue;
+            }
+
+            String remainder = path.length() == prefix.length()
+                    ? ""
+                    : path.substring(prefix.length() + 1);
+            List<String> segments = splitDecodedSegments(remainder);
+            if (!segments.isEmpty() && parseConnectionId(segments.get(0)) != null) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static String trimTrailingSlash(String path) {
+        if (path.endsWith("/") && path.length() > 1) {
+            return path.substring(0, path.length() - 1);
+        }
+
+        return path;
     }
 
     private ResolveOutcome resolveUiPath(String path) {
-        String normalized = path.endsWith("/") && path.length() > 1 ? path.substring(0, path.length() - 1) : path;
+        String normalized = trimTrailingSlash(path);
 
         for (ConnectionType ct : TYPES_BY_PREFIX_LENGTH) {
             String prefix = ct.getUiPathPrefix();
@@ -97,40 +158,6 @@ public class PanopticumLinkResolverService {
         }
 
         return ResolveOutcome.error("Unknown Panopticum UI path: " + normalized, dbConnectionService.listConfiguredUiPaths());
-    }
-
-    private ResolveOutcome resolveLabelPath(String path) {
-        List<String> segments = Arrays.stream(path.split("/"))
-                .map(PanopticumLinkResolverService::decodeSegment)
-                .filter(s -> !s.isBlank())
-                .toList();
-        if (segments.isEmpty()) {
-            return ResolveOutcome.error("Empty path", dbConnectionService.listConfiguredUiPaths());
-        }
-
-        String connectionName = segments.get(0);
-        Optional<DbConnection> connOpt = dbConnectionService.findByName(connectionName);
-        if (connOpt.isEmpty()) {
-            return ResolveOutcome.error("Connection not found by name: " + connectionName, dbConnectionService.listConfiguredUiPaths());
-        }
-
-        DbConnection conn = connOpt.get();
-        Optional<ConnectionType> ctOpt = ConnectionType.fromStoredType(conn.getType());
-        if (ctOpt.isEmpty()) {
-            return ResolveOutcome.error("Unsupported connection type: " + conn.getType(), dbConnectionService.listConfiguredUiPaths());
-        }
-
-        ConnectionType ct = ctOpt.get();
-        List<String> scopeSegments = segments.size() > 1 ? segments.subList(1, segments.size()) : List.of();
-        String uiPath = ct.getUiPathPrefix() + "/" + conn.getId();
-        if (!scopeSegments.isEmpty()) {
-            uiPath = uiPath + "/" + scopeSegments.stream()
-                    .map(DbConnectionService::encodeUiPathSegment)
-                    .collect(Collectors.joining("/"));
-        }
-
-        Map<String, Object> resolved = buildResolved(conn, ct, scopeSegments, uiPath);
-        return ResolveOutcome.success(resolved);
     }
 
     private Map<String, Object> buildResolved(DbConnection conn, ConnectionType ct, List<String> scopeSegments, String uiPath) {

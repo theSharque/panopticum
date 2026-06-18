@@ -8,7 +8,6 @@ import lombok.experimental.UtilityClass;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @UtilityClass
 public class ControllerModelHelper {
@@ -34,17 +33,7 @@ public class ControllerModelHelper {
     }
 
     private void putBreadcrumbPath(Map<String, Object> model, List<BreadcrumbItem> breadcrumbs) {
-        model.put("breadcrumbPath", joinBreadcrumbLabels(breadcrumbs));
-    }
-
-    private String joinBreadcrumbLabels(List<BreadcrumbItem> breadcrumbs) {
-        if (breadcrumbs == null || breadcrumbs.isEmpty()) {
-            return "";
-        }
-        return breadcrumbs.stream()
-                .filter(BreadcrumbItem::isIncludeInCopyPath)
-                .map(b -> b.getLabel() != null ? b.getLabel() : "")
-                .collect(Collectors.joining("/"));
+        model.put("breadcrumbPath", BreadcrumbPathHelper.joinCopyPath(breadcrumbs));
     }
 
     public <T> void addPagination(Map<String, Object> model, Page<T> page, String itemsKey) {

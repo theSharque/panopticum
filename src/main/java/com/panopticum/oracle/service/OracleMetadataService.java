@@ -7,6 +7,7 @@ import com.panopticum.core.model.QueryResult;
 import com.panopticum.core.model.QueryResultData;
 import com.panopticum.core.model.SchemaInfo;
 import com.panopticum.core.model.TableInfo;
+import com.panopticum.core.sql.SqlPagingSupport;
 import com.panopticum.core.sql.SqlQuerySupport;
 import com.panopticum.core.util.QueryResultMapper;
 import com.panopticum.core.model.EntityDescription;
@@ -152,7 +153,8 @@ public class OracleMetadataService {
         if (!upper.startsWith("SELECT") || upper.startsWith("SELECT INTO")) {
             return executeQuery(connectionId, schema, sql, offset, limit, sortBy, sortOrder, true);
         }
-        String innerWithoutOrder = "SELECT * FROM (" + trimmed + ") inner_rowlimit";
+        String inner = SqlPagingSupport.wrapForSubquery(trimmed, sortBy, sortOrder, OracleMetadataService::quoteColumn,
+                SqlPagingSupport.Style.ORACLE);
         Optional<QueryResultData> metaOpt;
         try {
             String metaSql = "SELECT * FROM (" + trimmed + ") inner_rowlimit WHERE ROWNUM < 1";
@@ -168,11 +170,12 @@ public class OracleMetadataService {
                 .map(c -> "NVL(TO_CHAR(SUB.\"" + c.replace("\"", "\"\"") + "\"), '')")
                 .reduce((a, b) -> a + " || ':' || " + b)
                 .orElse("''");
-        String orderByClause = buildOrderByClause(sortBy, sortOrder);
-        String searchSql = "SELECT * FROM (" + innerWithoutOrder + ") SUB WHERE (" + concatExpr + ") LIKE ? " + orderByClause.trim() + " OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
-        String likePattern = "%" + escapeForLike(searchTerm) + "%";
+        String filtered = "SELECT * FROM (" + inner + ") SUB WHERE (" + concatExpr + ") LIKE ?";
         int maxLimit = Math.max(1, Math.min(limit, queryRowsLimit));
-        List<Object> params = List.of(likePattern, Math.max(0, offset), maxLimit);
+        String searchSql = SqlPagingSupport.wrapPagedSelect(filtered, maxLimit, Math.max(0, offset), sortBy, sortOrder,
+                SqlPagingSupport.Style.ORACLE, OracleMetadataService::quoteColumn);
+        String likePattern = "%" + escapeForLike(searchTerm) + "%";
+        List<Object> params = List.of(likePattern);
         Optional<QueryResultData> dataOpt;
         try {
             dataOpt = oracleMetadataRepository.executeQuery(connectionId, schema, searchSql, params);
@@ -192,28 +195,14 @@ public class OracleMetadataService {
         return term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
     }
 
-    private String buildWrappedQueryWithOrder(String trimmed, String sortBy, String sortOrder) {
-        return "SELECT * FROM (" + trimmed + ") inner_rowlimit " + buildOrderByClause(sortBy, sortOrder);
-    }
-
-    private String buildOrderByClause(String sortBy, String sortOrder) {
-        if (sortBy != null && !sortBy.isBlank() && sortOrder != null && !sortOrder.isBlank()
-                && ("asc".equalsIgnoreCase(sortOrder) || "desc".equalsIgnoreCase(sortOrder))) {
-            String quotedCol = "\"" + sortBy.replace("\"", "\"\"") + "\"";
-            return " ORDER BY " + quotedCol + " " + sortOrder.toUpperCase();
-        }
-        return " ORDER BY 1 ASC";
-    }
-
     private String wrapWithLimitOffset(String sql, int limit, int offset, String sortBy, String sortOrder) {
-        String trimmed = sql.strip().replaceFirst(";+\\s*$", "");
-        String upper = trimmed.toUpperCase().stripLeading();
-        if (!upper.startsWith("SELECT") || upper.startsWith("SELECT INTO")) {
-            return sql;
-        }
         int maxLimit = Math.min(limit, queryRowsLimit);
-        return buildWrappedQueryWithOrder(trimmed, sortBy, sortOrder)
-                + " OFFSET " + Math.max(0, offset) + " ROWS FETCH NEXT " + maxLimit + " ROWS ONLY";
+        return SqlPagingSupport.wrapPagedSelect(sql, maxLimit, offset, sortBy, sortOrder,
+                SqlPagingSupport.Style.ORACLE, OracleMetadataService::quoteColumn);
+    }
+
+    private static String quoteColumn(String column) {
+        return "\"" + column.replace("\"", "\"\"") + "\"";
     }
 
     public Optional<String> parseTableFromSql(String sql) {
@@ -256,9 +245,17 @@ public class OracleMetadataService {
                 ? oracleMetadataRepository.getColumnTypes(connectionId, schemaName, tableName)
                 : Map.of();
 
-        String orderByClause = buildOrderByClause(sortBy, sortOrder);
         String innerSelect = "SELECT t.*, t.rowid AS row_id FROM " + qualified + " t";
-        String pagedSql = "SELECT * FROM (SELECT inner_q.*, ROW_NUMBER() OVER (" + orderByClause + ") rn FROM (" + innerSelect + ") inner_q) WHERE rn = " + (rowNum + 1);
+        String pagedSql;
+        if (SqlPagingSupport.hasExplicitSort(sortBy, sortOrder)) {
+            String orderByClause = SqlPagingSupport.orderByClause(sortBy, sortOrder, OracleMetadataService::quoteColumn,
+                    SqlPagingSupport.Style.ORACLE);
+            pagedSql = "SELECT * FROM (SELECT inner_q.*, ROW_NUMBER() OVER (" + orderByClause + ") rn FROM ("
+                    + innerSelect + ") inner_q) WHERE rn = " + (rowNum + 1);
+        } else {
+            pagedSql = SqlPagingSupport.wrapPagedSelect(innerSelect, 1, rowNum, null, null,
+                    SqlPagingSupport.Style.ORACLE, OracleMetadataService::quoteColumn);
+        }
         Optional<Map<String, Object>> rowOpt;
         try {
             rowOpt = oracleMetadataRepository.executeQuerySingleRow(connectionId, schema, pagedSql);
