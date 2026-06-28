@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [8.4.1] - 2026-06-28
+
+### Security
+
+- Jackson alignment to 2.21.4 (CVE fixes for jackson-core and jackson-databind)
+- Docker runtime: remove unused `p11-kit` / `p11-kit-trust` after `apk upgrade`
+
 ## [8.4.0] - 2026-06-18
 
 ### Added

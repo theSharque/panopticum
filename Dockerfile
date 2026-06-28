@@ -28,6 +28,8 @@ RUN apk update \
         coreutils-env \
         coreutils-fmt \
         coreutils-sha512sum \
+        p11-kit-trust \
+        p11-kit \
     && addgroup -g 1001 app \
     && adduser -u 1001 -G app -s /sbin/nologin -D app
 
