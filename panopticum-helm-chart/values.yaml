@@ -2,9 +2,9 @@
 replicaCount: 1
 
 image:
-  repository: ghcr.io/thesharque/panopticum
+  repository: sharque/panopticum
   pullPolicy: IfNotPresent
-  tag: ""
+  tag: "v8.4.2"
 
 imagePullSecrets: []
 nameOverride: ""

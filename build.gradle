@@ -4,7 +4,7 @@ plugins {
     id("com.diffplug.spotless") version "8.5.1"
 }
 
-version = "8.4.1"
+version = "8.4.2"
 group = "com.panopticum"
 
 repositories {
@@ -29,8 +29,8 @@ configurations.all {
         }
         eachDependency { details ->
             if (details.requested.group == "ch.qos.logback") {
-                details.useVersion("1.5.25")
-                details.because("CVE fixes: 2024-12798, 2025-11226, 2024-12801, 2026-1225")
+                details.useVersion("1.5.35")
+                details.because("CVE-2026-10532, CVE-2026-9828")
             }
             if (details.requested.group == "com.microsoft.sqlserver" && details.requested.name == "mssql-jdbc") {
                 details.useVersion("13.4.0.jre11")
@@ -64,8 +64,8 @@ configurations.all {
                     details.useVersion("2.21")
                     details.because("Jackson annotations line aligned with jackson-bom 2.21.x")
                 } else if (details.requested.name != "jackson-bom") {
-                    details.useVersion("2.21.4")
-                    details.because("CVE fixes: jackson-core GHSA-72hv-8253-57qq; jackson-databind CVE-2026-54514/16/17/18/13 (2.21.4); CVE-2026-54515 needs 2.21.5 (not yet on Maven Central)")
+                    details.useVersion("2.21.5")
+                    details.because("CVE-2026-54515 jackson-databind; prior jackson-core/databind 2.21.4 CVE set")
                 }
             }
             if (details.requested.group == "io.netty") {

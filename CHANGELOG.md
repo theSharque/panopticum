@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [8.4.2] - 2026-07-13
+
+### Security
+
+- Jackson alignment to 2.21.5 (CVE-2026-54515 on jackson-databind)
+- Logback alignment to 1.5.35 (CVE-2026-10532, CVE-2026-9828)
+
 ## [8.4.1] - 2026-06-28
 
 ### Security
