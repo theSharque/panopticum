@@ -4,7 +4,7 @@ replicaCount: 1
 image:
   repository: ghcr.io/thesharque/panopticum
   pullPolicy: IfNotPresent
-  tag: "latest"
+  tag: ""
 
 imagePullSecrets: []
 nameOverride: ""
@@ -18,7 +18,7 @@ serviceAccount:
 podAnnotations: {}
 
 podSecurityContext:
-  fsGroup: 1000
+  fsGroup: 1001
 
 securityContext:
   capabilities:
@@ -26,7 +26,7 @@ securityContext:
     - ALL
   readOnlyRootFilesystem: false
   runAsNonRoot: true
-  runAsUser: 1000
+  runAsUser: 1001
 
 service:
   type: ClusterIP
@@ -69,14 +69,14 @@ config:
   # Basic auth credentials
   user: admin
   password: changeme
-  
+
   # H2 database persistence
   dbPath: /data/panopticum
-  
+
   # Lock settings
   adminLock: false
   readOnly: false
-  
+
   # Pre-configured connections (JSON array)
   # connectionsJson: |
   #   [

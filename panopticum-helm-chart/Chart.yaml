@@ -1,8 +1,8 @@
 apiVersion: v2
 name: panopticum
 description: A tool for developers and QA — web interface for viewing and managing database connections
-version: 1.0.3
-appVersion: "8.0.3"
+version: 1.0.4
+appVersion: "8.4.1"
 type: application
 keywords:
   - database
@@ -29,8 +29,12 @@ annotations:
   artifacthub.io/license: Apache-2.0
   artifacthub.io/prerelease: "false"
   artifacthub.io/changes: |
-    - kind: security
-      description: App image 8.0.3 — explicit deps + Gradle CVE pin notes (see CHANGELOG)
+    - kind: changed
+      description: App image 8.4.1 — activity audit, lightweight SQL pagination, Jackson 2.21.4 CVE fixes
+    - kind: fixed
+      description: Align pod securityContext UID/GID with image user 1001
+    - kind: changed
+      description: Default image tag follows Chart.appVersion instead of latest
   artifacthub.io/links: |
     - name: Source
       url: https://github.com/thesharque/panopticum
