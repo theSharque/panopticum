@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [8.4.3] - 2026-07-20
+
+### Fixed
+
+- CodeMirror JSON/SQL editors: Ctrl+F opens an in-app search panel fixed to the viewport
+- H2 metadata store: enable `AUTO_SERVER=TRUE` (port 9099) to reduce file-lock failures
+
 ## [8.4.2] - 2026-07-13
 
 ### Security

@@ -4,7 +4,7 @@ replicaCount: 1
 image:
   repository: sharque/panopticum
   pullPolicy: IfNotPresent
-  tag: "v8.4.2"
+  tag: "v8.4.3"
 
 imagePullSecrets: []
 nameOverride: ""
