@@ -1,14 +1,28 @@
-import { EditorView, placeholder } from '@codemirror/view';
+import { EditorView, keymap, panels, placeholder } from '@codemirror/view';
 import { EditorState } from '@codemirror/state';
 import { syntaxHighlighting, defaultHighlightStyle } from '@codemirror/language';
 import { sql } from '@codemirror/lang-sql';
 import { json } from '@codemirror/lang-json';
 import { oneDark } from '@codemirror/theme-one-dark';
+import { search, searchKeymap, highlightSelectionMatches } from '@codemirror/search';
 
 const CM_REPLACED_CLASS = 'cm-replaced';
+const SEARCH_HOST_ID = 'cm-search-host';
 
 function isDark() {
     return document.body.getAttribute('data-theme') !== 'light';
+}
+
+function getSearchHost() {
+    var host = document.getElementById(SEARCH_HOST_ID);
+    if (host) {
+        return host;
+    }
+    host = document.createElement('div');
+    host.id = SEARCH_HOST_ID;
+    host.className = 'cm-search-host';
+    document.body.appendChild(host);
+    return host;
 }
 
 function initEditor(textarea) {
@@ -18,7 +32,6 @@ function initEditor(textarea) {
 
     var lang = textarea.dataset.lang || 'sql';
     var content = textarea.value || '';
-    var parent = textarea.parentNode;
     var wrapper = document.createElement('div');
     wrapper.className = 'query-editor cm-editor-wrapper';
     textarea.parentNode.insertBefore(wrapper, textarea);
@@ -38,6 +51,10 @@ function initEditor(textarea) {
         isDark() ? oneDark : syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
         languageExtension,
         EditorView.lineWrapping,
+        panels({ topContainer: getSearchHost() }),
+        search({ top: true }),
+        highlightSelectionMatches(),
+        keymap.of(searchKeymap),
         EditorView.theme({
             '&': { fontSize: '13px' },
             '&.cm-editor': { minHeight: '120px' },
@@ -45,6 +62,9 @@ function initEditor(textarea) {
             '.cm-placeholder': {
                 color: 'var(--text-dim)',
                 opacity: '0.85'
+            },
+            '.cm-selectionMatch': {
+                backgroundColor: 'color-mix(in srgb, var(--accent, #3b82f6) 28%, transparent)'
             }
         })
     ];

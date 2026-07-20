@@ -1091,6 +1091,56 @@ body {
     box-shadow: var(--focus-ring);
 }
 
+.cm-search-host {
+    position: fixed;
+    top: 0.75rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2000;
+    width: min(42rem, calc(100vw - 2rem));
+    pointer-events: none;
+}
+
+.cm-search-host .cm-panels,
+.cm-search-host .cm-panels-top,
+.cm-search-host .cm-panels-bottom {
+    position: static !important;
+    left: auto !important;
+    right: auto !important;
+    top: auto !important;
+    bottom: auto !important;
+    z-index: auto !important;
+    pointer-events: auto;
+    width: 100%;
+}
+
+.cm-search-host .cm-panel.cm-search {
+    font-family: var(--font-sans, system-ui, sans-serif);
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-md);
+    padding: 6px 8px;
+}
+
+.cm-search-host .cm-panel.cm-search input {
+    background: var(--bg-content);
+    color: var(--text-primary);
+    border: 1px solid var(--border-strong);
+    border-radius: 4px;
+    padding: 2px 6px;
+}
+
+.cm-search-host .cm-panel.cm-search button {
+    background: var(--bg-content);
+    color: var(--text-primary);
+    border: 1px solid var(--border-strong);
+    border-radius: 4px;
+    cursor: pointer;
+    padding: 2px 8px;
+}
+
 .query-actions {
     display: flex;
     flex-direction: row;

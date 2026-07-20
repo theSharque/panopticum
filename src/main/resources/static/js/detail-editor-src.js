@@ -1,13 +1,38 @@
-import { EditorView } from '@codemirror/view';
+import { EditorView, keymap, panels } from '@codemirror/view';
 import { EditorState } from '@codemirror/state';
 import { syntaxHighlighting, defaultHighlightStyle } from '@codemirror/language';
 import { json } from '@codemirror/lang-json';
 import { oneDark } from '@codemirror/theme-one-dark';
+import { search, searchKeymap, highlightSelectionMatches } from '@codemirror/search';
 
 const CM_REPLACED_CLASS = 'cm-replaced';
+const SEARCH_HOST_ID = 'cm-search-host';
 
 function isDark() {
     return document.body.getAttribute('data-theme') !== 'light';
+}
+
+function getSearchHost() {
+    var host = document.getElementById(SEARCH_HOST_ID);
+    if (host) {
+        return host;
+    }
+    host = document.createElement('div');
+    host.id = SEARCH_HOST_ID;
+    host.className = 'cm-search-host';
+    document.body.appendChild(host);
+    return host;
+}
+
+function searchPanelTheme() {
+    return EditorView.theme({
+        '&': { fontSize: '13px' },
+        '&.cm-editor': { minHeight: '120px' },
+        '&.cm-scroller': { fontFamily: 'var(--font-mono), "JetBrains Mono", monospace' },
+        '.cm-selectionMatch': {
+            backgroundColor: 'color-mix(in srgb, var(--accent, #3b82f6) 28%, transparent)'
+        }
+    });
 }
 
 function initEditor(textarea) {
@@ -15,7 +40,6 @@ function initEditor(textarea) {
         return;
     }
     var content = textarea.value || '';
-    var parent = textarea.parentNode;
     var wrapper = document.createElement('div');
     wrapper.className = 'detail-json cm-editor-wrapper';
     textarea.parentNode.insertBefore(wrapper, textarea);
@@ -33,11 +57,11 @@ function initEditor(textarea) {
         isDark() ? oneDark : syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
         json(),
         EditorView.lineWrapping,
-        EditorView.theme({
-            '&': { fontSize: '13px' },
-            '&.cm-editor': { minHeight: '120px' },
-            '&.cm-scroller': { fontFamily: 'var(--font-mono), "JetBrains Mono", monospace' }
-        })
+        panels({ topContainer: getSearchHost() }),
+        search({ top: true }),
+        highlightSelectionMatches(),
+        keymap.of(searchKeymap),
+        searchPanelTheme()
     ];
 
     var state = EditorState.create({
