@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [8.4.4] - 2026-07-27
+
+### Security
+
+- Jetty alignment to 12.1.10 (CVE-2026-10050, CVE-2026-10051, CVE-2026-6790, CVE-2026-8384)
+- lz4-java alignment to at.yawk.lz4 1.11.1 (CVE-2026-59949); unify Kafka and ClickHouse on the same coordinate
+- ClickHouse JDBC 0.9.8 without `:all` classifier so Scout no longer reports shaded lz4 1.10.x
+
 ## [8.4.3] - 2026-07-20
 
 ### Fixed
