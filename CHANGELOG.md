@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [8.4.5] - 2026-08-20
+
+### Security
+
+- HttpComponents alignment: `httpclient5` 5.6.3 (CVE-2026-64607), `httpcore5` / `httpcore5-h2` 5.4.3 (CVE-2026-54399, CVE-2026-54428); ClickHouse JDBC otherwise keeps 5.3.4/5.4.4 and Micronaut BOM constrains `httpclient5` to 5.5
+
 ## [8.4.4] - 2026-07-27
 
 ### Security

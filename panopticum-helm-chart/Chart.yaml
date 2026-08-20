@@ -1,8 +1,8 @@
 apiVersion: v2
 name: panopticum
 description: A tool for developers and QA — web interface for viewing and managing database connections
-version: 1.0.7
-appVersion: "8.4.4"
+version: 1.0.8
+appVersion: "8.4.5"
 type: application
 keywords:
   - database
@@ -30,12 +30,12 @@ annotations:
   artifacthub.io/prerelease: "false"
   artifacthub.io/changes: |
     - kind: security
-      description: Jetty 12.1.10 and at.yawk.lz4 1.11.1 CVE fixes; ClickHouse JDBC without shaded :all
+      description: HttpClient 5.6.3 and HttpCore 5.4.3 CVE fixes
     - kind: changed
-      description: App image 8.4.4
+      description: App image 8.4.5
   artifacthub.io/images: |
     - name: panopticum
-      image: sharque/panopticum:v8.4.4
+      image: sharque/panopticum:v8.4.5
   artifacthub.io/links: |
     - name: Source
       url: https://github.com/thesharque/panopticum
