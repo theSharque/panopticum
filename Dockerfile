@@ -15,6 +15,9 @@ ENV APP_VERSION=$APP_VERSION
 
 RUN apk update \
     && apk upgrade --no-cache \
+    && apk add --no-cache --upgrade \
+        libssl3 \
+        libcrypto3 \
     && apk del --no-cache \
         gnupg \
         gpg \

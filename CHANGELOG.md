@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- Docker runtime: `apk upgrade` `libssl3` / `libcrypto3` to 3.5.8 (CVE-2026-18798, CVE-2026-14457, CVE-2026-63072, CVE-2026-14456, CVE-2026-63075, CVE-2026-54874, CVE-2026-63076, CVE-2026-63074, CVE-2026-75803); OpenSSL CLI already removed. Fresh Temurin Alpine also brings `busybox` 1.37.0-r31 (CVE-2025-60876 was `<=1.37.0-r30`)
+
 ## [8.4.5] - 2026-08-20
 
 ### Security
