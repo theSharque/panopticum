@@ -3,6 +3,8 @@ package com.panopticum.core.error;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.util.function.Function;
+
 @Getter
 @Builder
 public class AccessResult<T> {
@@ -41,5 +43,16 @@ public class AccessResult<T> {
 
     public boolean isOk() {
         return status == Status.OK;
+    }
+
+    public <U> AccessResult<U> map(Function<T, U> mapper) {
+        if (!isOk()) {
+            return AccessResult.<U>builder()
+                    .status(status)
+                    .messageKey(messageKey)
+                    .build();
+        }
+
+        return AccessResult.ok(mapper.apply(payload));
     }
 }

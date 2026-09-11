@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [8.4.7] - 2026-09-11
+
+### Fixed
+
+- MCP `tools/call` tool-level failures return `isError: true` with the error text instead of JSON-RPC `-32603 Internal error`
+- Kubernetes `list-entities`: 401/403/404 on pods are returned as errors instead of an empty pod list
+- Kubernetes `describe-entity`: pod access failures (not found, forbidden) surface the Kubernetes error instead of a generic failure
+
 ## [8.4.6] - 2026-08-27
 
 ### Security

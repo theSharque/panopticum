@@ -2,6 +2,7 @@ package com.panopticum.mcp.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.panopticum.core.error.AccessResult;
 import com.panopticum.core.model.EntityDescription;
 import com.panopticum.mcp.model.McpToolContent;
 import com.panopticum.mcp.model.McpToolRequest;
@@ -12,7 +13,6 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 @Slf4j
 @Singleton
@@ -51,15 +51,15 @@ public class DescribeEntityToolExecutor implements McpToolExecutor {
 
         log.info("MCP describe-entity connectionId={} entity={}", connectionId, entity);
 
-        Optional<EntityDescription> descOpt = metadataFacadeService.describeEntity(
+        AccessResult<EntityDescription> descResult = metadataFacadeService.describeEntity(
                 connectionId, catalog, namespace, entity, sampleSize);
 
-        if (descOpt.isEmpty()) {
-            return error("describe.notSupported");
+        if (!descResult.isOk()) {
+            return error(descResult.getMessageKey() != null ? descResult.getMessageKey() : "describe.notSupported");
         }
 
         try {
-            String json = objectMapper.writeValueAsString(descOpt.get());
+            String json = objectMapper.writeValueAsString(descResult.getPayload());
             return McpToolResponse.builder()
                     .content(List.of(McpToolContent.builder().type("text").text(json).build()))
                     .isError(false)

@@ -97,21 +97,20 @@ public class KubernetesService {
         return Page.of(sorted, page, size, sort, order);
     }
 
-    public Page<KubernetesPodInfo> listPodsPaged(Long connectionId, String namespace, int page, int size,
-                                                 String sort, String order) {
+    public AccessResult<Page<KubernetesPodInfo>> listPodsPaged(Long connectionId, String namespace, int page, int size,
+                                                               String sort, String order) {
         Optional<DbConnection> conn = dbConnectionService.findById(connectionId);
-        if (conn.isEmpty() || namespace == null || namespace.isBlank()) {
-            return Page.of(List.of(), page, size, sort, order);
+        if (conn.isEmpty()) {
+            return AccessResult.notFound("connection.notFound");
         }
-        DbConnection c = conn.get();
-        if (!KubernetesNamespaceCsv.parse(c.getDbName()).contains(namespace)) {
-            return Page.of(List.of(), page, size, sort, order);
+        if (namespace == null || namespace.isBlank()) {
+            return AccessResult.error("kubernetes.namespaceRequired");
         }
-        String masterUrl = resolveMasterUrl(c.getHost(), c.getPort());
-        if (masterUrl == null || c.getPassword() == null || c.getPassword().isBlank()) {
-            return Page.of(List.of(), page, size, sort, order);
+        if (!KubernetesNamespaceCsv.parse(conn.get().getDbName()).contains(namespace)) {
+            return AccessResult.forbidden("kubernetes.namespaceNotAllowed");
         }
-        try (KubernetesClient client = newClient(masterUrl, c.getPassword())) {
+
+        return withClient(connectionId, client -> {
             List<Pod> pods = client.pods().inNamespace(namespace).list().getItems();
             List<KubernetesPodInfo> infos = new ArrayList<>();
             for (Pod p : pods) {
@@ -130,11 +129,9 @@ public class KubernetesService {
             }
             Comparator<KubernetesPodInfo> cmp = podComparator(sort, order);
             infos.sort(cmp);
-            return Page.of(infos, page, size, sort, order);
-        } catch (KubernetesClientException e) {
-            log.warn("listPods failed: {}", e.getMessage());
-            return Page.of(List.of(), page, size, sort, order);
-        }
+
+            return AccessResult.ok(Page.of(infos, page, size, sort, order));
+        });
     }
 
     public QueryResult tailPodLogs(Long connectionId, String namespace, String podName, int tailLines) {

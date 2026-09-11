@@ -203,9 +203,14 @@ public class MetadataFacadeService {
                 case "mongodb" -> toMongoEntityPage(mongoMetadataService.listCollectionsPaged(connectionId, cat, page, size, sort, order), cat);
                 case "cassandra" -> toCassandraEntityPage(cassandraMetadataService.listTablesPaged(connectionId, cat, page, size, sort, order), cat);
                 case "kafka" -> cat.isBlank() ? emptyEntityPage("", "") : toKafkaPartitionEntityPage(kafkaService.getPartitions(connectionId, cat), cat, page, size);
-                case "kubernetes" -> cat.isBlank()
-                        ? errorResult("kubernetes.namespaceRequired")
-                        : toKubernetesPodEntityPage(kubernetesService.listPodsPaged(connectionId, cat, page, size, sort, order), cat);
+                case "kubernetes" -> {
+                    if (cat.isBlank()) {
+                        yield errorResult("kubernetes.namespaceRequired");
+                    }
+                    AccessResult<Page<KubernetesPodInfo>> r = kubernetesService.listPodsPaged(
+                            connectionId, cat, page, size, sort, order);
+                    yield r.isOk() ? toKubernetesPodEntityPage(r.getPayload(), cat) : errorResult(r.getMessageKey());
+                }
                 case "redis", "elasticsearch" -> notApplicableResult();
                 case "rabbitmq" -> toRabbitQueueEntityPage(rabbitMqMetadataService.listQueues(connectionId), cat, page, size, sort, order);
                 case "s3" -> {
@@ -1019,10 +1024,10 @@ public class MetadataFacadeService {
         return MCP_QUERY_HARD_LIMIT;
     }
 
-    public Optional<EntityDescription> describeEntity(Long connectionId, String catalog, String namespace, String entity, int sampleSize) {
+    public AccessResult<EntityDescription> describeEntity(Long connectionId, String catalog, String namespace, String entity, int sampleSize) {
         Optional<DbConnection> connOpt = dbConnectionService.findById(connectionId);
         if (connOpt.isEmpty()) {
-            return Optional.empty();
+            return AccessResult.notFound("connection.notFound");
         }
 
         String type = ConnectionType.normalizeTypeId(connOpt.get().getType());
@@ -1031,60 +1036,75 @@ public class MetadataFacadeService {
 
         try {
             return switch (type) {
-                case "postgresql", "greenplum", "yugabytedb", "cockroachdb" -> postgresMetadataService.describeEntity(connectionId, cat, ns, entity)
-                        .map(d -> withConnectionId(d, connectionId, type));
-                case "h2", "hsqldb", "derby" -> lightJdbcMetadataService.describeEntity(connectionId, cat, ns, entity)
-                        .map(d -> withConnectionId(d, connectionId, type));
-                case "couchbase" -> couchbaseMetadataService.describeCollection(connectionId, cat, ns, entity)
-                        .map(d -> withConnectionId(d, connectionId, type));
-                case "mysql" -> mySqlMetadataService.describeEntity(connectionId, cat, entity)
-                        .map(d -> withConnectionId(d, connectionId, type));
-                case "sqlserver" -> sqlServerMetadataService.describeEntity(connectionId, cat, ns, entity)
-                        .map(d -> withConnectionId(d, connectionId, type));
+                case "postgresql", "greenplum", "yugabytedb", "cockroachdb" -> orNotSupported(
+                        postgresMetadataService.describeEntity(connectionId, cat, ns, entity)
+                                .map(d -> withConnectionId(d, connectionId, type)));
+                case "h2", "hsqldb", "derby" -> orNotSupported(
+                        lightJdbcMetadataService.describeEntity(connectionId, cat, ns, entity)
+                                .map(d -> withConnectionId(d, connectionId, type)));
+                case "couchbase" -> orNotSupported(
+                        couchbaseMetadataService.describeCollection(connectionId, cat, ns, entity)
+                                .map(d -> withConnectionId(d, connectionId, type)));
+                case "mysql" -> orNotSupported(
+                        mySqlMetadataService.describeEntity(connectionId, cat, entity)
+                                .map(d -> withConnectionId(d, connectionId, type)));
+                case "sqlserver" -> orNotSupported(
+                        sqlServerMetadataService.describeEntity(connectionId, cat, ns, entity)
+                                .map(d -> withConnectionId(d, connectionId, type)));
                 case "oracle" -> {
                     String schema = ns.isEmpty() ? ("default".equals(cat) ? resolveDefaultCatalog(connOpt.get()) : cat) : ns;
-                    yield oracleMetadataService.describeEntity(connectionId, cat, schema, entity)
-                            .map(d -> withConnectionId(d, connectionId, type));
+                    yield orNotSupported(oracleMetadataService.describeEntity(connectionId, cat, schema, entity)
+                            .map(d -> withConnectionId(d, connectionId, type)));
                 }
-                case "clickhouse" -> clickHouseMetadataService.describeEntity(connectionId, cat, entity)
-                        .map(d -> withConnectionId(d, connectionId, type));
-                case "mongodb" -> mongoMetadataService.describeEntity(connectionId, cat, entity, sampleSize)
-                        .map(d -> withConnectionId(d, connectionId, type));
-                case "cassandra" -> cassandraMetadataService.describeEntity(connectionId, cat, entity)
-                        .map(d -> withConnectionId(d, connectionId, type));
-                case "elasticsearch" -> elasticsearchMetadataService.describeIndex(connectionId, entity)
-                        .map(d -> withConnectionId(d, connectionId, type));
+                case "clickhouse" -> orNotSupported(
+                        clickHouseMetadataService.describeEntity(connectionId, cat, entity)
+                                .map(d -> withConnectionId(d, connectionId, type)));
+                case "mongodb" -> orNotSupported(
+                        mongoMetadataService.describeEntity(connectionId, cat, entity, sampleSize)
+                                .map(d -> withConnectionId(d, connectionId, type)));
+                case "cassandra" -> orNotSupported(
+                        cassandraMetadataService.describeEntity(connectionId, cat, entity)
+                                .map(d -> withConnectionId(d, connectionId, type)));
+                case "elasticsearch" -> orNotSupported(
+                        elasticsearchMetadataService.describeIndex(connectionId, entity)
+                                .map(d -> withConnectionId(d, connectionId, type)));
                 case "redis" -> {
                     int dbIndex = 0;
                     try { dbIndex = Integer.parseInt(cat); } catch (Exception ignored) {}
-                    yield redisMetadataService.describeKey(connectionId, dbIndex, entity)
-                            .map(d -> withConnectionId(d, connectionId, type));
+                    yield orNotSupported(redisMetadataService.describeKey(connectionId, dbIndex, entity)
+                            .map(d -> withConnectionId(d, connectionId, type)));
                 }
-                case "kafka" -> kafkaService.describeEntity(connectionId, entity)
-                        .map(d -> withConnectionId(d, connectionId, type));
-                case "rabbitmq" -> rabbitMqMetadataService.describeQueue(connectionId, cat, entity)
-                        .map(d -> withConnectionId(d, connectionId, type));
+                case "kafka" -> orNotSupported(
+                        kafkaService.describeEntity(connectionId, entity)
+                                .map(d -> withConnectionId(d, connectionId, type)));
+                case "rabbitmq" -> orNotSupported(
+                        rabbitMqMetadataService.describeQueue(connectionId, cat, entity)
+                                .map(d -> withConnectionId(d, connectionId, type)));
                 case "kubernetes" -> {
-                    if (cat == null || cat.isBlank() || entity == null || entity.isBlank()) {
-                        yield Optional.empty();
+                    if (cat == null || cat.isBlank()) {
+                        yield AccessResult.error("kubernetes.namespaceRequired");
                     }
-                    AccessResult<KubernetesPodDescription> r = kubernetesService.describePod(connectionId, cat, entity);
-                    yield r.isOk() ? Optional.of(withConnectionId(podToEntityDescription(r.getPayload()), connectionId, type)) : Optional.empty();
+                    if (entity == null || entity.isBlank()) {
+                        yield AccessResult.error("kubernetes.podNameRequired");
+                    }
+                    yield kubernetesService.describePod(connectionId, cat, entity)
+                            .map(pod -> withConnectionId(podToEntityDescription(pod), connectionId, type));
                 }
-                case "s3" -> {
-                    AccessResult<EntityDescription> r = s3Service.describeObject(connectionId, cat, entity);
-                    yield r.isOk() ? Optional.of(withConnectionId(r.getPayload(), connectionId, type)) : Optional.empty();
-                }
-                case "prometheus" -> {
-                    AccessResult<EntityDescription> r = prometheusService.describeMetric(connectionId, entity);
-                    yield r.isOk() ? Optional.of(withConnectionId(r.getPayload(), connectionId, type)) : Optional.empty();
-                }
-                default -> Optional.empty();
+                case "s3" -> s3Service.describeObject(connectionId, cat, entity)
+                        .map(d -> withConnectionId(d, connectionId, type));
+                case "prometheus" -> prometheusService.describeMetric(connectionId, entity)
+                        .map(d -> withConnectionId(d, connectionId, type));
+                default -> AccessResult.notFound("describe.notSupported");
             };
         } catch (Exception e) {
             log.warn("describeEntity failed for connection {} entity {}: {}", connectionId, entity, e.getMessage());
-            return Optional.empty();
+
+            return AccessResult.error(e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName());
         }
+    }
+
+    private static AccessResult<EntityDescription> orNotSupported(Optional<EntityDescription> opt) {
+        return opt.map(AccessResult::ok).orElseGet(() -> AccessResult.notFound("describe.notSupported"));
     }
 
     private static EntityDescription withConnectionId(EntityDescription desc, Long connectionId, String dbType) {

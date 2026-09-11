@@ -114,9 +114,11 @@ public class KubernetesController {
         model.put("connectionId", id);
         model.put("namespace", ns);
 
-        Page<KubernetesPodInfo> paged = kubernetesService.listPodsPaged(id, ns, page, size, sort, order);
-        ControllerModelHelper.addPagination(model, paged, "items");
-        ControllerModelHelper.addOrderToggles(model, paged.getSort(), paged.getOrder(),
+        AccessResult<Page<KubernetesPodInfo>> result = kubernetesService.listPodsPaged(id, ns, page, size, sort, order);
+        applyAccessResult(model, result, "items");
+        String sortKey = result.isOk() ? result.getPayload().getSort() : sort;
+        String orderKey = result.isOk() ? result.getPayload().getOrder() : order;
+        ControllerModelHelper.addOrderToggles(model, sortKey, orderKey,
                 Map.of("name", "orderName", "phase", "orderPhase"));
 
         return model;

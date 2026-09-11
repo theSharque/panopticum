@@ -1,6 +1,7 @@
 package com.panopticum.mcp.service;
 
 import com.panopticum.core.audit.AuditService;
+import com.panopticum.i18n.Messages;
 import com.panopticum.mcp.model.JsonRpcError;
 import com.panopticum.mcp.model.JsonRpcRequest;
 import com.panopticum.mcp.model.JsonRpcResponse;
@@ -110,28 +111,41 @@ public class McpService {
                 .arguments(arguments)
                 .build();
 
-        McpToolResponse mcpResponse = toolRegistry.executeTool(toolRequest);
+        try {
+            McpToolResponse mcpResponse = toolRegistry.executeTool(toolRequest);
+            boolean isError = Boolean.TRUE.equals(mcpResponse.getIsError());
 
-        Map<String, Object> result = new HashMap<>();
-        if (mcpResponse.getContent() != null && !mcpResponse.getContent().isEmpty()) {
-            result.put("content", mcpResponse.getContent());
-        } else if (Boolean.TRUE.equals(mcpResponse.getIsError()) && mcpResponse.getError() != null) {
-            result.put("content", List.of(Map.of("type", "text", "text", mcpResponse.getError())));
-        }
-        result.put("isError", mcpResponse.getIsError() != null ? mcpResponse.getIsError() : false);
+            Map<String, Object> result = new HashMap<>();
+            if (mcpResponse.getContent() != null && !mcpResponse.getContent().isEmpty()) {
+                result.put("content", mcpResponse.getContent());
+            } else if (isError && mcpResponse.getError() != null) {
+                result.put("content", List.of(Map.of("type", "text", "text", resolveMcpError(mcpResponse.getError()))));
+            } else {
+                result.put("content", List.of());
+            }
+            result.put("isError", isError);
 
-        if (Boolean.TRUE.equals(mcpResponse.getIsError())
-                && (mcpResponse.getContent() == null || mcpResponse.getContent().isEmpty())
-                && mcpResponse.getError() != null) {
+            return JsonRpcResponse.builder()
+                    .jsonrpc("2.0")
+                    .result(result)
+                    .id(request.getId())
+                    .build();
+        } catch (Exception e) {
+            log.error("MCP tools/call failed tool={}", toolName, e);
+
             return createErrorResponse(request.getId(), JSON_RPC_INTERNAL_ERROR, "Internal error",
-                    mcpResponse.getError());
+                    e.getMessage());
+        }
+    }
+
+    private static String resolveMcpError(String message) {
+        if (message == null || message.isBlank()) {
+            return "error";
         }
 
-        return JsonRpcResponse.builder()
-                .jsonrpc("2.0")
-                .result(result)
-                .id(request.getId())
-                .build();
+        String resolved = Messages.forLocale("en").get(message);
+
+        return resolved != null ? resolved : message;
     }
 
     private JsonRpcResponse createErrorResponse(Object id, int code, String message, String data) {
