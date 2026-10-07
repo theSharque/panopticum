@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [8.4.8] - 2026-10-07
+
+### Security
+
+- Jackson alignment to 2.21.7 (CVE-2026-91777, CVE-2026-91776, CVE-2026-68497, CVE-2026-83557, CVE-2026-19032 on jackson-databind; CVE-2026-89407, CVE-2026-89425 on jackson-core)
+- Docker runtime: `apk upgrade` `zlib` to 1.3.2-r1 (CVE-2026-85091)
+
 ## [8.4.7] - 2026-09-11
 
 ### Fixed

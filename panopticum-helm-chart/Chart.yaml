@@ -1,8 +1,8 @@
 apiVersion: v2
 name: panopticum
 description: A tool for developers and QA — web interface for viewing and managing database connections
-version: 1.0.10
-appVersion: "8.4.7"
+version: 1.0.11
+appVersion: "8.4.8"
 type: application
 keywords:
   - database
@@ -29,13 +29,13 @@ annotations:
   artifacthub.io/license: Apache-2.0
   artifacthub.io/prerelease: "false"
   artifacthub.io/changes: |
-    - kind: fixed
-      description: MCP tool errors and Kubernetes pod list/describe failures are visible to clients
     - kind: changed
-      description: App image 8.4.7
+      description: App image 8.4.8
+    - kind: security
+      description: Jackson 2.21.7 and Alpine zlib 1.3.2-r1 CVE fixes
   artifacthub.io/images: |
     - name: panopticum
-      image: sharque/panopticum:v8.4.7
+      image: sharque/panopticum:v8.4.8
   artifacthub.io/links: |
     - name: Source
       url: https://github.com/thesharque/panopticum
