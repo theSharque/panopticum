@@ -4,7 +4,7 @@ plugins {
     id("com.diffplug.spotless") version "8.5.1"
 }
 
-version = "8.4.8"
+version = "8.4.9"
 group = "com.panopticum"
 
 repositories {
@@ -24,8 +24,8 @@ micronaut {
 configurations.all {
     resolutionStrategy {
         dependencySubstitution {
-            substitute(module("org.lz4:lz4-java")).using(module("at.yawk.lz4:lz4-java:1.11.1"))
-                .because("CVE-2026-59949; unify kafka org.lz4 and clickhouse at.yawk.lz4 on 1.11.1")
+            substitute(module("org.lz4:lz4-java")).using(module("at.yawk.lz4:lz4-java:1.11.4"))
+                .because("CVE-2026-59949, CVE-2026-106449, CVE-2026-106450, CVE-2026-106451, CVE-2026-106452, CVE-2026-106453; unify kafka org.lz4 and clickhouse at.yawk.lz4 on 1.11.4")
         }
         eachDependency { details ->
             if (details.requested.group == "ch.qos.logback") {
@@ -45,8 +45,8 @@ configurations.all {
                 details.because("CVE-2025-67721")
             }
             if (details.requested.group == "at.yawk.lz4" && details.requested.name == "lz4-java") {
-                details.useVersion("1.11.1")
-                details.because("CVE-2026-59949")
+                details.useVersion("1.11.4")
+                details.because("CVE-2026-59949, CVE-2026-106449, CVE-2026-106450, CVE-2026-106451, CVE-2026-106452, CVE-2026-106453")
             }
             if (details.requested.group == "org.eclipse.jetty") {
                 def jetty12Core = [
