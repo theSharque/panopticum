@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [8.4.9] - 2026-10-08
+
 ### Security
 
 - lz4-java alignment to at.yawk.lz4 1.11.4 (CVE-2026-106449, CVE-2026-106450, CVE-2026-106451, CVE-2026-106452, CVE-2026-106453); keep Kafka/ClickHouse on the same coordinate
