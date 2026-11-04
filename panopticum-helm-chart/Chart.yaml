@@ -1,8 +1,8 @@
 apiVersion: v2
 name: panopticum
 description: A tool for developers and QA — web interface for viewing and managing database connections
-version: 1.0.12
-appVersion: "8.4.9"
+version: 1.0.13
+appVersion: "8.4.10"
 type: application
 keywords:
   - database
@@ -30,12 +30,12 @@ annotations:
   artifacthub.io/prerelease: "false"
   artifacthub.io/changes: |
     - kind: changed
-      description: App image 8.4.9
+      description: App image 8.4.10
     - kind: security
-      description: lz4-java 1.11.4 CVE fixes
+      description: Guava 33.7.2-jre, Kerby 2.1.2, OGNL 3.4.13, Alpine musl CVE fixes
   artifacthub.io/images: |
     - name: panopticum
-      image: sharque/panopticum:v8.4.9
+      image: sharque/panopticum:v8.4.10
   artifacthub.io/links: |
     - name: Source
       url: https://github.com/thesharque/panopticum

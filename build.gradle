@@ -4,7 +4,7 @@ plugins {
     id("com.diffplug.spotless") version "8.5.1"
 }
 
-version = "8.4.9"
+version = "8.4.10"
 group = "com.panopticum"
 
 repositories {
@@ -47,6 +47,18 @@ configurations.all {
             if (details.requested.group == "at.yawk.lz4" && details.requested.name == "lz4-java") {
                 details.useVersion("1.11.4")
                 details.because("CVE-2026-59949, CVE-2026-106449, CVE-2026-106450, CVE-2026-106451, CVE-2026-106452, CVE-2026-106453")
+            }
+            if (details.requested.group == "com.google.guava" && details.requested.name == "guava") {
+                details.useVersion("33.7.2-jre")
+                details.because("CVE-2026-102554")
+            }
+            if (details.requested.group == "org.apache.kerby") {
+                details.useVersion("2.1.2")
+                details.because("CVE-2026-57914 kerby-asn1")
+            }
+            if (details.requested.group == "ognl" && details.requested.name == "ognl") {
+                details.useVersion("3.4.13")
+                details.because("CVE-2026-113730")
             }
             if (details.requested.group == "org.eclipse.jetty") {
                 def jetty12Core = [
@@ -196,4 +208,5 @@ shadowJar {
     mergeServiceFiles()
     archiveFileName.set("panopticum-all.jar")
     exclude("META-INF/maven/io.netty/**")
+    exclude("META-INF/maven/com.google.guava/**")
 }

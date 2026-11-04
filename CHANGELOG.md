@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [8.4.10] - 2026-11-04
+
+### Security
+
+- Guava alignment to 33.7.2-jre (CVE-2026-102554); drop Couchbase `core-io` shaded `META-INF/maven/com.google.guava/**` (same as Netty) so Scout does not keep 33.4.0-jre
+- Kerby alignment to 2.1.2 (CVE-2026-57914)
+- OGNL alignment to 3.4.13 (CVE-2026-113730)
+- Docker runtime: `apk upgrade` `musl` to 1.2.6-r6 (CVE-2026-107891)
+
 ## [8.4.9] - 2026-10-08
 
 ### Security
