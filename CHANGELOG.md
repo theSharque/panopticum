@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [8.4.11] - 2026-11-05
+
+### Fixed
+
+- Keep OGNL on 3.3.4: Thymeleaf 3.1.3 is incompatible with 3.4.13 (CVE-2026-113730); `th:if` threw `NoSuchMethodError` on `OgnlContext.<init>`
+
 ## [8.4.10] - 2026-11-04
 
 ### Security
