@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [8.4.12] - 2026-11-08
+
+### Security
+
+- Docker runtime: pin `zlib` to 1.4-r0 (CVE-2026-4738; Alpine 3.23/3.24)
+
 ## [8.4.11] - 2026-11-05
 
 ### Fixed

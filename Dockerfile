@@ -18,7 +18,7 @@ RUN apk update \
     && apk add --no-cache --upgrade \
         libssl3 \
         libcrypto3 \
-        zlib \
+        zlib=1.4-r0 \
         musl \
     && apk del --no-cache \
         gnupg \
