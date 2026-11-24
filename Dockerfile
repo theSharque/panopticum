@@ -16,8 +16,8 @@ ENV APP_VERSION=$APP_VERSION
 RUN apk update \
     && apk upgrade --no-cache \
     && apk add --no-cache --upgrade \
-        libssl3 \
-        libcrypto3 \
+        libssl3=3.5.9-r1 \
+        libcrypto3=3.5.9-r1 \
         zlib=1.4-r0 \
         musl \
     && apk del --no-cache \

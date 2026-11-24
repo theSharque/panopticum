@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [8.4.13] - 2026-11-24
+
+### Security
+
+- Docker runtime: pin `libssl3` / `libcrypto3` to 3.5.9-r1 (CVE-2026-95691, CVE-2026-107496, CVE-2026-95692, CVE-2026-88823, CVE-2026-88822)
+
 ## [8.4.12] - 2026-11-08
 
 ### Security
